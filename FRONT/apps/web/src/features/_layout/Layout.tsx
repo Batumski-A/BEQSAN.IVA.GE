@@ -45,9 +45,9 @@ export function Layout() {
           </div>
 
           <div>
-            <h4 className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
+            <p className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
               {t('nav.configurator').toUpperCase()}
-            </h4>
+            </p>
             <ul className="mt-4 space-y-3 text-body-sm text-fg-secondary">
               <li>
                 <Link to="/configurator" className="hover:text-fg-primary">
@@ -68,15 +68,15 @@ export function Layout() {
           </div>
 
           <div>
-            <h4 className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
+            <p className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
               {t('footer.phone').toUpperCase()}
-            </h4>
+            </p>
             <p className="mt-4 font-mono text-mono-spec text-fg-primary">
               {t('footer.phoneValue')}
             </p>
-            <h4 className="mt-6 font-mono text-caption uppercase tracking-wider text-fg-tertiary">
+            <p className="mt-6 font-mono text-caption uppercase tracking-wider text-fg-tertiary">
               {t('footer.hours').toUpperCase()}
-            </h4>
+            </p>
             <p className="mt-4 text-body-sm text-fg-secondary">{t('footer.hoursValue')}</p>
           </div>
         </div>

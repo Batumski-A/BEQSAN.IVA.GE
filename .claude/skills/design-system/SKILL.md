@@ -39,7 +39,7 @@ BEQSAN makes physical aluminum and glass in a real Batumi workshop. The site mus
 /* Foreground */
 --fg-primary:     oklch(96% 0.005 95);
 --fg-secondary:   oklch(78% 0.008 95);
---fg-tertiary:    oklch(56% 0.01 250);
+--fg-tertiary:    oklch(62% 0.01 250);   /* lifted from 56% to clear 4.5:1 contrast on bg-base */
 --fg-disabled:    oklch(38% 0.01 250);
 
 /* Brushed aluminum */

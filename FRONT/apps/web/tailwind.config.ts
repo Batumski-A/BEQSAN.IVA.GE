@@ -15,7 +15,9 @@ const config: Config = {
         fg: {
           primary: 'oklch(96% 0.005 95)',
           secondary: 'oklch(78% 0.008 95)',
-          tertiary: 'oklch(56% 0.01 250)',
+          // 62% lifts captions above WCAG 4.5:1 contrast against bg-base
+          // (was 56% which measured ~4.0:1 in Lighthouse on 2026-05-17).
+          tertiary: 'oklch(62% 0.01 250)',
           disabled: 'oklch(38% 0.01 250)',
         },
         mat: {
