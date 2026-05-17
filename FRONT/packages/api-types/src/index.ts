@@ -60,6 +60,37 @@ export type ColorSelectionInput = {
   customRalCode?: string | null;
 };
 
+// Step 7 — accessories. Three enums on the wire (PascalCase matching the
+// BACK Enum.TryParse contract). Mosquito net stays per-pane on
+// ConfigurationPaneInput; the Step-7 UI only reviews it.
+export type SillPosition = 'Inner' | 'Outer' | 'Both';
+export type BlindControl = 'Manual' | 'Electric' | 'Remote';
+
+export type SillSelectionInput = {
+  position: SillPosition;
+  colorOptionId?: string | null;
+  customLengthCm?: number | null;
+};
+
+export type BlindSelectionInput = {
+  blindTypeId: string;
+  control: BlindControl;
+  colorOptionId?: string | null;
+};
+
+/**
+ * Configuration-level accessory bundle. Every field is optional — the
+ * customer can skip the whole step. Door product types must populate
+ * handleStyleId + lockTypeId when any pane opens; the validator
+ * enforces with `reason: "door"` metadata.
+ */
+export type AccessorySelectionInput = {
+  handleStyleId?: string | null;
+  lockTypeId?: string | null;
+  sill?: SillSelectionInput | null;
+  blind?: BlindSelectionInput | null;
+};
+
 export type HealthChecks = {
   db: { status: 'up' | 'down' | 'degraded'; latencyMs: number };
   cache: { status: 'up' | 'down' | 'degraded'; latencyMs: number };

@@ -89,6 +89,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/materials/{materialId}/handle-styles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Handle styles compatible with a material */
+        get: operations["GetHandleStylesByMaterial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/product-types/{productTypeId}/lock-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lock types compatible with a product type */
+        get: operations["GetLockTypesByProductType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/catalog/product-types/{productTypeId}/blind-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blind types compatible with a product type */
+        get: operations["GetBlindTypesByProductType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/configurator/price": {
         parameters: {
             query?: never;
@@ -127,6 +178,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessorySelectionInput: {
+            /** Format: uuid */
+            handleStyleId?: string | null;
+            /** Format: uuid */
+            lockTypeId?: string | null;
+            sill?: components["schemas"]["SillSelectionInput"];
+            blind?: components["schemas"]["BlindSelectionInput"];
+        };
         ApiError: {
             code?: string | null;
             message?: string | null;
@@ -134,6 +193,36 @@ export interface components {
             metadata?: {
                 [key: string]: unknown;
             } | null;
+        };
+        BlindSelectionInput: {
+            /** Format: uuid */
+            blindTypeId?: string;
+            control?: string | null;
+            /** Format: uuid */
+            colorOptionId?: string | null;
+        };
+        BlindTypeDto: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            placement?: string | null;
+            supportsElectric?: boolean;
+            /** Format: int32 */
+            baseMountingMinor?: number;
+            baseMountingDisplay?: string | null;
+            /** Format: int32 */
+            surchargePerSqmMinor?: number;
+            surchargePerSqmDisplay?: string | null;
+            currency?: string | null;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        BlindTypeDtoIReadOnlyListApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["BlindTypeDto"][] | null;
+            errors?: components["schemas"]["ApiError"][] | null;
         };
         ColorOptionDto: {
             /** Format: uuid */
@@ -177,6 +266,7 @@ export interface components {
             heightCm?: number;
             panes?: components["schemas"]["ConfigurationPaneInput"][] | null;
             color?: components["schemas"]["ColorSelectionInput"];
+            accessories?: components["schemas"]["AccessorySelectionInput"];
         };
         ConfigurationPaneInput: {
             /** Format: int32 */
@@ -223,10 +313,54 @@ export interface components {
             value?: components["schemas"]["GlassTypeDto"][] | null;
             errors?: components["schemas"]["ApiError"][] | null;
         };
+        HandleStyleDto: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            family?: string | null;
+            imageUrl?: string | null;
+            /** Format: int32 */
+            surchargePerPaneMinor?: number;
+            surchargeDisplay?: string | null;
+            currency?: string | null;
+            isDefault?: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        HandleStyleDtoIReadOnlyListApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["HandleStyleDto"][] | null;
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
         LocalizedText: {
             ka?: string | null;
             en?: string | null;
             ru?: string | null;
+        };
+        LockTypeDto: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            grade?: string | null;
+            /** Format: int32 */
+            securityRating?: number;
+            requiresCasementOrTurn?: boolean;
+            /** Format: int32 */
+            surchargePerPaneMinor?: number;
+            surchargeDisplay?: string | null;
+            currency?: string | null;
+            isDefault?: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        LockTypeDtoIReadOnlyListApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["LockTypeDto"][] | null;
+            errors?: components["schemas"]["ApiError"][] | null;
         };
         MaterialDto: {
             /** Format: uuid */
@@ -316,6 +450,13 @@ export interface components {
             isSuccess?: boolean;
             value?: components["schemas"]["ProductTypeDto"][] | null;
             errors?: components["schemas"]["ApiError"][] | null;
+        };
+        SillSelectionInput: {
+            position?: string | null;
+            /** Format: uuid */
+            colorOptionId?: string | null;
+            /** Format: int32 */
+            customLengthCm?: number | null;
         };
     };
     responses: never;
@@ -493,6 +634,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ColorOptionDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetHandleStylesByMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandleStyleDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLockTypesByProductType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productTypeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LockTypeDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetBlindTypesByProductType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productTypeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlindTypeDtoIReadOnlyListApiResponse"];
                 };
             };
             /** @description Not Found */
