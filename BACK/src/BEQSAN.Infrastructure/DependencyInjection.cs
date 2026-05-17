@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddDbContext<BeqsanDbContext>(opts =>
         {
             opts.UseSqlite(dbOptions.ConnectionString);
+            opts.UseSnakeCaseNamingConvention();
         });
 
         services.AddScoped<IBeqsanDbContext>(sp => sp.GetRequiredService<BeqsanDbContext>());
