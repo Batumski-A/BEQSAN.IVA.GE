@@ -46,6 +46,11 @@ internal sealed class ProductTypeConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(x => x.IsActive).IsRequired();
         builder.Property(x => x.CreatedAtUtc).IsRequired();
 
+        builder.Property(x => x.MinWidthCm).IsRequired().HasDefaultValue(30);
+        builder.Property(x => x.MaxWidthCm).IsRequired().HasDefaultValue(400);
+        builder.Property(x => x.MinHeightCm).IsRequired().HasDefaultValue(30);
+        builder.Property(x => x.MaxHeightCm).IsRequired().HasDefaultValue(400);
+
         builder.HasIndex(x => new { x.IsActive, x.SortOrder });
     }
 }

@@ -6,7 +6,11 @@ namespace BEQSAN.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// Idempotent seed of the 5 initial product types. Runs after EnsureCreatedAsync /
-/// migrations on every startup; skips inserts when a row with the same slug exists.
+/// migrations on every startup. Two kinds of work:
+///   1. Insert any rows missing by slug.
+///   2. Backfill dimension constraint columns (Min/Max Width/Height) on rows
+///      whose values are zero — covers data created before the AddDimensionConstraints
+///      migration landed.
 /// Real photos replace the placeholder hero URLs once Roman provides them.
 /// </summary>
 internal static class ProductTypeSeeder
@@ -16,70 +20,80 @@ internal static class ProductTypeSeeder
         var seedSlugs = SeedData().Select(p => p.Slug).ToHashSet(StringComparer.Ordinal);
         var existing = await db.ProductTypes
             .Where(p => seedSlugs.Contains(p.Slug))
-            .Select(p => p.Slug)
             .ToListAsync(ct)
             .ConfigureAwait(false);
+        var existingBySlug = existing.ToDictionary(p => p.Slug, StringComparer.Ordinal);
 
-        var toInsert = SeedData().Where(p => !existing.Contains(p.Slug)).ToList();
-        if (toInsert.Count == 0)
+        var toInsert = new List<ProductType>();
+        var mutatedAny = false;
+        foreach (var seed in SeedData())
         {
-            return;
+            if (!existingBySlug.TryGetValue(seed.Slug, out var current))
+            {
+                toInsert.Add(seed);
+                continue;
+            }
+
+            // Backfill constraint columns on legacy rows.
+            if (current.MinWidthCm == 0 || current.MaxWidthCm == 0
+                || current.MinHeightCm == 0 || current.MaxHeightCm == 0)
+            {
+                db.Entry(current).Property(p => p.MinWidthCm).CurrentValue = seed.MinWidthCm;
+                db.Entry(current).Property(p => p.MaxWidthCm).CurrentValue = seed.MaxWidthCm;
+                db.Entry(current).Property(p => p.MinHeightCm).CurrentValue = seed.MinHeightCm;
+                db.Entry(current).Property(p => p.MaxHeightCm).CurrentValue = seed.MaxHeightCm;
+                mutatedAny = true;
+            }
         }
 
-        await db.ProductTypes.AddRangeAsync(toInsert, ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        if (toInsert.Count > 0)
+        {
+            await db.ProductTypes.AddRangeAsync(toInsert, ct).ConfigureAwait(false);
+            mutatedAny = true;
+        }
+
+        if (mutatedAny)
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
     }
 
     private static IEnumerable<ProductType> SeedData()
     {
         // Real Georgian copy per .claude/skills/content-voice — confident,
         // manufacturing, no marketing fluff. Order is the order users see.
-        yield return Build(
-            slug: "window",
-            ka: "ფანჯარა",
-            shortKa: "ბათუმის ფაბრიკაში აწყობილი ალუმინის და PVC ფანჯრები.",
-            sortOrder: 1);
+        // Constraints are market-realistic 2026 baselines; Roman locks final
+        // numbers before public preview (see docs/questions.md).
+        yield return Build("window", "ფანჯარა",
+            "ბათუმის ფაბრიკაში აწყობილი ალუმინის და PVC ფანჯრები.", 1);
 
-        yield return Build(
-            slug: "door",
-            ka: "კარი",
-            shortKa: "შესასვლელი და შიდა კარები — თერმო და უსაფრთხო.",
-            sortOrder: 2);
+        yield return Build("door", "კარი",
+            "შესასვლელი და შიდა კარები — თერმო და უსაფრთხო.", 2);
 
-        yield return Build(
-            slug: "sliding",
-            ka: "სლაიდინგ სისტემა",
-            shortKa: "ფართო გახსნა, მცირე ფარდობა — დიდი სივრცეებისთვის.",
-            sortOrder: 3);
+        yield return Build("sliding", "სლაიდინგ სისტემა",
+            "ფართო გახსნა, მცირე ფარდობა — დიდი სივრცეებისთვის.", 3);
 
-        yield return Build(
-            slug: "panoramic",
-            ka: "პანორამული შემინვა",
-            shortKa: "მინიმალური ჩარჩო, მაქსიმუმი ხედვა.",
-            sortOrder: 4);
+        yield return Build("panoramic", "პანორამული შემინვა",
+            "მინიმალური ჩარჩო, მაქსიმუმი ხედვა.", 4);
 
-        yield return Build(
-            slug: "balcony",
-            ka: "აივნის შემინვა",
-            shortKa: "უტიხრო ან ჩარჩოიანი, ბათუმის ქარისთვის ნაგები.",
-            sortOrder: 5);
+        yield return Build("balcony", "აივნის შემინვა",
+            "უტიხრო ან ჩარჩოიანი, ბათუმის ქარისთვის ნაგები.", 5);
     }
 
     private static ProductType Build(string slug, string ka, string shortKa, int sortOrder)
     {
-        // Deterministic GUIDs derived from slug — keeps the seed idempotent across rebuilds
-        // and gives the FRONT a stable id to navigate from.
         var id = DeterministicGuid(slug);
         var nameResult = LocalizedText.Create(ka);
         var descResult = LocalizedText.Create(shortKa);
+        var constraints = DimensionConstraints.ForProductType(slug);
         var typeResult = ProductType.Create(
             slug: slug,
             name: nameResult.Value,
             shortDescription: descResult.Value,
             heroImageUrl: $"/images/catalog/{slug}.jpg",
-            sortOrder: sortOrder);
+            sortOrder: sortOrder,
+            constraints: constraints);
 
-        // Materialize and override Id+CreatedAtUtc so seeds are stable.
         var pt = typeResult.Value;
         return new ProductType
         {
@@ -91,14 +105,15 @@ internal static class ProductTypeSeeder
             SortOrder = pt.SortOrder,
             IsActive = pt.IsActive,
             CreatedAtUtc = new DateTime(2026, 5, 17, 0, 0, 0, DateTimeKind.Utc),
+            MinWidthCm = constraints.MinWidthCm,
+            MaxWidthCm = constraints.MaxWidthCm,
+            MinHeightCm = constraints.MinHeightCm,
+            MaxHeightCm = constraints.MaxHeightCm,
         };
     }
 
     private static Guid DeterministicGuid(string seed)
     {
-        // Deterministic UUIDv5 namespace GUID — same seed → same Guid forever.
-        // RFC 4122 mandates SHA1 for v5; this is identity derivation, not a
-        // security primitive, so CA5350 is suppressed for this single call.
         const string Namespace = "BEQSAN-CATALOG-2026";
         var input = System.Text.Encoding.UTF8.GetBytes(Namespace + ":" + seed);
 #pragma warning disable CA5350

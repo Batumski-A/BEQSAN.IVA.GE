@@ -106,6 +106,30 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_active");
 
+                    b.Property<int>("MaxHeightCm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(400)
+                        .HasColumnName("max_height_cm");
+
+                    b.Property<int>("MaxWidthCm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(400)
+                        .HasColumnName("max_width_cm");
+
+                    b.Property<int>("MinHeightCm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(30)
+                        .HasColumnName("min_height_cm");
+
+                    b.Property<int>("MinWidthCm")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(30)
+                        .HasColumnName("min_width_cm");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT")
