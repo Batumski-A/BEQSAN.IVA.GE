@@ -1,0 +1,91 @@
+# --- secrets, env ---
+*.env
+*.env.*
+!*.env.example
+.env.local
+secrets/
+**/appsettings.Development.json
+**/appsettings.Local.json
+
+# --- .NET ---
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.userosscache
+*.sln.docstates
+*.nupkg
+*.snupkg
+*.tar
+.vs/
+.vshistory/
+artifacts/
+PublishProfiles/
+**/Properties/launchSettings.json
+**/Properties/PublishProfiles/*.pubxml
+
+# .NET CLI tools
+.config/dotnet-tools.json.user
+tools/
+
+# EF Core
+**/Migrations/*.Designer.cs
+# (we DO commit migrations themselves — only the designer scaffolding excluded above)
+
+# --- Node / Vite / React ---
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+.npm/
+.yarn/
+.eslintcache
+.stylelintcache
+dist/
+dist-ssr/
+build/
+.parcel-cache/
+.vite/
+.turbo/
+.next/
+.nuxt/
+.cache/
+
+# --- Test artifacts ---
+coverage/
+*.lcov
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# --- Editor / OS ---
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Docker volumes (local dev) ---
+.docker-data/
+pgdata/
+minio-data/
+redis-data/
+
+# --- Generated assets ---
+*.local
+*.log
+*.tmp
+
+# --- Misc ---
+.history/
+.scannerwork/
