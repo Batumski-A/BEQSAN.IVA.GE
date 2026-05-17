@@ -1,0 +1,30 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CA1707;CA2007;CA1716</NoWarn>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1848;IDE0021;IDE0024;IDE0046;IDE0058;IDE0290;CA1812;CA1305;CA1304</WarningsNotAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <Company>BEQSAN LTD</Company>
+    <Authors>IVA (Lasha)</Authors>
+    <Product>BEQSAN</Product>
+    <Copyright>© BEQSAN LTD</Copyright>
+    <NeutralLanguage>ka-GE</NeutralLanguage>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName.EndsWith(`.UnitTests`))' == 'true' Or '$(MSBuildProjectName.EndsWith(`.IntegrationTests`))' == 'true'">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

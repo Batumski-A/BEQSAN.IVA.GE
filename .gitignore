@@ -81,6 +81,12 @@ pgdata/
 minio-data/
 redis-data/
 
+# --- BEQSAN runtime data (SQLite file, uploads, logs) ---
+BACK/**/data/
+**/beqsan.db
+**/beqsan.db-shm
+**/beqsan.db-wal
+
 # --- Generated assets ---
 *.local
 *.log
