@@ -35,7 +35,7 @@ public static class ResultExtensions
 
     private static ApiResponse<T> BuildFailure<T>(Result result) =>
         ApiResponse<T>.Failure(result.Errors
-            .Select(e => new ApiError(e.Code, e.Message, e.Field))
+            .Select(e => new ApiError(e.Code, e.Message, e.Field, e.Metadata))
             .ToList());
 
     public static int StatusFor(ErrorType type) => type switch

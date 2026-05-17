@@ -15,4 +15,15 @@ public sealed record ApiResponse<T>(
     public static ApiResponse<T> Failure(IReadOnlyList<ApiError> errors) => new(false, default, errors);
 }
 
-public sealed record ApiError(string Code, string Message, string? Field);
+/// <summary>
+/// One error entry in <see cref="ApiResponse{T}.Errors"/>. Code is machine-readable
+/// English (stable across releases); Message is Georgian user-facing copy; Field is
+/// the camelCased input property name when bound; Metadata carries structured context
+/// the UI uses to render the error precisely (e.g. <c>{ "min": 60, "max": 140,
+/// "actual": 30 }</c> for an out-of-range validation).
+/// </summary>
+public sealed record ApiError(
+    string Code,
+    string Message,
+    string? Field,
+    IReadOnlyDictionary<string, object>? Metadata = null);
