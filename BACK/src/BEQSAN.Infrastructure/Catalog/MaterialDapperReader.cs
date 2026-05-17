@@ -56,7 +56,7 @@ internal sealed class MaterialDapperReader(IDbConnectionFactory factory) : IMate
     {
         using var connection = await _factory.OpenAsync(ct).ConfigureAwait(false);
         var rows = await connection
-            .QueryAsync<ListRow>(ListSql, new { ProductTypeId = productTypeId.ToString() })
+            .QueryAsync<ListRow>(ListSql, new { ProductTypeId = productTypeId.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant() })
             .ConfigureAwait(false);
 
         return rows.Select(r => new MaterialDto(
@@ -79,7 +79,7 @@ internal sealed class MaterialDapperReader(IDbConnectionFactory factory) : IMate
     {
         using var connection = await _factory.OpenAsync(ct).ConfigureAwait(false);
         var row = await connection
-            .QuerySingleOrDefaultAsync<GetByIdRow?>(GetByIdSql, new { Id = id.ToString() })
+            .QuerySingleOrDefaultAsync<GetByIdRow?>(GetByIdSql, new { Id = id.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant() })
             .ConfigureAwait(false);
         if (row is null)
         {
@@ -168,7 +168,9 @@ internal sealed class ProductTypeExistsCheckDapper(IDbConnectionFactory factory)
     {
         using var connection = await _factory.OpenAsync(ct).ConfigureAwait(false);
         var hit = await connection
-            .QueryFirstOrDefaultAsync<int?>(Sql, new { Id = productTypeId.ToString() })
+            .QueryFirstOrDefaultAsync<int?>(
+                Sql,
+                new { Id = productTypeId.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant() })
             .ConfigureAwait(false);
         return hit.HasValue;
     }

@@ -53,7 +53,11 @@ internal static class SqliteDapperTypeHandlers
             };
 
         public override void SetValue(IDbDataParameter parameter, Guid value) =>
-            parameter.Value = value.ToString();
+            // EF Core's SQLite Guid converter stores upper-case "D" format
+            // (e.g. "66242680-01F2-125B-A8DB-02681C98C0B9"). SQLite TEXT
+            // comparison is case-sensitive, so Dapper parameters MUST match
+            // that exact casing or WHERE id = @Id silently misses.
+            parameter.Value = value.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant();
     }
 
     private sealed class NullableGuidHandler : SqlMapper.TypeHandler<Guid?>
@@ -70,7 +74,8 @@ internal static class SqliteDapperTypeHandlers
             };
 
         public override void SetValue(IDbDataParameter parameter, Guid? value) =>
-            parameter.Value = value?.ToString() ?? (object)DBNull.Value;
+            parameter.Value = value?.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant()
+                ?? (object)DBNull.Value;
     }
 
     private sealed class DateTimeHandler : SqlMapper.TypeHandler<DateTime>
