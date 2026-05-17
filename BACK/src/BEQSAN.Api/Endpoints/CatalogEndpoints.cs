@@ -1,6 +1,9 @@
 using BEQSAN.Api.Common;
+using BEQSAN.Application.Catalog.GetBlindTypes;
 using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
+using BEQSAN.Application.Catalog.GetHandleStyles;
+using BEQSAN.Application.Catalog.GetLockTypes;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypeDetail;
 using BEQSAN.Application.Catalog.GetProductTypes;
@@ -84,6 +87,48 @@ public static class CatalogEndpoints
             .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapGet("materials/{materialId:guid}/handle-styles", async (
+                Guid materialId, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender
+                    .Send(new GetHandleStylesByMaterialQuery(materialId), ct)
+                    .ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("GetHandleStylesByMaterial")
+            .WithSummary("Handle styles compatible with a material")
+            .Produces<ApiResponse<IReadOnlyList<HandleStyleDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
+        group.MapGet("product-types/{productTypeId:guid}/lock-types", async (
+                Guid productTypeId, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender
+                    .Send(new GetLockTypesByProductTypeQuery(productTypeId), ct)
+                    .ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("GetLockTypesByProductType")
+            .WithSummary("Lock types compatible with a product type")
+            .Produces<ApiResponse<IReadOnlyList<LockTypeDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
+        group.MapGet("product-types/{productTypeId:guid}/blind-types", async (
+                Guid productTypeId, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender
+                    .Send(new GetBlindTypesByProductTypeQuery(productTypeId), ct)
+                    .ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("GetBlindTypesByProductType")
+            .WithSummary("Blind types compatible with a product type")
+            .Produces<ApiResponse<IReadOnlyList<BlindTypeDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return app;
     }
 }
@@ -102,4 +147,7 @@ internal sealed class CatalogSchemaAnchor
     public ApiResponse<ProductTypeDetailDto>? ProductTypeDetailResponse { get; init; }
     public ApiResponse<IReadOnlyList<GlassTypeDto>>? GlassTypesResponse { get; init; }
     public ApiResponse<IReadOnlyList<ColorOptionDto>>? ColorsResponse { get; init; }
+    public ApiResponse<IReadOnlyList<HandleStyleDto>>? HandleStylesResponse { get; init; }
+    public ApiResponse<IReadOnlyList<LockTypeDto>>? LockTypesResponse { get; init; }
+    public ApiResponse<IReadOnlyList<BlindTypeDto>>? BlindTypesResponse { get; init; }
 }

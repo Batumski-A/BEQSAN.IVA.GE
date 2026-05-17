@@ -1,5 +1,8 @@
+using BEQSAN.Application.Catalog.GetBlindTypes;
 using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
+using BEQSAN.Application.Catalog.GetHandleStyles;
+using BEQSAN.Application.Catalog.GetLockTypes;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Application.Common.Abstractions;
@@ -53,6 +56,9 @@ public static class DependencyInjection
         services.AddScoped<IMaterialReader, MaterialDapperReader>();
         services.AddScoped<IGlassTypeReader, GlassTypeDapperReader>();
         services.AddScoped<IColorOptionReader, ColorOptionDapperReader>();
+        services.AddScoped<IHandleStyleReader, HandleStyleDapperReader>();
+        services.AddScoped<ILockTypeReader, LockTypeDapperReader>();
+        services.AddScoped<IBlindTypeReader, BlindTypeDapperReader>();
 
         return services;
     }
@@ -102,5 +108,6 @@ public static class DependencyInjection
         await MaterialSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await GlassTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await ColorOptionSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
+        await AccessoryCatalogSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
     }
 }

@@ -72,7 +72,27 @@ public class ComputePriceHandlerTests
         colors.LoadDomainByMaterialAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<BEQSAN.Domain.Catalog.ColorOption>());
 
-        return (new ComputePriceHandler(productTypes, materials, glass, colors), productTypes, materials);
+        // Step 7 added three accessory readers. Empty lists keep the
+        // calculator on its "no accessory catalog → skip" branch so
+        // canaries #1-#5 stay byte-for-byte under the new ctor shape.
+        var handles = Substitute.For<BEQSAN.Application.Catalog.GetHandleStyles.IHandleStyleReader>();
+        handles.LoadAllAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<BEQSAN.Domain.Catalog.HandleStyle>());
+        handles.LoadCompatibilityAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<(Guid HandleId, Guid MaterialId)>());
+
+        var locks = Substitute.For<BEQSAN.Application.Catalog.GetLockTypes.ILockTypeReader>();
+        locks.LoadAllAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<BEQSAN.Domain.Catalog.LockType>());
+        locks.LoadCompatibilityAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<(Guid LockId, Guid ProductTypeId)>());
+
+        var blinds = Substitute.For<BEQSAN.Application.Catalog.GetBlindTypes.IBlindTypeReader>();
+        blinds.LoadAllAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<BEQSAN.Domain.Catalog.BlindType>());
+        blinds.LoadCompatibilityAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<(Guid BlindId, Guid ProductTypeId)>());
+
+        return (
+            new ComputePriceHandler(productTypes, materials, glass, colors, handles, locks, blinds),
+            productTypes, materials);
     }
 
     [Fact]

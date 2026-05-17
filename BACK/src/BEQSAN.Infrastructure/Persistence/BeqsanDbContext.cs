@@ -11,6 +11,9 @@ public sealed class BeqsanDbContext(DbContextOptions<BeqsanDbContext> options)
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<GlassType> GlassTypes => Set<GlassType>();
     public DbSet<ColorOption> ColorOptions => Set<ColorOption>();
+    public DbSet<HandleStyle> HandleStyles => Set<HandleStyle>();
+    public DbSet<LockType> LockTypes => Set<LockType>();
+    public DbSet<BlindType> BlindTypes => Set<BlindType>();
 
     public Task<bool> CanConnectAsync(CancellationToken ct = default) =>
         Database.CanConnectAsync(ct);
