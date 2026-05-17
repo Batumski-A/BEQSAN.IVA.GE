@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api, unwrap, type ApiResponse } from '@/shared/api/client';
+import type { ConfigurationPaneInput } from '@beqsan/api-types';
 import type { components } from '@beqsan/api-types/generated';
 
 export type Material = components['schemas']['MaterialDto'];
@@ -11,6 +12,10 @@ export type PriceRequest = {
   materialId: string;
   widthCm: number;
   heightCm: number;
+  // Optional — when omitted the BACK synthesises a single full-width Fixed
+  // pane, preserving the Step 1+2 canary (753.31 ₾). Step 4 sends the full
+  // panes array from the store.
+  panes?: ConfigurationPaneInput[];
 };
 
 export const configuratorKeys = {

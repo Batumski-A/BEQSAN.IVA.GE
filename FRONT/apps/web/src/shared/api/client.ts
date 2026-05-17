@@ -4,6 +4,10 @@ export type ApiError = {
   code: string;
   message: string;
   field: string | null;
+  // Structured context the server attaches alongside the message — used so
+  // FRONT renders localized strings from these keys instead of parsing
+  // Georgian text. See ADR-0002 amendment 2026-05-17.
+  metadata?: Record<string, unknown> | null;
 };
 
 export type ApiResponseSuccess<T> = {
