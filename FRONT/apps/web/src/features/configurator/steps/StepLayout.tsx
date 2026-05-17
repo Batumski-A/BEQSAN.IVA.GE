@@ -13,6 +13,7 @@ import { PricePreview } from './PricePreview';
 
 type Props = {
   onBack: () => void;
+  onAdvance: () => void;
 };
 
 // Which opening types are offered for a given product type. Mirrors BACK's
@@ -26,7 +27,7 @@ function needsHinge(opening: PaneOpeningType): boolean {
   return opening === 'Casement' || opening === 'TiltAndTurn';
 }
 
-export function StepLayout({ onBack }: Props) {
+export function StepLayout({ onBack, onAdvance }: Props) {
   const { t } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
@@ -172,14 +173,20 @@ export function StepLayout({ onBack }: Props) {
           </button>
           <button
             type="button"
-            disabled
-            // Step 5 (glass) lands in the next slice; for now the button
-            // signals progress without advancing the URL. Marked disabled
-            // so screen-readers report it isn't yet active.
-            className="inline-flex h-12 items-center gap-3 rounded-sm bg-bg-elevated px-6 font-mono text-mono-spec uppercase tracking-wider text-fg-disabled"
+            onClick={onAdvance}
+            disabled={Boolean(layoutErrorText)}
+            className={cn(
+              'group inline-flex h-12 items-center gap-3 rounded-sm px-6 font-mono text-mono-spec uppercase tracking-wider transition-all duration-120 ease-standard',
+              layoutErrorText
+                ? 'cursor-not-allowed bg-bg-elevated text-fg-disabled'
+                : 'bg-accent-amber text-bg-base hover:bg-accent-amber-h active:scale-[0.98]',
+            )}
           >
             <span>{t('common.actions.continue')}</span>
-            <ArrowRight className="h-4 w-4" aria-hidden />
+            <ArrowRight
+              className="h-4 w-4 transition-transform group-enabled:group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </button>
         </div>
       </div>

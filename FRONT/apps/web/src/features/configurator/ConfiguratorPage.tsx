@@ -9,6 +9,7 @@ import { StepType } from './steps/StepType';
 import { StepMaterial } from './steps/StepMaterial';
 import { StepDimensions } from './steps/StepDimensions';
 import { StepLayout } from './steps/StepLayout';
+import { StepGlass } from './steps/StepGlass';
 
 // Lazy 3D scene — heavy bundle, only paid when configurator opens.
 const ConfiguratorScene = lazy(() =>
@@ -89,8 +90,13 @@ export default function ConfiguratorPage() {
                 onBack={() => handleAdvance(2)}
                 onAdvance={() => handleAdvance(4)}
               />
+            ) : activeStep === 4 ? (
+              <StepLayout
+                onBack={() => handleAdvance(3)}
+                onAdvance={() => handleAdvance(5)}
+              />
             ) : (
-              <StepLayout onBack={() => handleAdvance(3)} />
+              <StepGlass onBack={() => handleAdvance(4)} />
             )}
           </div>
 
@@ -118,7 +124,7 @@ function SceneFallback({ label }: { label: string }) {
 }
 
 function parseStep(raw: string | null): ConfiguratorStep | null {
-  if (raw === '1' || raw === '2' || raw === '3' || raw === '4') {
+  if (raw === '1' || raw === '2' || raw === '3' || raw === '4' || raw === '5') {
     return Number(raw) as ConfiguratorStep;
   }
   return null;

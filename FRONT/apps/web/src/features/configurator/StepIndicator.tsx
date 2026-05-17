@@ -13,7 +13,9 @@ type StepDef = {
 const STEPS: StepDef[] = [
   { num: 1, key: 'type' },
   { num: 2, key: 'material' },
-  { num: 3, key: 'dimensions', upcoming: true },
+  { num: 3, key: 'dimensions' },
+  { num: 4, key: 'layout' },
+  { num: 5, key: 'glass' },
 ];
 
 type StepIndicatorProps = {
