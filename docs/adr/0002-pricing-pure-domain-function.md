@@ -376,6 +376,115 @@ Inner-side color is billed at 60% of the inner option's surcharge
 (`InnerColorRate = 0.60m`). Roman to validate the 60% split against
 his actual factory labor cost ratio.
 
+### 2026-05-19 — Accessories (Step 7 slice)
+
+`PriceCalculator.Compute` signature extends to accept optional
+`AccessorySelection? accessories` + `AccessoryCatalog? accessoryCatalog`
+parameters. Reasons:
+
+1. The customer picks an accessory bundle at Step 7 — handle style,
+   lock type, sill (slab below the frame), blind (mounted assembly).
+   Mosquito net is per-pane (Step 4) and reviewed in Step 7 read-only.
+2. **Door product types require handle + lock** when any pane opens
+   (legal + security expectation). The validator surfaces
+   `configurator.accessory.handleRequired` /
+   `configurator.accessory.lockRequired` with `reason: "door"`.
+3. **Multi-point lock requires a Casement or TiltAndTurn pane** — the
+   physical lock body anchors locking points around the full pane
+   perimeter. Tilt-only or Sliding-only configurations get
+   `configurator.accessory.lockRequiresFullOpening` with the offending
+   `lockSlug` in metadata. Mirrored as an entity-level invariant:
+   `LockType.Create` rejects any MultiPoint grade without the
+   `RequiresCasementOrTurn` flag set.
+4. **Per-product-type compat for locks + blinds; per-material compat
+   for handles**: Phase-1 ships smart-fingerprint as door-only;
+   premium-secustic is aluminum-only; external blinds are excluded
+   from doors (swing) and balconies (non-standard). Compat is
+   modeled via three M:M tables seeded by the
+   `AccessoryCatalogSeeder`.
+
+Pricing rules (added to the existing material + opening + glass +
+extras + mosquito + colour subtotal):
+- **Handle: per openable pane.**
+  `handle.surcharge_per_pane × openableCount`, line suppressed at 0.
+- **Lock: per openable pane.**
+  `lock.surcharge_per_pane × openableCount`, line suppressed at 0.
+- **Sill: linear-metre × multiplier.**
+  `lengthM × multiplier × SillPerMeterMinor`
+  where `lengthM = CustomLengthCm ?? widthCm`, scaled by /100;
+  multiplier is 2 for `SillPosition.Both`, else 1.
+  `SillPerMeterMinor = 8 000 tetri/m` (Roman-locked).
+- **Blind: base + per-m² + control surcharge.**
+  `BaseMountingMinor + round(areaSqm × SurchargePerSqmMinor) + controlSurcharge`
+  where `controlSurcharge = 4 500 tetri` for Electric, `8 500 tetri`
+  for Remote, `0` for Manual. The `SupportsElectric` flag on the blind
+  type gates the non-Manual choices at the validator.
+
+**Backwards compatibility**: when `accessoryCatalog` is null AND
+`accessories` is null (Steps 1-6 path), the entire block is skipped.
+When the catalog is supplied (typical handler-loaded shape) but the
+selection is null, the validator runs only its door-required check
+(silent for non-door product types). Canaries #1-#5 hold byte-for-
+byte under both paths.
+
+**Sixth regression canary locked**: window 165×140 cm × aluminum-
+thermal, two equal-width panes (Casement-Right triple-low-e tempered
++ Fixed triple-low-e), outer color anthracite-ral7016, plus:
+- handle modern-aluminum × 1 openable = **4 500 tetri**
+- lock multi-point-3 × 1 openable = **9 000 tetri**
+- sill Outer 165 cm = 1.65 m × 80 ₾/m = **13 200 tetri**
+- blind external-aluminum-electric: 25 000 base + (2.31 × 9 000 =
+  20 790) + 4 500 (Electric) = **50 290 tetri**
+
+Composition:
+- canary #5 pre-VAT subtotal = 120 736
+- + accessories total = 76 990
+- new subtotal = 197 726
+- vat = round(197 726 × 0.18) = **35 591 tetri** (35 590.68)
+- total = **233 317 tetri = 2333.17 ₾**
+
+Asserted at unit
+(`Canary6_Window_165x140_Full_Accessories_Equals_2333_17` in
+`PriceCalculatorAccessoryTests`) and HTTP
+(`PostPrice_Canary6_*_Equals_2333_17` in `AccessoryEndpointTests`).
+
+New domain types: `HandleStyle` / `LockType` / `BlindType` entities
+(Catalog); `LockGrade` / `BlindPlacement` enums; `AccessorySelection`
++ `SillSelection` + `BlindSelection` records with `SillPosition` +
+`BlindControl` enums (Configurator); `AccessoryValidator` static
+function; `AccessoryCatalog` lookup bag. `LayoutValidator` unchanged —
+accessory rules live in their own validator with a single composition
+point (`PriceCalculator.Compute` calls both in sequence). 9 new error
+codes under `configurator.accessory.*`.
+
+New tables: `handle_styles`, `lock_types`, `blind_types`,
+`material_handle_compatibility`, `product_type_lock_compatibility`,
+`product_type_blind_compatibility` (composite PK, cascade FKs).
+Seeded with 4 + 4 + 4 = 12 catalog rows and ~30 compat pairs.
+
+Accessory surcharge table (Roman-locked Phase 1):
+
+| Slot      | Slug                          | Surcharge unit  | Value |
+|-----------|-------------------------------|-----------------|------:|
+| Handle    | modern-aluminum (default)     | tetri/pane      | 4 500 |
+| Handle    | classic-curved                | tetri/pane      | 6 000 |
+| Handle    | premium-secustic              | tetri/pane      | 12 000 |
+| Handle    | minimal-recessed              | tetri/pane      | 8 500 |
+| Lock      | basic-cam (default)           | tetri/pane      | 3 500 |
+| Lock      | multi-point-3                 | tetri/pane      | 9 000 |
+| Lock      | multi-point-5                 | tetri/pane      | 14 000 |
+| Lock      | smart-fingerprint             | tetri/pane      | 35 000 |
+| Blind     | external-aluminum-manual      | base + per-m²   | 18 000 + 6 500 |
+| Blind     | external-aluminum-electric    | base + per-m²   | 25 000 + 9 000 |
+| Blind     | internal-roman                | base + per-m²   | 8 000 + 4 000 |
+| Blind     | internal-roller               | base + per-m²   | 6 000 + 3 500 |
+| Sill      | (any position)                | tetri/linear m  | 8 000 |
+| Control   | Electric                      | flat surcharge  | 4 500 |
+| Control   | Remote                        | flat surcharge  | 8 500 |
+
+Roman to validate per-supplier costs against actual procurement
+before public launch.
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.

@@ -113,6 +113,17 @@ Multiple errors are common from validation (one per failed field). Other failure
 | `configurator.color.ralCustomMissing` | _(none)_ |
 | `configurator.color.ralCustomHexInvalid` | `got` (string) |
 | `configurator.color.ralCustomCodeInvalid` | `got` (string) |
+| `configurator.accessory.handleRequired` | `reason` (string, e.g. `"door"`) |
+| `configurator.accessory.handleNoOpenablePane` | _(none)_ |
+| `configurator.accessory.handleNotCompatible` | `materialSlug` (string), `handleSlug` (string) |
+| `configurator.accessory.lockRequired` | `reason` (string, e.g. `"door"`) |
+| `configurator.accessory.lockNotCompatibleProduct` | `productTypeSlug` (string), `lockSlug` (string) |
+| `configurator.accessory.lockRequiresFullOpening` | `lockSlug` (string) |
+| `configurator.accessory.sillLengthOutOfRange` | `min` (int), `max` (int), `actual` (int) |
+| `configurator.accessory.sillPositionInvalid` | `got` (string) |
+| `configurator.accessory.blindNotCompatibleProduct` | `productTypeSlug` (string), `blindSlug` (string) |
+| `configurator.accessory.blindControlNotSupported` | `blindSlug` (string), `requestedControl` (string) |
+| `configurator.accessory.blindControlInvalid` | `got` (string) |
 
 ### Pattern: metadata as contract carrier
 
