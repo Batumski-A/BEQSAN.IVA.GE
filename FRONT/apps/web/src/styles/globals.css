@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- @font-face — BPG (Georgian display + body), FiraGO, JetBrains Mono ---- */
+
+@font-face {
+  font-family: 'FiraGO';
+  src: url('/fonts/firago-vf.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+10A0-10FF, U+2D00-2D2F, U+1C90-1CBF, U+0000-007F;
+}
+
+@font-face {
+  font-family: 'BPG Glaho Sans';
+  src: url('/fonts/bpg-glaho-sans.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+10A0-10FF, U+1C90-1CBF, U+0000-007F;
+}
+
+@font-face {
+  font-family: 'BPG Glaho Sans Caps';
+  src: url('/fonts/bpg-glaho-caps.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: optional;
+  unicode-range: U+10A0-10FF, U+1C90-1CBF;
+}
+
+@font-face {
+  font-family: 'BPG Mrgvlovani Caps';
+  src: url('/fonts/bpg-mrgvlovani-caps.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: optional;
+  unicode-range: U+10A0-10FF, U+1C90-1CBF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-vf.woff2') format('woff2-variations');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-007F, U+10A0-10FF;
+}
+
+/* ---- Base resets + design defaults ---- */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    /* Latin number + Georgian text both look correct with FiraGO at 16/24 */
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 0;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply min-h-dvh bg-bg-base text-fg-primary font-sans;
+    /* Subtle grain texture — Industrial Elegance §9.6 */
+    background-image: theme('backgroundImage.grain');
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: theme('colors.accent.amber-glow');
+    color: theme('colors.fg.primary');
+  }
+
+  *:focus-visible {
+    outline: 2px solid theme('colors.accent.amber');
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Honour reduced motion — §9.5 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Tabular numerals for any element using mono font (prices, dimensions, timestamps) */
+  .font-mono,
+  [class*='font-mono'] {
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Hairline border helper — Industrial Elegance never uses thick rules */
+  .border-hairline {
+    border-color: theme('colors.hairline.DEFAULT');
+  }
+
+  .border-hairline-strong {
+    border-color: theme('colors.hairline.strong');
+  }
+}
