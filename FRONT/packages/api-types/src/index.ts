@@ -11,11 +11,29 @@ export type ApiError = {
   code: string;
   message: string;
   field: string | null;
+  // Structured context that flows alongside the message. FRONT renders
+  // localized strings from these keys instead of parsing the server's
+  // Georgian message (see ADR-0002 amendment 2026-05-17).
+  metadata?: Record<string, unknown> | null;
 };
 
 export type ApiResponse<T> =
   | { isSuccess: true; value: T; errors: [] }
   | { isSuccess: false; value: null; errors: ApiError[] };
+
+// Wire-shape enums for the configurator layout. Values match the BACK
+// PaneOpeningType / HingeSide enums (Enum.TryParse with ignoreCase:false)
+// so PascalCase is the only legal form on the wire.
+export type PaneOpeningType = 'Fixed' | 'Casement' | 'Tilt' | 'TiltAndTurn' | 'Sliding';
+export type HingeSide = 'Left' | 'Right';
+
+export type ConfigurationPaneInput = {
+  position: number;
+  widthRatio: number;
+  openingType: PaneOpeningType;
+  hingeSide: HingeSide | null;
+  hasMosquitoNet: boolean;
+};
 
 export type HealthChecks = {
   db: { status: 'up' | 'down' | 'degraded'; latencyMs: number };

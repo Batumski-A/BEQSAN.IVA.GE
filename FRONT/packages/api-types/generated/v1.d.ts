@@ -110,6 +110,16 @@ export interface components {
             widthCm?: number;
             /** Format: int32 */
             heightCm?: number;
+            panes?: components["schemas"]["ConfigurationPaneInput"][] | null;
+        };
+        ConfigurationPaneInput: {
+            /** Format: int32 */
+            position?: number;
+            /** Format: double */
+            widthRatio?: number;
+            openingType?: string | null;
+            hingeSide?: string | null;
+            hasMosquitoNet?: boolean;
         };
         DimensionConstraintsDto: {
             /** Format: int32 */
