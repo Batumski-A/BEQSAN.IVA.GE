@@ -31,15 +31,16 @@ internal sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValid
             return await next().ConfigureAwait(false);
         }
 
-        var error = Error.Validation(
-            "validation.failed",
-            string.Join("; ", failures.Select(f => $"{f.PropertyName}: {f.ErrorMessage}")));
+        var errors = failures.Select(f => Error.Validation(
+            code: $"validation.{ToCamelCase(f.PropertyName)}",
+            message: f.ErrorMessage,
+            field: ToCamelCase(f.PropertyName))).ToList();
 
         var responseType = typeof(TResponse);
 
         if (responseType == typeof(Result))
         {
-            return (TResponse)(object)Result.Failure(error);
+            return (TResponse)(object)Result.Failure(errors);
         }
 
         if (responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(Result<>))
@@ -47,11 +48,22 @@ internal sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValid
             var resultValueType = responseType.GetGenericArguments()[0];
             var failureMethod = typeof(Result)
                 .GetMethods()
-                .First(m => m is { Name: nameof(Result.Failure), IsGenericMethod: true })
+                .First(m => m is { Name: nameof(Result.Failure), IsGenericMethod: true }
+                            && m.GetParameters()[0].ParameterType.Name == "IReadOnlyList`1")
                 .MakeGenericMethod(resultValueType);
-            return (TResponse)failureMethod.Invoke(null, [error])!;
+            return (TResponse)failureMethod.Invoke(null, [errors])!;
         }
 
         throw new ValidationException(failures);
+    }
+
+    private static string ToCamelCase(string propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName) || char.IsLower(propertyName[0]))
+        {
+            return propertyName;
+        }
+
+        return char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
     }
 }
