@@ -61,6 +61,26 @@ internal sealed class LocalFileStorage(
     public Task<bool> ExistsAsync(string storageKey, CancellationToken ct = default) =>
         Task.FromResult(File.Exists(ResolveAbsolute(storageKey)));
 
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var root = GetRootAbsolute();
+            Directory.CreateDirectory(root);
+
+            var probePath = Path.Combine(root, $".health-{Guid.NewGuid():N}");
+            var content = DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            await File.WriteAllTextAsync(probePath, content, ct).ConfigureAwait(false);
+            var roundTripped = await File.ReadAllTextAsync(probePath, ct).ConfigureAwait(false);
+            File.Delete(probePath);
+            return roundTripped == content;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private string GetRootAbsolute() =>
         Path.IsPathRooted(_options.LocalRoot)
             ? _options.LocalRoot

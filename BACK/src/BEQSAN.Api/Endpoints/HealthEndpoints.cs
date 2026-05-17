@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Reflection;
+using BEQSAN.Application.Common.Abstractions;
 using BEQSAN.Application.Common.Persistence;
 
 namespace BEQSAN.Api.Endpoints;
@@ -13,37 +15,71 @@ public static class HealthEndpoints
     {
         var group = app.MapGroup("/api/v1/health").WithTags("Health");
 
-        group.MapGet("", async (IBeqsanDbContext db, CancellationToken ct) =>
+        group.MapGet("", async (
+                IBeqsanDbContext db,
+                ICacheService cache,
+                IStorageService storage,
+                CancellationToken ct) =>
             {
+                var dbProbe = await ProbeAsync(db.PingAsync, ct).ConfigureAwait(false);
+                var cacheProbe = await ProbeAsync(cache.PingAsync, ct).ConfigureAwait(false);
+                var storageProbe = await ProbeAsync(storage.PingAsync, ct).ConfigureAwait(false);
+
+                var checks = new HealthChecks(dbProbe, cacheProbe, storageProbe);
+
+                var aggregateStatus = AggregateStatus(checks);
                 var commitSha = Environment.GetEnvironmentVariable("GIT_COMMIT_SHA") ?? "dev";
                 var uptime = DateTime.UtcNow - StartedAt;
 
-                bool dbOk;
-                try
-                {
-                    dbOk = await db.CanConnectAsync(ct).ConfigureAwait(false);
-                }
-                catch
-                {
-                    dbOk = false;
-                }
-
                 var payload = new HealthResponse(
-                    Status: dbOk ? "ok" : "degraded",
+                    Status: aggregateStatus,
                     Version: Version,
                     CommitSha: commitSha,
                     UptimeSeconds: (long)uptime.TotalSeconds,
-                    DbStatus: dbOk ? "up" : "down",
+                    Checks: checks,
                     TimestampUtc: DateTime.UtcNow);
 
-                return dbOk
-                    ? Results.Ok(payload)
-                    : Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable);
+                return aggregateStatus == "down"
+                    ? Results.Json(payload, statusCode: StatusCodes.Status503ServiceUnavailable)
+                    : Results.Ok(payload);
             })
             .WithName("HealthCheck")
-            .WithSummary("Liveness + DB readiness probe");
+            .WithSummary("Liveness + dependency probes (DB, cache, storage) with latency");
 
         return app;
+    }
+
+    private static async Task<ProbeResult> ProbeAsync(
+        Func<CancellationToken, Task<bool>> probe,
+        CancellationToken ct)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var ok = await probe(ct).ConfigureAwait(false);
+            sw.Stop();
+            return new ProbeResult(ok ? "up" : "down", sw.ElapsedMilliseconds);
+        }
+        catch
+        {
+            sw.Stop();
+            return new ProbeResult("down", sw.ElapsedMilliseconds);
+        }
+    }
+
+    private static string AggregateStatus(HealthChecks checks)
+    {
+        if (checks.Db.Status == "down" || checks.Cache.Status == "down" || checks.Storage.Status == "down")
+        {
+            return "down";
+        }
+
+        if (checks.Db.Status == "degraded" || checks.Cache.Status == "degraded" || checks.Storage.Status == "degraded")
+        {
+            return "degraded";
+        }
+
+        return "ok";
     }
 }
 
@@ -52,5 +88,12 @@ public sealed record HealthResponse(
     string Version,
     string CommitSha,
     long UptimeSeconds,
-    string DbStatus,
+    HealthChecks Checks,
     DateTime TimestampUtc);
+
+public sealed record HealthChecks(
+    ProbeResult Db,
+    ProbeResult Cache,
+    ProbeResult Storage);
+
+public sealed record ProbeResult(string Status, long LatencyMs);

@@ -38,4 +38,14 @@ internal sealed class MemoryCacheService(IMemoryCache cache) : ICacheService
         _cache.Set(key, value, ttl ?? DefaultTtl);
         return value;
     }
+
+    public Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        const string ProbeKey = "health:probe";
+        var probeValue = DateTime.UtcNow.Ticks;
+        _cache.Set(ProbeKey, probeValue, TimeSpan.FromSeconds(5));
+        var found = _cache.TryGetValue<long>(ProbeKey, out var roundTripped) && roundTripped == probeValue;
+        _cache.Remove(ProbeKey);
+        return Task.FromResult(found);
+    }
 }
