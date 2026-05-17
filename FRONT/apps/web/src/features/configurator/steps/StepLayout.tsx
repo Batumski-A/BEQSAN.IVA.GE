@@ -2,7 +2,7 @@ import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-import type { HingeSide, PaneOpeningType } from '@beqsan/api-types';
+import type { ConfigurationPaneInput, HingeSide, PaneOpeningType } from '@beqsan/api-types';
 import { useConfiguratorPrice } from '../api';
 import { paneRangeFor, useConfiguratorStore } from '../store';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
@@ -27,6 +27,49 @@ function needsHinge(opening: PaneOpeningType): boolean {
   return opening === 'Casement' || opening === 'TiltAndTurn';
 }
 
+/**
+ * Rebalance ratios when one pane's width changes. Caller specifies the
+ * pane index + the new ratio (0..1). The remainder (1 - newRatio) is
+ * distributed across the others proportionally to their current shares so
+ * each user adjustment is a localised perturbation, not a full reset.
+ * Min ratio guard: each pane keeps at least `minPaneRatio` (≈ 30 cm /
+ * total width) so the picker can't drive a pane to zero and trigger the
+ * BACK ratio-sum tolerance violation.
+ */
+function redistributeRatios(
+  panes: ConfigurationPaneInput[],
+  index: number,
+  newRatio: number,
+  minPaneRatio: number,
+): number[] {
+  const n = panes.length;
+  if (n === 1) return [1];
+
+  // Clamp the changing pane so the others retain at least minPaneRatio each.
+  const otherMin = (n - 1) * minPaneRatio;
+  const clamped = Math.max(minPaneRatio, Math.min(1 - otherMin, newRatio));
+
+  // Distribute the remainder by current share. If the other panes summed
+  // to ~0 (degenerate), divide equally.
+  const others = panes.map((p, i) => ({ i, current: p.widthRatio })).filter((p) => p.i !== index);
+  const othersSum = others.reduce((s, p) => s + p.current, 0);
+  const remainder = 1 - clamped;
+
+  const ratios = new Array<number>(n).fill(0);
+  ratios[index] = clamped;
+  if (othersSum > 0.0001) {
+    for (const o of others) {
+      ratios[o.i] = (o.current / othersSum) * remainder;
+    }
+  } else {
+    const equal = remainder / others.length;
+    for (const o of others) {
+      ratios[o.i] = equal;
+    }
+  }
+  return ratios;
+}
+
 export function StepLayout({ onBack, onAdvance }: Props) {
   const { t } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
@@ -37,9 +80,19 @@ export function StepLayout({ onBack, onAdvance }: Props) {
   const setPaneOpening = useConfiguratorStore((s) => s.setPaneOpening);
   const setPaneHinge = useConfiguratorStore((s) => s.setPaneHinge);
   const togglePaneMosquito = useConfiguratorStore((s) => s.togglePaneMosquito);
+  const setPaneRatios = useConfiguratorStore((s) => s.setPaneRatios);
 
   const range = paneRangeFor(productType?.slug);
   const availableOpenings = useMemo(() => openingsFor(productType?.slug), [productType?.slug]);
+
+  // 30 cm minimum per pane — matches the BACK absolute dimension floor.
+  // Below this, the user is fighting the validator's ratio tolerance.
+  const minPaneRatio = Math.min(0.5, 30 / Math.max(30, dimensions.widthCm));
+
+  const handleRatioChange = (paneIndex: number, newRatio: number) => {
+    const next = redistributeRatios(panes, paneIndex, newRatio, minPaneRatio);
+    setPaneRatios(next);
+  };
 
   // Debounce the panes payload so a fast slider drag doesn't flood the
   // server. Same 400 ms window as Step 3.
@@ -133,7 +186,7 @@ export function StepLayout({ onBack, onAdvance }: Props) {
 
         {/* Per-pane controls */}
         <div className="mt-8 space-y-6">
-          {panes.map((pane) => (
+          {panes.map((pane, idx) => (
             <PaneCard
               key={pane.position}
               position={pane.position}
@@ -143,9 +196,12 @@ export function StepLayout({ onBack, onAdvance }: Props) {
               widthRatio={pane.widthRatio}
               availableOpenings={availableOpenings}
               highlighted={errorPosition === pane.position}
+              showWidthSlider={panes.length > 1}
+              minRatio={minPaneRatio}
               onOpeningChange={(op) => setPaneOpening(pane.position, op)}
               onHingeChange={(h) => setPaneHinge(pane.position, h)}
               onMosquitoToggle={() => togglePaneMosquito(pane.position)}
+              onWidthRatioChange={(r) => handleRatioChange(idx, r)}
             />
           ))}
         </div>
@@ -206,9 +262,12 @@ type PaneCardProps = {
   widthRatio: number;
   availableOpenings: PaneOpeningType[];
   highlighted: boolean;
+  showWidthSlider: boolean;
+  minRatio: number;
   onOpeningChange: (op: PaneOpeningType) => void;
   onHingeChange: (h: HingeSide) => void;
   onMosquitoToggle: () => void;
+  onWidthRatioChange: (ratio: number) => void;
 };
 
 function PaneCard({
@@ -219,17 +278,23 @@ function PaneCard({
   widthRatio,
   availableOpenings,
   highlighted,
+  showWidthSlider,
+  minRatio,
   onOpeningChange,
   onHingeChange,
   onMosquitoToggle,
+  onWidthRatioChange,
 }: PaneCardProps) {
   const { t } = useTranslation();
   const openingGroupId = useId();
   const hingeGroupId = useId();
   const mosquitoId = useId();
+  const widthSliderId = useId();
 
   const percent = Math.round(widthRatio * 1000) / 10;
   const showHinge = needsHinge(opening);
+  const minPercent = Math.round(minRatio * 100);
+  const maxPercent = 100 - minPercent; // crude bound — store re-clamps anyway
 
   return (
     <fieldset
@@ -331,6 +396,40 @@ function PaneCard({
           · {t('configurator.steps.layout.mosquitoHint')}
         </span>
       </label>
+
+      {/* Pane-width slider — only when there's more than one pane to balance.
+          Keyboard parity comes free with input[type=range]; touch + mouse
+          use the same control across mobile/desktop. */}
+      {showWidthSlider && (
+        <div className="mt-5">
+          <div className="flex items-baseline justify-between">
+            <label
+              htmlFor={widthSliderId}
+              className="font-mono text-caption uppercase tracking-wider text-fg-secondary"
+            >
+              {t('configurator.steps.layout.ratioLabel')}
+            </label>
+            <span className="font-mono text-caption uppercase tracking-wider text-fg-tertiary tabular-nums">
+              {percent.toFixed(0)}% · min {minPercent}%
+            </span>
+          </div>
+          <input
+            id={widthSliderId}
+            type="range"
+            min={minPercent}
+            max={Math.max(minPercent + 1, maxPercent)}
+            step={1}
+            value={Math.round(percent)}
+            onChange={(e) => onWidthRatioChange(Number(e.target.value) / 100)}
+            aria-label={t('configurator.steps.layout.paneWidthSliderLabel', { n: position })}
+            aria-valuemin={minPercent}
+            aria-valuemax={maxPercent}
+            aria-valuenow={Math.round(percent)}
+            aria-valuetext={`${Math.round(percent)}%`}
+            className="dimension-slider mt-2 h-2 w-full cursor-ew-resize appearance-none rounded-full bg-bg-elevated"
+          />
+        </div>
+      )}
     </fieldset>
   );
 }
