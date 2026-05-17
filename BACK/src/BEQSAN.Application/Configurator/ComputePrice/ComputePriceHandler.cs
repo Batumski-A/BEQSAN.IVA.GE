@@ -1,6 +1,9 @@
 using System.Globalization;
+using BEQSAN.Application.Catalog.GetBlindTypes;
 using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
+using BEQSAN.Application.Catalog.GetHandleStyles;
+using BEQSAN.Application.Catalog.GetLockTypes;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Domain.Catalog;
@@ -15,13 +18,19 @@ internal sealed class ComputePriceHandler(
     IProductTypeReader productTypeReader,
     IMaterialReader materialReader,
     IGlassTypeReader glassTypeReader,
-    IColorOptionReader colorOptionReader)
+    IColorOptionReader colorOptionReader,
+    IHandleStyleReader handleStyleReader,
+    ILockTypeReader lockTypeReader,
+    IBlindTypeReader blindTypeReader)
     : IRequestHandler<ComputePriceCommand, Result<PriceBreakdownDto>>
 {
     private readonly IProductTypeReader _productTypeReader = productTypeReader;
     private readonly IMaterialReader _materialReader = materialReader;
     private readonly IGlassTypeReader _glassTypeReader = glassTypeReader;
     private readonly IColorOptionReader _colorOptionReader = colorOptionReader;
+    private readonly IHandleStyleReader _handleStyleReader = handleStyleReader;
+    private readonly ILockTypeReader _lockTypeReader = lockTypeReader;
+    private readonly IBlindTypeReader _blindTypeReader = blindTypeReader;
 
     public async Task<Result<PriceBreakdownDto>> Handle(
         ComputePriceCommand request,
@@ -44,20 +53,37 @@ internal sealed class ComputePriceHandler(
             return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotFound);
         }
 
-        // Load the glass + color catalogs compatible with the chosen material
-        // in parallel — both are needed before pricing math runs. Empty list
-        // on either is a legitimate success state (mis-seeded environment);
-        // the calculator falls back to the legacy no-glass / no-color code
-        // path so earlier-slice canaries still hold.
+        // Load the glass + color + accessory catalogs in parallel. Empty
+        // lists are a legitimate success state (mis-seeded environment) —
+        // the calculator falls back to the no-catalog code path so each
+        // earlier-slice canary still holds.
         var glassTask = _glassTypeReader.LoadDomainByMaterialAsync(request.MaterialId, ct);
         var colorTask = _colorOptionReader.LoadDomainByMaterialAsync(request.MaterialId, ct);
-        await Task.WhenAll(glassTask, colorTask).ConfigureAwait(false);
+        var handleTask = _handleStyleReader.LoadAllAsync(ct);
+        var lockTask = _lockTypeReader.LoadAllAsync(ct);
+        var blindTask = _blindTypeReader.LoadAllAsync(ct);
+        var handleCompatTask = _handleStyleReader.LoadCompatibilityAsync(ct);
+        var lockCompatTask = _lockTypeReader.LoadCompatibilityAsync(ct);
+        var blindCompatTask = _blindTypeReader.LoadCompatibilityAsync(ct);
+        await Task.WhenAll(
+            glassTask, colorTask,
+            handleTask, lockTask, blindTask,
+            handleCompatTask, lockCompatTask, blindCompatTask).ConfigureAwait(false);
 
         var availableGlass = await glassTask.ConfigureAwait(false);
         var availableGlassById = availableGlass.ToDictionary(g => g.Id);
 
         var availableColors = await colorTask.ConfigureAwait(false);
         var availableColorsById = availableColors.ToDictionary(c => c.Id);
+
+        var handles = (await handleTask.ConfigureAwait(false)).ToDictionary(h => h.Id);
+        var locks = (await lockTask.ConfigureAwait(false)).ToDictionary(l => l.Id);
+        var blinds = (await blindTask.ConfigureAwait(false)).ToDictionary(b => b.Id);
+        var accessoryCatalog = new AccessoryCatalog(
+            handles, locks, blinds,
+            await handleCompatTask.ConfigureAwait(false),
+            await lockCompatTask.ConfigureAwait(false),
+            await blindCompatTask.ConfigureAwait(false));
 
         // Translate wire-shape ConfigurationPaneInput[] (string enums) into domain
         // ConfigurationPane records. Invalid enum tokens bubble up as validation
@@ -139,12 +165,57 @@ internal sealed class ComputePriceHandler(
                 CustomRalCode: request.Color.CustomRalCode);
         }
 
+        // Translate the wire-shape AccessorySelectionInput to the domain
+        // record. Defensive Enum.TryParse on SillPosition + BlindControl —
+        // invalid tokens flow back as structured errors with metadata.got.
+        AccessorySelection? accessorySelection = null;
+        if (request.Accessories is not null)
+        {
+            SillSelection? sill = null;
+            if (request.Accessories.Sill is { } sillInput)
+            {
+                if (!Enum.TryParse<SillPosition>(sillInput.Position, ignoreCase: false, out var pos))
+                {
+                    return Result.Failure<PriceBreakdownDto>(
+                        Error.Validation(
+                            "configurator.accessory.sillPositionInvalid",
+                            "ფერთულის პოზიცია არასწორია.",
+                            field: "accessories")
+                            .WithMetadata("got", sillInput.Position));
+                }
+                sill = new SillSelection(pos, sillInput.ColorOptionId, sillInput.CustomLengthCm);
+            }
+
+            BlindSelection? blind = null;
+            if (request.Accessories.Blind is { } blindInput)
+            {
+                if (!Enum.TryParse<BlindControl>(blindInput.Control, ignoreCase: false, out var ctl))
+                {
+                    return Result.Failure<PriceBreakdownDto>(
+                        Error.Validation(
+                            "configurator.accessory.blindControlInvalid",
+                            "ჟალუზის მართვა არასწორია.",
+                            field: "accessories")
+                            .WithMetadata("got", blindInput.Control));
+                }
+                blind = new BlindSelection(blindInput.BlindTypeId, ctl, blindInput.ColorOptionId);
+            }
+
+            accessorySelection = new AccessorySelection(
+                HandleStyleId: request.Accessories.HandleStyleId,
+                LockTypeId: request.Accessories.LockTypeId,
+                Sill: sill,
+                Blind: blind);
+        }
+
         // Cross-field, constraints, layout, math — all in the calculator.
         var breakdownResult = PriceCalculator.Compute(
             productType, material, request.WidthCm, request.HeightCm, panes,
             availableGlassById.Count > 0 ? availableGlassById : null,
             colorSelection,
-            availableColorsById.Count > 0 ? availableColorsById : null);
+            availableColorsById.Count > 0 ? availableColorsById : null,
+            accessorySelection,
+            accessoryCatalog);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);
