@@ -27,12 +27,21 @@ export type ApiResponse<T> =
 export type PaneOpeningType = 'Fixed' | 'Casement' | 'Tilt' | 'TiltAndTurn' | 'Sliding';
 export type HingeSide = 'Left' | 'Right';
 
+// Per-pane additive glass treatments (Step 5). PascalCase to match the
+// BACK enum names; the validator allow-list rejects anything else.
+export type GlassExtra = 'LowECoating' | 'Tempered' | 'Frosted' | 'Tinted';
+
 export type ConfigurationPaneInput = {
   position: number;
   widthRatio: number;
   openingType: PaneOpeningType;
   hingeSide: HingeSide | null;
   hasMosquitoNet: boolean;
+  // Optional — when omitted (or null/Guid.Empty) the server resolves the
+  // material's default glass package. New panes added in Step 5+ always
+  // populate this.
+  glassTypeId?: string | null;
+  glassExtras?: GlassExtra[];
 };
 
 export type HealthChecks = {
