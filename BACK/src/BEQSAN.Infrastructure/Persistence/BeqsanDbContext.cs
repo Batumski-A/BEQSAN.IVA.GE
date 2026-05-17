@@ -1,4 +1,5 @@
 using BEQSAN.Application.Common.Persistence;
+using BEQSAN.Domain.Catalog;
 using Microsoft.EntityFrameworkCore;
 
 namespace BEQSAN.Infrastructure.Persistence;
@@ -6,8 +7,7 @@ namespace BEQSAN.Infrastructure.Persistence;
 public sealed class BeqsanDbContext(DbContextOptions<BeqsanDbContext> options)
     : DbContext(options), IBeqsanDbContext
 {
-    // DbSet<T> properties will be added here as Domain entities are introduced
-    // (e.g. Order, Configuration, ProductType, Customer).
+    public DbSet<ProductType> ProductTypes => Set<ProductType>();
 
     public Task<bool> CanConnectAsync(CancellationToken ct = default) =>
         Database.CanConnectAsync(ct);

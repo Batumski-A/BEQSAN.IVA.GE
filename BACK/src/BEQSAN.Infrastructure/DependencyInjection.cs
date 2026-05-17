@@ -2,6 +2,7 @@ using BEQSAN.Application.Common.Abstractions;
 using BEQSAN.Application.Common.Persistence;
 using BEQSAN.Infrastructure.Caching;
 using BEQSAN.Infrastructure.Persistence;
+using BEQSAN.Infrastructure.Persistence.Seed;
 using BEQSAN.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -39,8 +40,9 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Ensures the SQLite database file directory exists and applies any pending migrations.
-    /// Safe to call repeatedly.
+    /// Ensures the SQLite database file directory exists, applies migrations
+    /// (or creates the schema from the model if none exist yet), and seeds
+    /// idempotent reference data. Safe to call repeatedly.
     /// </summary>
     public static async Task InitializeDatabaseAsync(
         this IServiceProvider services,
@@ -65,6 +67,19 @@ public static class DependencyInjection
             }
         }
 
-        await ctx.Database.EnsureCreatedAsync(ct).ConfigureAwait(false);
+        // Apply migrations if any exist; otherwise create from the model.
+        // EnsureCreatedAsync is a no-op once migrations are in play.
+        var hasMigrations = (await ctx.Database.GetAppliedMigrationsAsync(ct).ConfigureAwait(false)).Any()
+                            || (await ctx.Database.GetPendingMigrationsAsync(ct).ConfigureAwait(false)).Any();
+        if (hasMigrations)
+        {
+            await ctx.Database.MigrateAsync(ct).ConfigureAwait(false);
+        }
+        else
+        {
+            await ctx.Database.EnsureCreatedAsync(ct).ConfigureAwait(false);
+        }
+
+        await ProductTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
     }
 }

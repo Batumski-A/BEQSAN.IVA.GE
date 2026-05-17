@@ -1,0 +1,15 @@
+root = false
+
+# EF Core generated migrations — analyzer rules tuned for hand-written code
+# don't apply here. Suppressing the style/quality rules that EF's templates
+# trip means the migration files stay byte-for-byte as the tool emits them
+# (we never edit them — review the up/down SQL, regenerate if wrong).
+[*.cs]
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0058.severity = none
+dotnet_diagnostic.IDE0161.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+dotnet_diagnostic.IDE0301.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1707.severity = none
