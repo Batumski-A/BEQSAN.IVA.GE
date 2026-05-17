@@ -1,14 +1,17 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
+  AccessorySelectionInput,
+  BlindSelectionInput,
   ColorSelectionInput,
   ConfigurationPaneInput,
   GlassExtra,
   HingeSide,
   PaneOpeningType,
+  SillSelectionInput,
 } from '@beqsan/api-types';
 
-export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type DimensionConstraints = {
   minWidthCm: number;
@@ -60,6 +63,16 @@ export type ConfiguratorState = {
   color: ColorSelectionInput | null;
   /** Default color id resolved from the material's compat set (IsDefault flag). */
   defaultColorOptionId: string | null;
+  /**
+   * Step 7 — accessory bundle. Null means "skipped"; door product types
+   * require handle + lock on the BACK so the FRONT auto-fills them at
+   * material-pick time when the slug is "door".
+   */
+  accessories: AccessorySelectionInput | null;
+  /** Default handle id resolved from material compat set on first load. */
+  defaultHandleStyleId: string | null;
+  /** Default lock id resolved from product-type compat set on first load. */
+  defaultLockTypeId: string | null;
 };
 
 export type ConfiguratorActions = {
@@ -80,6 +93,12 @@ export type ConfiguratorActions = {
   setCustomRal: (hex: string, code: string, ralCustomId: string) => void;
   resetColor: () => void;
   setDefaultColorOptionId: (colorOptionId: string | null) => void;
+  setHandle: (handleStyleId: string | null) => void;
+  setLock: (lockTypeId: string | null) => void;
+  setSill: (sill: SillSelectionInput | null) => void;
+  setBlind: (blind: BlindSelectionInput | null) => void;
+  resetAccessories: () => void;
+  setDefaultHandleAndLock: (handleId: string | null, lockId: string | null) => void;
   goToStep: (n: ConfiguratorStep) => void;
   reset: () => void;
 };
@@ -145,6 +164,9 @@ const INITIAL: ConfiguratorState = {
   defaultGlassTypeId: null,
   color: null,
   defaultColorOptionId: null,
+  accessories: null,
+  defaultHandleStyleId: null,
+  defaultLockTypeId: null,
 };
 
 function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
@@ -196,15 +218,18 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       setMaterial: (material) =>
         set((prev) => {
           if (prev.material?.id === material.id) return { material };
-          // Material change invalidates glass + color selections — defaults
-          // reload via the hooks. Resetting per-pane glass + the
-          // configuration-level color to null lets the server resolve the
-          // new material's defaults next price request.
+          // Material change invalidates glass + color + accessory
+          // selections — defaults reload via the hooks. Accessories are
+          // reset wholesale because handle compat keys off material and
+          // lock compat keys off product type.
           return {
             material,
             defaultGlassTypeId: null,
             defaultColorOptionId: null,
+            defaultHandleStyleId: null,
+            defaultLockTypeId: null,
             color: null,
+            accessories: null,
             panes: prev.panes.map((p) => ({
               ...p,
               glassTypeId: null,
@@ -363,6 +388,62 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           return { defaultColorOptionId };
         }),
 
+      setHandle: (handleStyleId) =>
+        set((prev) => ({
+          accessories: {
+            ...(prev.accessories ?? {}),
+            handleStyleId,
+          },
+        })),
+
+      setLock: (lockTypeId) =>
+        set((prev) => ({
+          accessories: {
+            ...(prev.accessories ?? {}),
+            lockTypeId,
+          },
+        })),
+
+      setSill: (sill) =>
+        set((prev) => ({
+          accessories: {
+            ...(prev.accessories ?? {}),
+            sill,
+          },
+        })),
+
+      setBlind: (blind) =>
+        set((prev) => ({
+          accessories: {
+            ...(prev.accessories ?? {}),
+            blind,
+          },
+        })),
+
+      resetAccessories: () => set({ accessories: null }),
+
+      setDefaultHandleAndLock: (handleId, lockId) =>
+        set((prev) => {
+          // Door requires both — auto-populate if accessories is null + this
+          // is a fresh material pick. User-picked values stay intact.
+          const isDoor = prev.productType?.slug === 'door';
+          const next: AccessorySelectionInput = prev.accessories ?? {};
+          const patch: Partial<AccessorySelectionInput> = {};
+          if (handleId !== null && next.handleStyleId == null && isDoor) {
+            patch.handleStyleId = handleId;
+          }
+          if (lockId !== null && next.lockTypeId == null && isDoor) {
+            patch.lockTypeId = lockId;
+          }
+          return {
+            defaultHandleStyleId: handleId,
+            defaultLockTypeId: lockId,
+            accessories: Object.keys(patch).length > 0
+              ? ({ ...next, ...patch } as AccessorySelectionInput)
+              : prev.accessories,
+          };
+        }),
+
       goToStep: (step) => set({ step }),
 
       reset: () => set(INITIAL),
@@ -379,8 +460,11 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         defaultGlassTypeId: s.defaultGlassTypeId,
         color: s.color,
         defaultColorOptionId: s.defaultColorOptionId,
+        accessories: s.accessories,
+        defaultHandleStyleId: s.defaultHandleStyleId,
+        defaultLockTypeId: s.defaultLockTypeId,
       }),
-      version: 5, // bumped — color selection added
+      version: 6, // bumped — accessory selection added
       migrate: (persisted, fromVersion) => {
         if (fromVersion < 2) {
           return INITIAL;
@@ -417,11 +501,27 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         }
         if (fromVersion < 5) {
           // v4 → v5: color state added. Defaults reload via hook.
-          const prior = persisted as Omit<ConfiguratorState, 'color' | 'defaultColorOptionId'>;
+          const prior = persisted as Omit<ConfiguratorState,
+            'color' | 'defaultColorOptionId' | 'accessories' | 'defaultHandleStyleId' | 'defaultLockTypeId'>;
           return {
             ...prior,
             color: null,
             defaultColorOptionId: null,
+            accessories: null,
+            defaultHandleStyleId: null,
+            defaultLockTypeId: null,
+          } as ConfiguratorState;
+        }
+        if (fromVersion < 6) {
+          // v5 → v6: accessory state added. User picks fresh in Step 7;
+          // defaults reload via hook.
+          const prior = persisted as Omit<ConfiguratorState,
+            'accessories' | 'defaultHandleStyleId' | 'defaultLockTypeId'>;
+          return {
+            ...prior,
+            accessories: null,
+            defaultHandleStyleId: null,
+            defaultLockTypeId: null,
           } as ConfiguratorState;
         }
         return persisted as ConfiguratorState;

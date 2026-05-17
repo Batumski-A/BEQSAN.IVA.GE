@@ -1,13 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api, unwrap, type ApiResponse } from '@/shared/api/client';
-import type { ColorSelectionInput, ConfigurationPaneInput } from '@beqsan/api-types';
+import type {
+  AccessorySelectionInput,
+  ColorSelectionInput,
+  ConfigurationPaneInput,
+} from '@beqsan/api-types';
 import type { components } from '@beqsan/api-types/generated';
 
 export type Material = components['schemas']['MaterialDto'];
 export type PriceBreakdown = components['schemas']['PriceBreakdownDto'];
 export type GlassType = components['schemas']['GlassTypeDto'];
 export type ColorOption = components['schemas']['ColorOptionDto'];
+export type HandleStyle = components['schemas']['HandleStyleDto'];
+export type LockType = components['schemas']['LockTypeDto'];
+export type BlindType = components['schemas']['BlindTypeDto'];
 
 export type PriceRequest = {
   productTypeId: string;
@@ -21,6 +28,10 @@ export type PriceRequest = {
   // Optional — when omitted the BACK resolves the material's default
   // color (white-ral9016, surcharge 0). Step 6 sends the full selection.
   color?: ColorSelectionInput;
+  // Optional — when omitted no accessory lines are added. Step 7 sends
+  // the full selection; door product types must populate
+  // accessories.handleStyleId + lockTypeId or the BACK validator 422s.
+  accessories?: AccessorySelectionInput;
 };
 
 export const configuratorKeys = {
@@ -31,6 +42,12 @@ export const configuratorKeys = {
     ['catalog', 'glass-types', materialId ?? null] as const,
   colors: (materialId: string | null | undefined) =>
     ['catalog', 'colors', materialId ?? null] as const,
+  handleStyles: (materialId: string | null | undefined) =>
+    ['catalog', 'handle-styles', materialId ?? null] as const,
+  lockTypes: (productTypeId: string | null | undefined) =>
+    ['catalog', 'lock-types', productTypeId ?? null] as const,
+  blindTypes: (productTypeId: string | null | undefined) =>
+    ['catalog', 'blind-types', productTypeId ?? null] as const,
   price: (req: PriceRequest | null) => ['configurator', 'price', req] as const,
 };
 
@@ -80,6 +97,57 @@ export function useColorsByMaterial(materialId: string | null | undefined) {
     queryKey: configuratorKeys.colors(materialId),
     queryFn: () => fetchColors(materialId!),
     enabled: Boolean(materialId),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchHandleStyles(materialId: string): Promise<HandleStyle[]> {
+  const response = await api.get<ApiResponse<HandleStyle[]>>(
+    `/catalog/materials/${materialId}/handle-styles`,
+  );
+  return unwrap(response);
+}
+
+export function useHandleStylesByMaterial(materialId: string | null | undefined) {
+  return useQuery({
+    queryKey: configuratorKeys.handleStyles(materialId),
+    queryFn: () => fetchHandleStyles(materialId!),
+    enabled: Boolean(materialId),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchLockTypes(productTypeId: string): Promise<LockType[]> {
+  const response = await api.get<ApiResponse<LockType[]>>(
+    `/catalog/product-types/${productTypeId}/lock-types`,
+  );
+  return unwrap(response);
+}
+
+export function useLockTypesByProductType(productTypeId: string | null | undefined) {
+  return useQuery({
+    queryKey: configuratorKeys.lockTypes(productTypeId),
+    queryFn: () => fetchLockTypes(productTypeId!),
+    enabled: Boolean(productTypeId),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchBlindTypes(productTypeId: string): Promise<BlindType[]> {
+  const response = await api.get<ApiResponse<BlindType[]>>(
+    `/catalog/product-types/${productTypeId}/blind-types`,
+  );
+  return unwrap(response);
+}
+
+export function useBlindTypesByProductType(productTypeId: string | null | undefined) {
+  return useQuery({
+    queryKey: configuratorKeys.blindTypes(productTypeId),
+    queryFn: () => fetchBlindTypes(productTypeId!),
+    enabled: Boolean(productTypeId),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
   });
