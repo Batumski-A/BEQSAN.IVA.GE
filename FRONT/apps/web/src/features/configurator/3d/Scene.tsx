@@ -4,6 +4,7 @@ import { Suspense, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Group } from 'three';
 
+import type { ConfigurationPaneInput, PaneOpeningType } from '@beqsan/api-types';
 import { useConfiguratorStore } from '../store';
 
 /**
@@ -18,6 +19,7 @@ export function ConfiguratorScene() {
   const { t } = useTranslation();
   const material = useConfiguratorStore((s) => s.material);
   const dimensions = useConfiguratorStore((s) => s.dimensions);
+  const panes = useConfiguratorStore((s) => s.panes);
 
   const isMobile = useMemo(
     () =>
@@ -59,6 +61,7 @@ export function ConfiguratorScene() {
             family={material?.family ?? 'aluminum'}
             widthCm={dimensions.widthCm}
             heightCm={dimensions.heightCm}
+            panes={panes}
             mobile={isMobile}
           />
           <Ground />
@@ -88,20 +91,17 @@ function Window({
   family,
   widthCm,
   heightCm,
+  panes,
   mobile,
 }: {
   family: 'aluminum' | 'pvc';
   widthCm: number;
   heightCm: number;
+  panes: ConfigurationPaneInput[];
   mobile: boolean;
 }) {
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
-    if (ref.current && family) {
-      // Only the auto-rotate from OrbitControls handles ambient motion when no
-      // material is picked; once material is set the camera stays still and the
-      // window is the focal point.
-    }
     void delta;
   });
 
@@ -109,61 +109,97 @@ function Window({
   const w = (widthCm / 100) * 1.0;
   const h = (heightCm / 100) * 1.0;
   const frameThickness = 0.06;
+  const mullionThickness = 0.04;
   const glassInset = 0.08;
 
   const frameColor = family === 'aluminum' ? '#A8B3C4' : '#F4F2EE';
+  const metalness = family === 'aluminum' ? 1.0 : 0.05;
+  const roughness = family === 'aluminum' ? 0.25 : 0.55;
+
+  // Build cumulative pane x-offsets (in metres, centred around 0).
+  const innerW = w - frameThickness * 2;
+  let cursor = -innerW / 2;
+  const paneRects = panes.map((p) => {
+    const pw = innerW * p.widthRatio;
+    const cx = cursor + pw / 2;
+    cursor += pw;
+    return { pane: p, cx, pw };
+  });
 
   return (
     <group ref={ref} position={[0, h / 2, 0]}>
-      {/* Frame: top + bottom + left + right slabs */}
+      {/* Outer frame: top + bottom + left + right slabs */}
       <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
         <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial
-          color={frameColor}
-          metalness={family === 'aluminum' ? 1.0 : 0.05}
-          roughness={family === 'aluminum' ? 0.25 : 0.55}
-        />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
       </mesh>
       <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
         <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial
-          color={frameColor}
-          metalness={family === 'aluminum' ? 1.0 : 0.05}
-          roughness={family === 'aluminum' ? 0.25 : 0.55}
-        />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
       </mesh>
       <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
         <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial
-          color={frameColor}
-          metalness={family === 'aluminum' ? 1.0 : 0.05}
-          roughness={family === 'aluminum' ? 0.25 : 0.55}
-        />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
       </mesh>
       <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
         <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial
-          color={frameColor}
-          metalness={family === 'aluminum' ? 1.0 : 0.05}
-          roughness={family === 'aluminum' ? 0.25 : 0.55}
-        />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
       </mesh>
 
-      {/* Glass: a transparent plane inside the frame */}
-      <mesh position={[0, 0, 0]} receiveShadow={!mobile}>
-        <planeGeometry args={[w - glassInset, h - glassInset]} />
-        <meshPhysicalMaterial
-          color="#F0F8FF"
-          transparent
-          opacity={0.18}
-          transmission={mobile ? 0.5 : 0.95}
-          ior={1.52}
-          thickness={0.01}
-          roughness={0.05}
-        />
-      </mesh>
+      {/* Per-pane glass + opening accent tint, plus a mullion to the right of
+          every pane except the last (the outer frame closes that side). */}
+      {paneRects.map(({ pane, cx, pw }, i) => {
+        const tint = paneTint(pane.openingType);
+        return (
+          <group key={pane.position} position={[cx, 0, 0]}>
+            <mesh receiveShadow={!mobile}>
+              <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
+              <meshPhysicalMaterial
+                color={tint}
+                transparent
+                opacity={pane.openingType === 'Fixed' ? 0.16 : 0.22}
+                transmission={mobile ? 0.5 : 0.92}
+                ior={1.52}
+                thickness={0.01}
+                roughness={0.05}
+              />
+            </mesh>
+            {i < paneRects.length - 1 && (
+              <mesh
+                position={[pw / 2, 0, 0]}
+                castShadow={!mobile}
+              >
+                <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameThickness * 1.4]} />
+                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+              </mesh>
+            )}
+          </group>
+        );
+      })}
     </group>
   );
+}
+
+/**
+ * A faint colour shift per opening type. Anchored to the project's accent
+ * palette so the 3D viewport stays cohesive with the rest of the surface;
+ * the tint is subtle enough that Fixed panes still read as clear glass.
+ */
+function paneTint(opening: PaneOpeningType): string {
+  switch (opening) {
+    case 'Fixed':
+      return '#F0F8FF'; // neutral
+    case 'Casement':
+      return '#FFE9B0'; // warm amber wash
+    case 'Tilt':
+      return '#D0E4FF'; // cool blue
+    case 'TiltAndTurn':
+      return '#FFD8A8'; // deeper amber
+    case 'Sliding':
+      return '#B5E4D8'; // mint accent
+    default:
+      return '#F0F8FF';
+  }
 }
 
 function Ground() {
