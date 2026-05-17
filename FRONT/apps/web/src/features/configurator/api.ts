@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api, unwrap, type ApiResponse } from '@/shared/api/client';
-import type { ConfigurationPaneInput } from '@beqsan/api-types';
+import type { ColorSelectionInput, ConfigurationPaneInput } from '@beqsan/api-types';
 import type { components } from '@beqsan/api-types/generated';
 
 export type Material = components['schemas']['MaterialDto'];
 export type PriceBreakdown = components['schemas']['PriceBreakdownDto'];
 export type GlassType = components['schemas']['GlassTypeDto'];
+export type ColorOption = components['schemas']['ColorOptionDto'];
 
 export type PriceRequest = {
   productTypeId: string;
@@ -17,6 +18,9 @@ export type PriceRequest = {
   // pane, preserving the Step 1+2 canary (753.31 ₾). Step 4 sends the full
   // panes array from the store.
   panes?: ConfigurationPaneInput[];
+  // Optional — when omitted the BACK resolves the material's default
+  // color (white-ral9016, surcharge 0). Step 6 sends the full selection.
+  color?: ColorSelectionInput;
 };
 
 export const configuratorKeys = {
@@ -25,6 +29,8 @@ export const configuratorKeys = {
     ['catalog', 'materials', productTypeId ?? null] as const,
   glassTypes: (materialId: string | null | undefined) =>
     ['catalog', 'glass-types', materialId ?? null] as const,
+  colors: (materialId: string | null | undefined) =>
+    ['catalog', 'colors', materialId ?? null] as const,
   price: (req: PriceRequest | null) => ['configurator', 'price', req] as const,
 };
 
@@ -56,6 +62,23 @@ export function useGlassTypesByMaterial(materialId: string | null | undefined) {
   return useQuery({
     queryKey: configuratorKeys.glassTypes(materialId),
     queryFn: () => fetchGlassTypes(materialId!),
+    enabled: Boolean(materialId),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchColors(materialId: string): Promise<ColorOption[]> {
+  const response = await api.get<ApiResponse<ColorOption[]>>(
+    `/catalog/materials/${materialId}/colors`,
+  );
+  return unwrap(response);
+}
+
+export function useColorsByMaterial(materialId: string | null | undefined) {
+  return useQuery({
+    queryKey: configuratorKeys.colors(materialId),
+    queryFn: () => fetchColors(materialId!),
     enabled: Boolean(materialId),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,

@@ -1,13 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
+  ColorSelectionInput,
   ConfigurationPaneInput,
   GlassExtra,
   HingeSide,
   PaneOpeningType,
 } from '@beqsan/api-types';
 
-export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5;
+export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type DimensionConstraints = {
   minWidthCm: number;
@@ -51,6 +52,14 @@ export type ConfiguratorState = {
    * before the glass-types hook runs).
    */
   defaultGlassTypeId: string | null;
+  /**
+   * Step 6 — frame color. Outer required; inner optional (null = same as
+   * outer, the typical case). Custom RAL fields populated only when the
+   * outer slug is `ral-custom` (driven by the palette modal).
+   */
+  color: ColorSelectionInput | null;
+  /** Default color id resolved from the material's compat set (IsDefault flag). */
+  defaultColorOptionId: string | null;
 };
 
 export type ConfiguratorActions = {
@@ -66,6 +75,11 @@ export type ConfiguratorActions = {
   togglePaneGlassExtra: (position: number, extra: GlassExtra) => void;
   setAllPanesGlass: (glassTypeId: string) => void;
   setDefaultGlassTypeId: (glassTypeId: string | null) => void;
+  setOuterColor: (colorOptionId: string) => void;
+  setInnerColor: (colorOptionId: string | null) => void;
+  setCustomRal: (hex: string, code: string, ralCustomId: string) => void;
+  resetColor: () => void;
+  setDefaultColorOptionId: (colorOptionId: string | null) => void;
   goToStep: (n: ConfiguratorStep) => void;
   reset: () => void;
 };
@@ -129,6 +143,8 @@ const INITIAL: ConfiguratorState = {
   dimensions: { widthCm: 120, heightCm: 140 },
   panes: buildEqualPanes(1, 'window', null),
   defaultGlassTypeId: null,
+  color: null,
+  defaultColorOptionId: null,
 };
 
 function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
@@ -180,12 +196,15 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       setMaterial: (material) =>
         set((prev) => {
           if (prev.material?.id === material.id) return { material };
-          // Material change invalidates the glass selection — defaults will
-          // reload via useGlassTypesByMaterial. Reset glass on every pane to
-          // null so the server resolves the new material's default.
+          // Material change invalidates glass + color selections — defaults
+          // reload via the hooks. Resetting per-pane glass + the
+          // configuration-level color to null lets the server resolve the
+          // new material's defaults next price request.
           return {
             material,
             defaultGlassTypeId: null,
+            defaultColorOptionId: null,
+            color: null,
             panes: prev.panes.map((p) => ({
               ...p,
               glassTypeId: null,
@@ -291,6 +310,59 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           };
         }),
 
+      setOuterColor: (colorOptionId) =>
+        set((prev) => ({
+          color: {
+            outerColorOptionId: colorOptionId,
+            innerColorOptionId: prev.color?.innerColorOptionId ?? null,
+            customRalHex: null,
+            customRalCode: null,
+          },
+        })),
+
+      setInnerColor: (innerColorOptionId) =>
+        set((prev) => {
+          if (!prev.color) return prev;
+          return {
+            color: { ...prev.color, innerColorOptionId },
+          };
+        }),
+
+      setCustomRal: (hex, code, ralCustomId) =>
+        set(() => ({
+          color: {
+            outerColorOptionId: ralCustomId,
+            innerColorOptionId: null,
+            customRalHex: hex,
+            customRalCode: code,
+          },
+        })),
+
+      resetColor: () =>
+        set((prev) => ({
+          color: prev.defaultColorOptionId
+            ? { outerColorOptionId: prev.defaultColorOptionId, innerColorOptionId: null, customRalHex: null, customRalCode: null }
+            : null,
+        })),
+
+      setDefaultColorOptionId: (defaultColorOptionId) =>
+        set((prev) => {
+          if (defaultColorOptionId === null) return { defaultColorOptionId };
+          // Adopt the default if the user hasn't picked anything yet.
+          if (prev.color === null) {
+            return {
+              defaultColorOptionId,
+              color: {
+                outerColorOptionId: defaultColorOptionId,
+                innerColorOptionId: null,
+                customRalHex: null,
+                customRalCode: null,
+              },
+            };
+          }
+          return { defaultColorOptionId };
+        }),
+
       goToStep: (step) => set({ step }),
 
       reset: () => set(INITIAL),
@@ -305,18 +377,22 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         dimensions: s.dimensions,
         panes: s.panes,
         defaultGlassTypeId: s.defaultGlassTypeId,
+        color: s.color,
+        defaultColorOptionId: s.defaultColorOptionId,
       }),
-      version: 4, // bumped — panes carry glassTypeId + glassExtras
+      version: 5, // bumped — color selection added
       migrate: (persisted, fromVersion) => {
         if (fromVersion < 2) {
           return INITIAL;
         }
         if (fromVersion < 3) {
           // v2 → v3: synthesise a single Fixed pane.
-          const prior = persisted as Omit<ConfiguratorState, 'panes' | 'defaultGlassTypeId'>;
+          const prior = persisted as Omit<ConfiguratorState, 'panes' | 'defaultGlassTypeId' | 'color' | 'defaultColorOptionId'>;
           return {
             ...prior,
             defaultGlassTypeId: null,
+            color: null,
+            defaultColorOptionId: null,
             panes: buildEqualPanes(
               paneRangeFor(prior.productType?.slug).defaultCount,
               prior.productType?.slug,
@@ -325,18 +401,28 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           } as ConfiguratorState;
         }
         if (fromVersion < 4) {
-          // v3 → v4: existing panes don't carry glass fields. Add nulls so
-          // the server resolves defaults on the next price request.
-          const prior = persisted as ConfiguratorState;
+          // v3 → v4: existing panes don't carry glass fields.
+          const prior = persisted as Omit<ConfiguratorState, 'color' | 'defaultColorOptionId'>;
           return {
             ...prior,
             defaultGlassTypeId: null,
+            color: null,
+            defaultColorOptionId: null,
             panes: prior.panes.map((p) => ({
               ...p,
               glassTypeId: null,
               glassExtras: [],
             })),
-          };
+          } as ConfiguratorState;
+        }
+        if (fromVersion < 5) {
+          // v4 → v5: color state added. Defaults reload via hook.
+          const prior = persisted as Omit<ConfiguratorState, 'color' | 'defaultColorOptionId'>;
+          return {
+            ...prior,
+            color: null,
+            defaultColorOptionId: null,
+          } as ConfiguratorState;
         }
         return persisted as ConfiguratorState;
       },
