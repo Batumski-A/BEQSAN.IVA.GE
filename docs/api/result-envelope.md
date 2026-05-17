@@ -96,6 +96,39 @@ Multiple errors are common from validation (one per failed field). Other failure
 |---|---|
 | `configurator.dimensions.widthOutOfRange` | `min` (int), `max` (int), `actual` (int) |
 | `configurator.dimensions.heightOutOfRange` | `min` (int), `max` (int), `actual` (int) |
+| `configurator.layout.paneCount` | `min` (int), `max` (int), `actual` (int) |
+| `configurator.layout.widthRatioSum` | `expected` (string, e.g. `"1.000"`), `actual` (string, e.g. `"0.800"`) |
+| `configurator.layout.sliding.invalidOpening` | `position` (int), `got` (string, lowercased) |
+| `configurator.layout.pane.hingeRequired` | `position` (int), `openingType` (string, lowercased) |
+| `configurator.layout.pane.hingeForbidden` | `position` (int), `openingType` (string, lowercased) |
+| `configurator.layout.pane.openingTypeInvalid` | `position` (int), `got` (string) |
+| `configurator.layout.pane.hingeSideInvalid` | `position` (int), `got` (string) |
+
+### Pattern: metadata as contract carrier
+
+`metadata` is the **contract between the server and FRONT localisation**.
+The server emits a Georgian `message` (safe to display verbatim if no FRONT
+locale support has shipped for the code yet), but the FRONT renders from a
+locale template keyed on `code`, interpolating `metadata` values:
+
+```ts
+// FRONT: errors.layout.hingeRequired = "Pane {{position}} needs a hinge side."
+const text = t(`configurator.errors.layout.hingeRequired`, {
+  position: error.metadata.position,
+});
+```
+
+This means:
+- **New locales add zero server work.** Adding `en`/`ru` to a code is a
+  pure FRONT change — the server never speaks anything other than
+  Georgian.
+- **Field-level highlighting flows for free.** Anywhere a code carries
+  `position` (or `field`), the FRONT can mark the offending control
+  red without parsing prose.
+- **Keys must stay stable per code.** Renaming `position → paneIndex`
+  silently breaks every FRONT translation that referenced `{{position}}` —
+  changes to existing keys are equivalent to renaming a public API.
+  Add a new code if you need a different shape.
 
 ## HTTP status mapping
 
