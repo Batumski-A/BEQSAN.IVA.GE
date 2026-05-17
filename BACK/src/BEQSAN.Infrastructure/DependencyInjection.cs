@@ -9,6 +9,7 @@ using BEQSAN.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace BEQSAN.Infrastructure;
 
@@ -25,12 +26,14 @@ public static class DependencyInjection
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
 
-        var dbOptions = configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>()
-                        ?? new DatabaseOptions();
-
-        services.AddDbContext<BeqsanDbContext>(opts =>
+        // Resolve the connection string from IOptions at DbContext construction time
+        // (NOT at registration time) so test-host config overrides win — the test
+        // factory's ConfigureAppConfiguration runs after AddInfrastructure has already
+        // registered the DbContext.
+        services.AddDbContext<BeqsanDbContext>((sp, opts) =>
         {
-            opts.UseSqlite(dbOptions.ConnectionString);
+            var dbOpts = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+            opts.UseSqlite(dbOpts.ConnectionString);
             opts.UseSnakeCaseNamingConvention();
         });
 

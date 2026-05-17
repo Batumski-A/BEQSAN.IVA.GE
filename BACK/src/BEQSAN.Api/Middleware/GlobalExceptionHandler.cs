@@ -1,10 +1,14 @@
+using BEQSAN.Api.Common;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 
 namespace BEQSAN.Api.Middleware;
 
 internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    private const string InternalErrorCode = "internal.error";
+    private const string InternalErrorMessage =
+        "გავიდა მცირე ხარვეზი ჩვენს მხარეზე. სცადე თავიდან, თუ პრობლემა გრძელდება — დაგვიკავშირდი.";
+
     private readonly ILogger<GlobalExceptionHandler> _logger = logger;
 
     public async ValueTask<bool> TryHandleAsync(
@@ -23,17 +27,16 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
             httpContext.Request.Path,
             correlationId);
 
-        var problem = new ProblemDetails
-        {
-            Status = StatusCodes.Status500InternalServerError,
-            Type = "https://beqsan.iva.ge/errors/failure",
-            Title = "internal.error",
-            Detail = "გავიდა მცირე ხარვეზი ჩვენს მხარეზე. სცადე თავიდან, თუ პრობლემა გრძელდება — დაგვიკავშირდი.",
-        };
-        problem.Extensions["correlationId"] = correlationId;
+        // Wire shape matches every other endpoint — clients can rely on { isSuccess, value, errors }
+        // for every 5xx, not just for handler-returned Result<T> failures.
+        var envelope = ApiResponse<object>.Failure(
+        [
+            new ApiError(InternalErrorCode, InternalErrorMessage, Field: null),
+        ]);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken).ConfigureAwait(false);
+        httpContext.Response.ContentType = "application/json";
+        await httpContext.Response.WriteAsJsonAsync(envelope, cancellationToken).ConfigureAwait(false);
         return true;
     }
 }
