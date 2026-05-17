@@ -17,6 +17,75 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
 
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.Material", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BasePricePerSqmMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("base_price_per_sqm_minor");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<int>("Family")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("family");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ProductTypeId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("product_type_id");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("ThermalRating")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("thermal_rating");
+
+                    b.HasKey("Id")
+                        .HasName("pk_materials");
+
+                    b.HasIndex("ProductTypeId", "Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_materials_product_type_id_slug");
+
+                    b.HasIndex("IsActive", "ProductTypeId", "SortOrder")
+                        .HasDatabaseName("ix_materials_is_active_product_type_id_sort_order");
+
+                    b.ToTable("materials", (string)null);
+                });
+
             modelBuilder.Entity("BEQSAN.Domain.Catalog.ProductType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -68,6 +137,16 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_product_types_is_active_sort_order");
 
                     b.ToTable("product_types", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.Material", b =>
+                {
+                    b.HasOne("BEQSAN.Domain.Catalog.ProductType", null)
+                        .WithMany()
+                        .HasForeignKey("ProductTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_materials_product_types_product_type_id");
                 });
 #pragma warning restore 612, 618
         }

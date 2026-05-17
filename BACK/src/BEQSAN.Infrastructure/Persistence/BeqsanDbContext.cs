@@ -8,6 +8,7 @@ public sealed class BeqsanDbContext(DbContextOptions<BeqsanDbContext> options)
     : DbContext(options), IBeqsanDbContext
 {
     public DbSet<ProductType> ProductTypes => Set<ProductType>();
+    public DbSet<Material> Materials => Set<Material>();
 
     public Task<bool> CanConnectAsync(CancellationToken ct = default) =>
         Database.CanConnectAsync(ct);

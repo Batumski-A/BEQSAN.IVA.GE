@@ -92,5 +92,6 @@ public static class DependencyInjection
         }
 
         await ProductTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
+        await MaterialSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
     }
 }
