@@ -1,6 +1,8 @@
+using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Application.Common.Abstractions;
 using BEQSAN.Application.Common.Persistence;
 using BEQSAN.Infrastructure.Caching;
+using BEQSAN.Infrastructure.Catalog;
 using BEQSAN.Infrastructure.Persistence;
 using BEQSAN.Infrastructure.Persistence.Seed;
 using BEQSAN.Infrastructure.Storage;
@@ -35,6 +37,8 @@ public static class DependencyInjection
         services.AddSingleton<ICacheService, MemoryCacheService>();
 
         services.AddSingleton<IStorageService, LocalFileStorage>();
+
+        services.AddScoped<IProductTypeReader, ProductTypeDapperReader>();
 
         return services;
     }
