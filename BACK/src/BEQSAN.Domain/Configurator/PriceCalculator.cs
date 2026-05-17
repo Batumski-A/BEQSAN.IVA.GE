@@ -58,13 +58,20 @@ public static class PriceCalculator
         _ => 0.00m,
     };
 
+    /// <summary>Inner-color surcharge applied at 60% of the inner option's flat
+    /// surcharge — dual-color is cheaper than two full paint jobs because only
+    /// the inner face is reworked from the baseline white.</summary>
+    public const decimal InnerColorRate = 0.60m;
+
     public static Result<PriceBreakdown> Compute(
         ProductType productType,
         Material material,
         int widthCm,
         int heightCm,
         IReadOnlyList<ConfigurationPane>? panes = null,
-        IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null)
+        IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null,
+        ColorSelection? colorSelection = null,
+        IReadOnlyDictionary<Guid, ColorOption>? availableColorOptions = null)
     {
         if (productType is null)
         {
@@ -135,7 +142,25 @@ public static class PriceCalculator
             effective = baseline;
         }
 
-        var layoutResult = LayoutValidator.Validate(productType, effective, availableGlassTypes);
+        // Resolve "use material default color" when a color catalog is
+        // supplied but the caller didn't pass a ColorSelection. This is the
+        // Steps 1-5 back-compat path — request bodies without a `color`
+        // object still produce the right price (default color is white-
+        // ral9016 across all materials, surcharge 0, so earlier canaries
+        // hold byte-for-byte).
+        var effectiveColor = colorSelection;
+        if (effectiveColor is null && availableColorOptions is { Count: > 0 })
+        {
+            var defaultColor = ResolveDefaultColor(availableColorOptions.Values);
+            if (defaultColor is not null)
+            {
+                effectiveColor = new ColorSelection(defaultColor.Id);
+            }
+        }
+
+        var layoutResult = LayoutValidator.Validate(
+            productType, effective, availableGlassTypes,
+            material, effectiveColor, availableColorOptions);
         if (layoutResult.IsFailure)
         {
             return Result.Failure<PriceBreakdown>(layoutResult.Errors);
@@ -250,7 +275,45 @@ public static class PriceCalculator
             lines.Add(new PriceLine("accessory.mosquito", "მწერების ბადე", mosquitoMinor));
         }
 
-        var subtotalMinor = materialMinor + surchargeTotalMinor + glassTotalMinor + extrasTotalMinor + mosquitoMinor;
+        // Color surcharge — flat per order (paint match + lamination film
+        // prep is fixed setup cost; not material-proportional). Lines are
+        // emitted only when surcharge > 0 so a default-white selection
+        // doesn't add noise to the breakdown.
+        var colorOuterMinor = 0L;
+        var colorInnerMinor = 0L;
+        if (effectiveColor is not null
+            && availableColorOptions is { Count: > 0 }
+            && availableColorOptions.TryGetValue(effectiveColor.OuterColorOptionId, out var outerColor))
+        {
+            colorOuterMinor = outerColor.SurchargeMinor;
+            if (colorOuterMinor > 0)
+            {
+                lines.Add(new PriceLine(
+                    Code: $"color.outer.{outerColor.Slug}",
+                    Label: string.Create(CultureInfo.InvariantCulture, $"ფერი · {ColorNameKa(outerColor)}"),
+                    AmountMinor: colorOuterMinor));
+            }
+
+            if (effectiveColor.InnerColorOptionId is { } innerId
+                && innerId != effectiveColor.OuterColorOptionId
+                && availableColorOptions.TryGetValue(innerId, out var innerColor))
+            {
+                colorInnerMinor = (long)decimal.Round(
+                    innerColor.SurchargeMinor * InnerColorRate,
+                    0,
+                    MidpointRounding.ToEven);
+                if (colorInnerMinor > 0)
+                {
+                    lines.Add(new PriceLine(
+                        Code: $"color.inner.{innerColor.Slug}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"შიდა ფერი · {ColorNameKa(innerColor)}"),
+                        AmountMinor: colorInnerMinor));
+                }
+            }
+        }
+
+        var subtotalMinor = materialMinor + surchargeTotalMinor + glassTotalMinor
+            + extrasTotalMinor + mosquitoMinor + colorOuterMinor + colorInnerMinor;
         var vatMinor = (long)decimal.Round(
             subtotalMinor * VatRate,
             0,
@@ -304,6 +367,29 @@ public static class PriceCalculator
             return defaults[0];
         }
         return set.OrderBy(g => g.SurchargePerSqmMinor).ThenBy(g => g.SortOrder).FirstOrDefault();
+    }
+
+    private static ColorOption? ResolveDefaultColor(IEnumerable<ColorOption> set)
+    {
+        var defaults = set.Where(c => c.IsDefault).ToList();
+        if (defaults.Count == 1)
+        {
+            return defaults[0];
+        }
+        // Defensive: lowest surcharge / earliest sort order. Excludes
+        // ral-custom so a mis-seeded "everything's default" environment
+        // doesn't auto-apply a 250 ₾ premium to every quote.
+        return set
+            .Where(c => c.Family != ColorFamily.RalCustom)
+            .OrderBy(c => c.SurchargeMinor)
+            .ThenBy(c => c.SortOrder)
+            .FirstOrDefault();
+    }
+
+    private static string ColorNameKa(ColorOption color)
+    {
+        var ka = color.Name.Ka;
+        return string.IsNullOrWhiteSpace(ka) ? color.Slug : ka;
     }
 }
 
