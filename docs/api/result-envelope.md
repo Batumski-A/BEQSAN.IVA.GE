@@ -49,6 +49,7 @@ Multiple errors are common from validation (one per failed field). Other failure
 | `errors[].code` | `string` | Dot-namespaced **English**, machine-readable, **stable across releases**. UI maps to i18n. |
 | `errors[].message` | `string` | **Georgian** (default locale). Already localized server-side. Safe to display verbatim. |
 | `errors[].field` | `string \| null` | Camel-cased input property name when the error is bound to a single field; `null` otherwise. |
+| `errors[].metadata` | `Record<string, unknown> \| null` | Structured context the UI uses to render the error precisely. **Optional** — omitted when there's nothing structured to add. For out-of-range validation: `{ "min": 60, "max": 140, "actual": 30 }`. For mismatches: `{ "expected": "...", "got": "..." }`. Keys are stable per error code. |
 
 ### `code` taxonomy
 
@@ -75,6 +76,26 @@ Multiple errors are common from validation (one per failed field). Other failure
 - Always camelCase (`widthCm`, not `WidthCm` or `width_cm`).
 - Matches the JSON property name in the request body that the SPA can highlight.
 - `null` when not bound to a single input (e.g. business-rule failures spanning multiple fields).
+
+### `metadata` rules
+
+- Keys are camelCase, lowercase-first words. Values are JSON primitives
+  (string / number / boolean / null) — no nested objects so the FRONT
+  can `Record<string, unknown>` type it without surprises.
+- **Keys stable per error code.** `configurator.dimensions.widthOutOfRange`
+  always carries `{ min, max, actual }` — if the code stays, the keys
+  stay.
+- Add a new key for a new code rather than reusing an existing one with
+  different semantics.
+- Omit metadata entirely (not `{}`) when the error has nothing structured
+  to convey. JSON serializer drops null fields globally.
+
+### Known metadata payloads
+
+| code | metadata keys |
+|---|---|
+| `configurator.dimensions.widthOutOfRange` | `min` (int), `max` (int), `actual` (int) |
+| `configurator.dimensions.heightOutOfRange` | `min` (int), `max` (int), `actual` (int) |
 
 ## HTTP status mapping
 
