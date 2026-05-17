@@ -1,3 +1,4 @@
+using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Application.Common.Abstractions;
 using BEQSAN.Application.Common.Persistence;
@@ -46,6 +47,8 @@ public static class DependencyInjection
         services.AddSingleton<IStorageService, LocalFileStorage>();
 
         services.AddScoped<IProductTypeReader, ProductTypeDapperReader>();
+        services.AddScoped<IProductTypeExistsCheck, ProductTypeExistsCheckDapper>();
+        services.AddScoped<IMaterialReader, MaterialDapperReader>();
 
         return services;
     }
