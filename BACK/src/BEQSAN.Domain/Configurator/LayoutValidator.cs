@@ -20,20 +20,27 @@ namespace BEQSAN.Domain.Configurator;
 ///        Casement / TiltAndTurn → HingeSide required
 ///        Fixed / Tilt / Sliding → HingeSide forbidden
 ///   6. Glass rules (only when an availableGlassTypes set is supplied):
-///        - Each pane's GlassTypeId must be a key in the available set
-///          (i.e. the chosen material lists it as compatible).
-///        - Frosted + Tinted may not coexist on a single pane (visual
-///          conflict — one obscures, the other shades; combining is
-///          pointless and likely a mistake).
-///   The availableGlassTypes param is optional so Step 1-4 call sites that
-///   don't know about glass still work — when null, glass rules are skipped.
+///        - Each pane's GlassTypeId must be a key in the available set.
+///        - Frosted + Tinted may not coexist on a single pane.
+///   7. Color rules (only when a colorSelection is supplied):
+///        - Outer color must be a key in the availableColorOptions set.
+///        - Inner color (when supplied) must also be in the set.
+///        - Dual-color (inner ≠ outer) is PVC-only.
+///        - When the outer slug is <c>ral-custom</c>: CustomRalHex +
+///          CustomRalCode must both be supplied and well-formed.
+///   The optional params let Step 1-N call sites that don't yet know
+///   about a rule family bypass it without breaking — every existing
+///   canary keeps its number when called with null/omitted args.
 /// </summary>
 public static class LayoutValidator
 {
     public static Result Validate(
         ProductType productType,
         IReadOnlyList<ConfigurationPane> panes,
-        IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null)
+        IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null,
+        Material? material = null,
+        ColorSelection? colorSelection = null,
+        IReadOnlyDictionary<Guid, ColorOption>? availableColorOptions = null)
     {
         if (productType is null)
         {
@@ -148,6 +155,70 @@ public static class LayoutValidator
             }
         }
 
+        // Color rules — skipped when no colorSelection is supplied. The
+        // calculator resolves the material's default color before passing
+        // the selection in, so when this block runs we always have an
+        // outer color id.
+        if (colorSelection is not null)
+        {
+            if (availableColorOptions is null || availableColorOptions.Count == 0)
+            {
+                return Result.Failure(LayoutErrors.ColorCatalogMissing);
+            }
+
+            if (!availableColorOptions.TryGetValue(colorSelection.OuterColorOptionId, out var outerColor))
+            {
+                return Result.Failure(
+                    LayoutErrors.ColorNotCompatibleWithMaterial
+                        .WithMetadata("which", "outer"));
+            }
+
+            if (colorSelection.InnerColorOptionId is { } innerId
+                && innerId != colorSelection.OuterColorOptionId)
+            {
+                if (!availableColorOptions.ContainsKey(innerId))
+                {
+                    return Result.Failure(
+                        LayoutErrors.ColorNotCompatibleWithMaterial
+                            .WithMetadata("which", "inner"));
+                }
+
+                // Dual-color is PVC-only — aluminum is single-pass painted.
+                if (material is null || material.Family != MaterialFamily.Pvc)
+                {
+                    return Result.Failure(
+                        LayoutErrors.ColorDualOnlyOnPvc
+                            .WithMetadata(
+                                "materialSlug",
+                                material?.Slug ?? string.Empty));
+                }
+            }
+
+            // RAL Custom requires hex + code on the request.
+            if (string.Equals(outerColor.Slug, "ral-custom", StringComparison.Ordinal))
+            {
+                if (string.IsNullOrWhiteSpace(colorSelection.CustomRalHex)
+                    || string.IsNullOrWhiteSpace(colorSelection.CustomRalCode))
+                {
+                    return Result.Failure(LayoutErrors.ColorRalCustomMissing);
+                }
+
+                if (!ColorOption.IsValidHex(colorSelection.CustomRalHex))
+                {
+                    return Result.Failure(
+                        LayoutErrors.ColorRalCustomHexInvalid
+                            .WithMetadata("got", colorSelection.CustomRalHex));
+                }
+
+                if (!ColorOption.IsValidRalCode(colorSelection.CustomRalCode))
+                {
+                    return Result.Failure(
+                        LayoutErrors.ColorRalCustomCodeInvalid
+                            .WithMetadata("got", colorSelection.CustomRalCode));
+                }
+            }
+        }
+
         return Result.Success();
     }
 
@@ -224,4 +295,34 @@ public static class LayoutErrors
         "configurator.glass.frostedTintedConflict",
         "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
         field: "panes");
+
+    public static readonly Error ColorCatalogMissing = Error.Validation(
+        "configurator.color.catalogMissing",
+        "ფერების კატალოგი ვერ ჩაიტვირთა.",
+        field: "color");
+
+    public static readonly Error ColorNotCompatibleWithMaterial = Error.BusinessRule(
+        "configurator.color.notCompatibleWithMaterial",
+        "ეს ფერი ამ მასალაში არ მუშავდება.") with
+    { Field = "color" };
+
+    public static readonly Error ColorDualOnlyOnPvc = Error.BusinessRule(
+        "configurator.color.dualOnlyOnPvc",
+        "ცალკე შიდა ფერი მხოლოდ PVC-ისთვის — ალუმინი ერთფეროვანი იწერება.") with
+    { Field = "color" };
+
+    public static readonly Error ColorRalCustomMissing = Error.Validation(
+        "configurator.color.ralCustomMissing",
+        "RAL პალიტრიდან ფერი არ აირჩა.",
+        field: "color");
+
+    public static readonly Error ColorRalCustomHexInvalid = Error.Validation(
+        "configurator.color.ralCustomHexInvalid",
+        "ფერის hex კოდი არასწორია.",
+        field: "color");
+
+    public static readonly Error ColorRalCustomCodeInvalid = Error.Validation(
+        "configurator.color.ralCustomCodeInvalid",
+        "RAL კოდის ფორმატი არასწორია — მაგ. RAL 9016.",
+        field: "color");
 }
