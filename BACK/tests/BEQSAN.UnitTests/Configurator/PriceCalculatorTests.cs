@@ -6,29 +6,52 @@ namespace BEQSAN.UnitTests.Configurator;
 
 public class PriceCalculatorTests
 {
-    private static readonly Guid SomePtId = Guid.Parse("66242680-01f2-125b-a8db-02681c98c0b9");
+    // Use the deterministic seeded ids so test fixtures match production data shapes.
+    private static readonly Guid WindowId = Guid.Parse("66242680-01f2-125b-a8db-02681c98c0b9");
+    private static readonly Guid DoorId = Guid.Parse("9fc941a2-da7e-d954-a71d-87636cf810d0");
 
-    private static Material AluminumThermalWindow() =>
+    private static ProductType WindowProductType() => MakePt(WindowId, "window");
+    private static ProductType DoorProductType() => MakePt(DoorId, "door");
+
+    private static ProductType MakePt(Guid id, string slug)
+    {
+        var c = DimensionConstraints.ForProductType(slug);
+        return new ProductType
+        {
+            Id = id,
+            Slug = slug,
+            Name = LocalizedText.Create(slug).Value,
+            ShortDescription = LocalizedText.Create("...").Value,
+            HeroImageUrl = string.Empty,
+            SortOrder = 1,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+            MinWidthCm = c.MinWidthCm,
+            MaxWidthCm = c.MaxWidthCm,
+            MinHeightCm = c.MinHeightCm,
+            MaxHeightCm = c.MaxHeightCm,
+        };
+    }
+
+    private static Material MakeMaterial(Guid productTypeId, int priceMinor) =>
         Material.Create(
-            productTypeId: SomePtId,
+            productTypeId: productTypeId,
             slug: "aluminum-thermal",
             name: LocalizedText.Create("ალუმინი თერმო").Value,
             shortDescription: LocalizedText.Create("...").Value,
             family: MaterialFamily.Aluminum,
             thermalRating: ThermalRating.Thermal,
-            basePricePerSqmMinor: 38000,
+            basePricePerSqmMinor: priceMinor,
             currency: Currency.Gel,
             sortOrder: 1).Value;
 
     [Fact]
-    public void Compute_120x140_AluminumThermal_Matches_753_31()
+    public void Compute_Window_120x140_AluminumThermal_Matches_753_31()
     {
-        // Reference computation from Configurator Step 2 spec:
-        //   area  = 120*140/10000 = 1.68 m²
-        //   mat   = 1.68 * 38000 = 63840 tetri = 638.40 ₾
-        //   vat   = 63840 * 0.18 = 11491.2 → 11491 tetri (banker's)
-        //   total = 75331 tetri = 753.31 ₾
-        var result = PriceCalculator.Compute(AluminumThermalWindow(), widthCm: 120, heightCm: 140);
+        // Reference computation from Step 2 spec — regression canary in ADR-0002:
+        //   area = 1.68 m², material 63 840 tetri, vat 11 491, total 75 331 = 753.31 ₾.
+        var result = PriceCalculator.Compute(
+            WindowProductType(), MakeMaterial(WindowId, 38000), 120, 140);
 
         result.IsSuccess.Should().BeTrue();
         var b = result.Value;
@@ -40,25 +63,32 @@ public class PriceCalculatorTests
         b.Currency.Should().Be("GEL");
     }
 
+    [Fact]
+    public void Compute_Door_80x210_AluminumThermal_Matches_851_47()
+    {
+        // Step 3 regression canary — door at 80×210 cm with 42 000 tetri/m²:
+        //   area  = 80 * 210 / 10000 = 1.68 m²
+        //   mat   = 1.68 * 42000   = 70 560 tetri = 705.60 ₾
+        //   vat   = 70 560 * 0.18  = 12 700.8 → 12 701 tetri (banker's)
+        //   total = 83 261 tetri   = 832.61 ₾
+        var result = PriceCalculator.Compute(
+            DoorProductType(), MakeMaterial(DoorId, 42000), 80, 210);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.AreaSqm.Should().Be(1.68m);
+        result.Value.Lines[0].AmountMinor.Should().Be(70560L);
+        result.Value.Lines[1].AmountMinor.Should().Be(12701L);
+        result.Value.TotalMinor.Should().Be(83261L);
+    }
+
     [Theory]
-    [InlineData(100, 100, 38000, 1.00, 38000L, 6840L, 44840L)]   // 1m² aluminum-thermal
-    [InlineData(60, 60, 17000, 0.36, 6120L, 1102L, 7222L)]        // small PVC white window
-    [InlineData(200, 200, 26000, 4.00, 104000L, 18720L, 122720L)] // big aluminum-basic
+    [InlineData(100, 100, 38000, 1.00, 38000L, 6840L, 44840L)]
+    [InlineData(60, 60, 17000, 0.36, 6120L, 1102L, 7222L)]
+    [InlineData(200, 200, 26000, 4.00, 104000L, 18720L, 122720L)]
     public void Compute_KnownPairs_ProduceExpectedBreakdown(
         int w, int h, int priceMinor, decimal areaSqm, long matMinor, long vatMinor, long totalMinor)
     {
-        var material = Material.Create(
-            productTypeId: SomePtId,
-            slug: "stub",
-            name: LocalizedText.Create("...").Value,
-            shortDescription: LocalizedText.Create("...").Value,
-            family: MaterialFamily.Aluminum,
-            thermalRating: ThermalRating.Basic,
-            basePricePerSqmMinor: priceMinor,
-            currency: Currency.Gel,
-            sortOrder: 0).Value;
-
-        var result = PriceCalculator.Compute(material, w, h);
+        var result = PriceCalculator.Compute(WindowProductType(), MakeMaterial(WindowId, priceMinor), w, h);
 
         result.IsSuccess.Should().BeTrue();
         var b = result.Value;
@@ -69,75 +99,110 @@ public class PriceCalculatorTests
     }
 
     [Theory]
-    [InlineData(30)]                         // min
-    [InlineData(400)]                        // max
-    public void Compute_BoundaryDimensions_Succeed(int dim)
+    [InlineData("window", 30, 30)]      // min × min
+    [InlineData("window", 300, 250)]    // max × max
+    [InlineData("door", 60, 180)]       // door min × min
+    [InlineData("door", 140, 260)]      // door max × max
+    [InlineData("sliding", 120, 180)]
+    [InlineData("panoramic", 150, 200)]
+    [InlineData("balcony", 80, 80)]
+    public void Compute_PerTypeBoundaries_Succeed(string slug, int w, int h)
     {
-        var result = PriceCalculator.Compute(AluminumThermalWindow(), dim, dim);
-        result.IsSuccess.Should().BeTrue();
+        var pt = MakePt(Guid.NewGuid(), slug);
+        var material = MakeMaterial(pt.Id, 30000);
+        PriceCalculator.Compute(pt, material, w, h).IsSuccess.Should().BeTrue();
     }
 
     [Theory]
-    [InlineData(29)]                         // just below min
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(401)]                        // just above max
-    [InlineData(10000)]
-    public void Compute_WidthOutOfRange_ReturnsValidationError(int width)
+    [InlineData("door", 30, 200)]       // door min width is 60
+    [InlineData("door", 50, 200)]
+    [InlineData("door", 200, 200)]      // door max width is 140
+    [InlineData("window", 29, 100)]
+    [InlineData("window", 301, 100)]    // window max width 300
+    public void Compute_WidthOutOfRange_ReturnsErrorWithMetadata(string slug, int width, int height)
     {
-        var result = PriceCalculator.Compute(AluminumThermalWindow(), width, heightCm: 140);
+        var pt = MakePt(Guid.NewGuid(), slug);
+        var material = MakeMaterial(pt.Id, 30000);
+        var c = pt.GetConstraints();
+
+        var result = PriceCalculator.Compute(pt, material, width, height);
+
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("configurator.dimensions.widthOutOfRange");
         result.Error.Field.Should().Be("widthCm");
+        result.Error.Metadata.Should().NotBeNull();
+        result.Error.Metadata!["min"].Should().Be(c.MinWidthCm);
+        result.Error.Metadata["max"].Should().Be(c.MaxWidthCm);
+        result.Error.Metadata["actual"].Should().Be(width);
     }
 
     [Theory]
-    [InlineData(29)]
-    [InlineData(401)]
-    public void Compute_HeightOutOfRange_ReturnsValidationError(int height)
+    [InlineData("door", 100, 170)]      // door min height 180
+    [InlineData("door", 100, 261)]      // door max height 260
+    [InlineData("window", 120, 29)]
+    [InlineData("window", 120, 251)]
+    public void Compute_HeightOutOfRange_ReturnsErrorWithMetadata(string slug, int width, int height)
     {
-        var result = PriceCalculator.Compute(AluminumThermalWindow(), widthCm: 120, heightCm: height);
+        var pt = MakePt(Guid.NewGuid(), slug);
+        var material = MakeMaterial(pt.Id, 30000);
+        var c = pt.GetConstraints();
+
+        var result = PriceCalculator.Compute(pt, material, width, height);
+
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("configurator.dimensions.heightOutOfRange");
         result.Error.Field.Should().Be("heightCm");
+        result.Error.Metadata.Should().NotBeNull();
+        result.Error.Metadata!["min"].Should().Be(c.MinHeightCm);
+        result.Error.Metadata["max"].Should().Be(c.MaxHeightCm);
+        result.Error.Metadata["actual"].Should().Be(height);
     }
 
     [Fact]
-    public void Compute_NullMaterial_ReturnsNotFound()
+    public void Compute_NullMaterial_ReturnsMaterialNotFound()
     {
-        var result = PriceCalculator.Compute(material: null!, widthCm: 120, heightCm: 140);
+        var result = PriceCalculator.Compute(WindowProductType(), material: null!, 120, 140);
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("material.notFound");
     }
 
     [Fact]
+    public void Compute_NullProductType_ReturnsProductTypeNotFound()
+    {
+        var result = PriceCalculator.Compute(productType: null!, MakeMaterial(WindowId, 38000), 120, 140);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("productType.notFound");
+    }
+
+    [Fact]
+    public void Compute_MaterialBelongsToDifferentProductType_Returns_NotInProductType()
+    {
+        // Material claims it lives under DoorId; pricing call says WindowProductType.
+        var result = PriceCalculator.Compute(
+            WindowProductType(), MakeMaterial(DoorId, 38000), 120, 140);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("configurator.material.notInProductType");
+        result.Error.Type.Should().Be(BEQSAN.Domain.Common.ErrorType.BusinessRule);
+    }
+
+    [Fact]
     public void Compute_IsPureFunction_SameInputsSameOutputs()
     {
-        var m = AluminumThermalWindow();
-        var a = PriceCalculator.Compute(m, 120, 140).Value;
-        var b = PriceCalculator.Compute(m, 120, 140).Value;
+        var pt = WindowProductType();
+        var m = MakeMaterial(WindowId, 38000);
+        var a = PriceCalculator.Compute(pt, m, 120, 140).Value;
+        var b = PriceCalculator.Compute(pt, m, 120, 140).Value;
         a.Should().BeEquivalentTo(b);
     }
 
     [Fact]
     public void Compute_VatRounding_UsesBankerRounding()
     {
-        // Construct a case where VAT lands on .5 — banker's rounding should pick even.
-        // material × 0.18 = X.5 happens when material = N where N*0.18 ends in .5.
-        // 25 tetri * 0.18 = 4.5 → banker's rounds to 4. material=25 needs area*price = 25.
-        var material = Material.Create(
-            productTypeId: SomePtId,
-            slug: "tiny",
-            name: LocalizedText.Create("...").Value,
-            shortDescription: LocalizedText.Create("...").Value,
-            family: MaterialFamily.Aluminum,
-            thermalRating: ThermalRating.Basic,
-            basePricePerSqmMinor: 2500,
-            currency: Currency.Gel,
-            sortOrder: 0).Value;
-
-        // 100×100 = 1.00 m² × 2500 = 2500 tetri; vat = 450 (no rounding needed).
-        var result = PriceCalculator.Compute(material, 100, 100).Value;
+        // 100×100 = 1 m² × 2500 = 2500 tetri; vat = 450 (no rounding needed).
+        var pt = WindowProductType();
+        var material = MakeMaterial(WindowId, 2500);
+        var result = PriceCalculator.Compute(pt, material, 100, 100).Value;
         result.Lines[0].AmountMinor.Should().Be(2500L);
         result.Lines[1].AmountMinor.Should().Be(450L);
         result.TotalMinor.Should().Be(2950L);

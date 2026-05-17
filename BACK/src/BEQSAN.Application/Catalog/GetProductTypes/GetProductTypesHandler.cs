@@ -1,4 +1,5 @@
 using BEQSAN.Application.Common.Abstractions;
+using BEQSAN.Domain.Catalog;
 using BEQSAN.Domain.Common;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -43,5 +44,14 @@ internal sealed class GetProductTypesHandler(
 /// </summary>
 public interface IProductTypeReader
 {
+    /// <summary>Wire-shape DTO list for the public catalog endpoint.</summary>
     Task<IReadOnlyList<ProductTypeDto>> ListActiveAsync(CancellationToken ct = default);
+
+    /// <summary>Loads the full domain entity by id — for handlers that need
+    /// fields like dimension constraints that the list DTO doesn't carry.</summary>
+    Task<ProductType?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Same shape as GetByIdAsync, but keyed by slug. Used by the
+    /// detail endpoint when the FRONT navigates with a slug URL.</summary>
+    Task<ProductType?> GetBySlugAsync(string slug, CancellationToken ct = default);
 }

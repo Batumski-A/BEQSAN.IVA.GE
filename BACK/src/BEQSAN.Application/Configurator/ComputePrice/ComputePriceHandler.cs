@@ -1,5 +1,6 @@
 using System.Globalization;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
+using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Domain.Catalog;
 using BEQSAN.Domain.Common;
 using BEQSAN.Domain.Configurator;
@@ -9,41 +10,36 @@ using MediatR;
 namespace BEQSAN.Application.Configurator.ComputePrice;
 
 internal sealed class ComputePriceHandler(
-    IMaterialReader materialReader,
-    IProductTypeExistsCheck productTypeExists)
+    IProductTypeReader productTypeReader,
+    IMaterialReader materialReader)
     : IRequestHandler<ComputePriceCommand, Result<PriceBreakdownDto>>
 {
+    private readonly IProductTypeReader _productTypeReader = productTypeReader;
     private readonly IMaterialReader _materialReader = materialReader;
-    private readonly IProductTypeExistsCheck _productTypeExists = productTypeExists;
 
     public async Task<Result<PriceBreakdownDto>> Handle(
         ComputePriceCommand request,
         CancellationToken ct)
     {
-        // 1. ProductType must exist (and be active).
-        var productTypeOk = await _productTypeExists
-            .ExistsAsync(request.ProductTypeId, ct)
-            .ConfigureAwait(false);
-        if (!productTypeOk)
+        // Independent lookups run in parallel — both required before pricing math.
+        var productTypeTask = _productTypeReader.GetByIdAsync(request.ProductTypeId, ct);
+        var materialTask = _materialReader.GetByIdAsync(request.MaterialId, ct);
+        await Task.WhenAll(productTypeTask, materialTask).ConfigureAwait(false);
+
+        var productType = await productTypeTask.ConfigureAwait(false);
+        if (productType is null || !productType.IsActive)
         {
             return Result.Failure<PriceBreakdownDto>(ProductTypeErrors.NotFound);
         }
 
-        // 2. Material must exist.
-        var material = await _materialReader.GetByIdAsync(request.MaterialId, ct).ConfigureAwait(false);
+        var material = await materialTask.ConfigureAwait(false);
         if (material is null || !material.IsActive)
         {
             return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotFound);
         }
 
-        // 3. Cross-field: the material must belong to the requested product type.
-        if (material.ProductTypeId != request.ProductTypeId)
-        {
-            return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotInProductType);
-        }
-
-        // 4. Pure pricing math.
-        var breakdownResult = PriceCalculator.Compute(material, request.WidthCm, request.HeightCm);
+        // Cross-field check + per-type constraint enforcement + math all in calculator.
+        var breakdownResult = PriceCalculator.Compute(productType, material, request.WidthCm, request.HeightCm);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);
