@@ -14,12 +14,34 @@ public sealed class ProductType
     public bool IsActive { get; init; }
     public DateTime CreatedAtUtc { get; init; }
 
+    public int MinWidthCm { get; init; }
+    public int MaxWidthCm { get; init; }
+    public int MinHeightCm { get; init; }
+    public int MaxHeightCm { get; init; }
+
+    /// <summary>
+    /// Resolves the dimension constraints from the entity's own columns.
+    /// Falls back to the slug-keyed defaults when columns are zeroed (e.g.
+    /// rows that pre-dated the AddDimensionConstraints migration and somehow
+    /// escaped the seeder backfill).
+    /// </summary>
+    public DimensionConstraints GetConstraints()
+    {
+        if (MinWidthCm > 0 && MaxWidthCm > MinWidthCm && MinHeightCm > 0 && MaxHeightCm > MinHeightCm)
+        {
+            return new DimensionConstraints(MinWidthCm, MaxWidthCm, MinHeightCm, MaxHeightCm);
+        }
+
+        return DimensionConstraints.ForProductType(Slug);
+    }
+
     public static Result<ProductType> Create(
         string? slug,
         LocalizedText name,
         LocalizedText shortDescription,
         string? heroImageUrl,
         int sortOrder,
+        DimensionConstraints? constraints = null,
         bool isActive = true)
     {
         if (string.IsNullOrWhiteSpace(slug))
@@ -33,6 +55,8 @@ public sealed class ProductType
             return Result.Failure<ProductType>(ProductTypeErrors.SlugInvalid);
         }
 
+        var dims = constraints ?? DimensionConstraints.ForProductType(normalizedSlug);
+
         return Result.Success(new ProductType
         {
             Id = Guid.NewGuid(),
@@ -43,6 +67,10 @@ public sealed class ProductType
             SortOrder = sortOrder,
             IsActive = isActive,
             CreatedAtUtc = DateTime.UtcNow,
+            MinWidthCm = dims.MinWidthCm,
+            MaxWidthCm = dims.MaxWidthCm,
+            MinHeightCm = dims.MinHeightCm,
+            MaxHeightCm = dims.MaxHeightCm,
         });
     }
 
