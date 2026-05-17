@@ -110,7 +110,19 @@ public class PriceCalculatorTests
     {
         var pt = MakePt(Guid.NewGuid(), slug);
         var material = MakeMaterial(pt.Id, 30000);
-        PriceCalculator.Compute(pt, material, w, h).IsSuccess.Should().BeTrue();
+
+        // Sliding requires 2..4 panes, so the default single-Fixed pane wouldn't pass
+        // LayoutValidator. Hand-build a minimal valid sliding layout in that case;
+        // every other slug accepts the single-Fixed default.
+        IReadOnlyList<ConfigurationPane>? panes = slug == "sliding"
+            ? new[]
+            {
+                new ConfigurationPane(1, 0.5m, PaneOpeningType.Sliding, null, false),
+                new ConfigurationPane(2, 0.5m, PaneOpeningType.Sliding, null, false),
+            }
+            : null;
+
+        PriceCalculator.Compute(pt, material, w, h, panes).IsSuccess.Should().BeTrue();
     }
 
     [Theory]
