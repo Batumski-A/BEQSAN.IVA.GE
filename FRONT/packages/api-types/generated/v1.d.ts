@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/product-types/{productTypeId}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active materials for a product type, ordered for display */
+        get: operations["GetMaterialsByProductType"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Compute the price breakdown for a (productType, material, dimensions) tuple */
+        post: operations["ComputePrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -47,10 +81,68 @@ export interface components {
             message?: string | null;
             field?: string | null;
         };
+        ComputePriceCommand: {
+            /** Format: uuid */
+            productTypeId?: string;
+            /** Format: uuid */
+            materialId?: string;
+            /** Format: int32 */
+            widthCm?: number;
+            /** Format: int32 */
+            heightCm?: number;
+        };
         LocalizedText: {
             ka?: string | null;
             en?: string | null;
             ru?: string | null;
+        };
+        MaterialDto: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            productTypeId?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            family?: string | null;
+            thermalRating?: string | null;
+            /** Format: int64 */
+            basePricePerSqmMinor?: number;
+            basePricePerSqmDisplay?: string | null;
+            currency?: string | null;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        MaterialDtoIReadOnlyListApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["MaterialDto"][] | null;
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
+        ObjectApiResponse: {
+            isSuccess?: boolean;
+            value?: unknown;
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
+        PriceBreakdownDto: {
+            areaSqm?: string | null;
+            lines?: components["schemas"]["PriceLineDto"][] | null;
+            /** Format: int64 */
+            totalMinor?: number;
+            totalDisplay?: string | null;
+            currency?: string | null;
+        };
+        PriceBreakdownDtoApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["PriceBreakdownDto"];
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
+        PriceLineDto: {
+            code?: string | null;
+            label?: string | null;
+            /** Format: int64 */
+            amountMinor?: number;
+            amountDisplay?: string | null;
+            currency?: string | null;
         };
         ProblemDetails: {
             type?: string | null;
@@ -102,6 +194,106 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductTypeDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMaterialsByProductType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productTypeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ComputePrice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComputePriceCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceBreakdownDtoApiResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
                 };
             };
             /** @description Internal Server Error */
