@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Group } from 'three';
 
 import type { ConfigurationPaneInput, PaneOpeningType } from '@beqsan/api-types';
-import { useGlassTypesByMaterial, type GlassType } from '../api';
+import { useColorsByMaterial, useGlassTypesByMaterial, type GlassType } from '../api';
 import { useConfiguratorStore } from '../store';
 
 /**
@@ -21,12 +21,41 @@ export function ConfiguratorScene() {
   const material = useConfiguratorStore((s) => s.material);
   const dimensions = useConfiguratorStore((s) => s.dimensions);
   const panes = useConfiguratorStore((s) => s.panes);
-  // Same cache key as StepGlass — TanStack dedupes the network request.
+  const color = useConfiguratorStore((s) => s.color);
+  // Same cache keys as StepGlass / StepColor — TanStack dedupes.
   const glassQuery = useGlassTypesByMaterial(material?.id);
+  const colorsQuery = useColorsByMaterial(material?.id);
   const glassById = useMemo(
     () => new Map((glassQuery.data ?? []).map((g) => [g.id!, g])),
     [glassQuery.data],
   );
+  const colorsById = useMemo(
+    () => new Map((colorsQuery.data ?? []).map((c) => [c.id!, c])),
+    [colorsQuery.data],
+  );
+
+  // Resolve outer + inner hex.
+  // - When the user has picked a swatch, look up by id from the catalog.
+  // - When ral-custom is active, the hex arrives directly on the store color.
+  // - Otherwise fall back to the family-keyed neutral so the scene still
+  //   renders sensibly before the colors query resolves.
+  const fallbackHex = material?.family === 'aluminum' ? '#A8B3C4' : '#F4F2EE';
+  const outerHex = (() => {
+    if (color?.customRalHex) return color.customRalHex;
+    if (color?.outerColorOptionId) {
+      const c = colorsById.get(color.outerColorOptionId);
+      if (c?.hexCode) return c.hexCode;
+    }
+    return fallbackHex;
+  })();
+  const innerHex = (() => {
+    if (!color?.innerColorOptionId || color.innerColorOptionId === color.outerColorOptionId) {
+      return outerHex;
+    }
+    const c = colorsById.get(color.innerColorOptionId);
+    return c?.hexCode ?? outerHex;
+  })();
+  const hasDualColor = innerHex !== outerHex;
 
   const isMobile = useMemo(
     () =>
@@ -70,6 +99,9 @@ export function ConfiguratorScene() {
             heightCm={dimensions.heightCm}
             panes={panes}
             glassById={glassById}
+            outerHex={outerHex}
+            innerHex={innerHex}
+            hasDualColor={hasDualColor}
             mobile={isMobile}
           />
           <Ground />
@@ -101,6 +133,9 @@ function Window({
   heightCm,
   panes,
   glassById,
+  outerHex,
+  innerHex,
+  hasDualColor,
   mobile,
 }: {
   family: 'aluminum' | 'pvc';
@@ -108,6 +143,9 @@ function Window({
   heightCm: number;
   panes: ConfigurationPaneInput[];
   glassById: Map<string, GlassType>;
+  outerHex: string;
+  innerHex: string;
+  hasDualColor: boolean;
   mobile: boolean;
 }) {
   const ref = useRef<Group>(null);
@@ -122,7 +160,11 @@ function Window({
   const mullionThickness = 0.04;
   const glassInset = 0.08;
 
-  const frameColor = family === 'aluminum' ? '#A8B3C4' : '#F4F2EE';
+  // Outer color drives the front-facing frame material; inner drives the
+  // back-facing pieces in dual-color mode. Family controls metalness +
+  // roughness (PVC matte, aluminum brushed-metal) regardless of the chosen
+  // hex — paint sits on the surface, profile material stays the same.
+  const frameColor = outerHex;
   const metalness = family === 'aluminum' ? 1.0 : 0.05;
   const roughness = family === 'aluminum' ? 0.25 : 0.55;
 
@@ -135,6 +177,11 @@ function Window({
     cursor += pw;
     return { pane: p, cx, pw };
   });
+
+  // For dual-color (PVC only — guard enforced in the validator), we offset
+  // the back-facing inner skin a hair behind the outer one. Visible only
+  // when the camera orbits past the front-facing pose.
+  const innerOffsetZ = -frameThickness * 0.55;
 
   return (
     <group ref={ref} position={[0, h / 2, 0]}>
@@ -155,6 +202,30 @@ function Window({
         <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
         <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
       </mesh>
+
+      {/* Dual-color inner skin — thin slabs sitting just behind the outer
+          frame on the inside-of-the-room side. Renders only when the user
+          has picked an inner color different from the outer. */}
+      {hasDualColor && (
+        <group position={[0, 0, innerOffsetZ]}>
+          <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
+            <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+          </mesh>
+          <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
+            <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+          </mesh>
+          <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
+            <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+          </mesh>
+          <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
+            <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+          </mesh>
+        </group>
+      )}
 
       {/* Per-pane glass + opening accent tint, plus a mullion to the right of
           every pane except the last (the outer frame closes that side).
