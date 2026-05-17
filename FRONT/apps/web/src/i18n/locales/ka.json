@@ -116,6 +116,45 @@
         "srWidth": "სიგანე {{value}} {{unit}}",
         "srHeight": "სიმაღლე {{value}} {{unit}}"
       },
+      "color": {
+        "title": "ფერი",
+        "heading": "ფერი ან ფაქტურა",
+        "intro": "ფერი ან ფაქტურა — ფასადსაც და შიდა გარემოსაც.",
+        "family": {
+          "standard": "სტანდარტული",
+          "premium": "Premium",
+          "woodLaminate": "ხის ფაქტურა",
+          "ralCustom": "RAL პალიტრა"
+        },
+        "tabs": {
+          "outer": "გარეთა მხარე",
+          "inner": "შიდა მხარე"
+        },
+        "dualColor": {
+          "toggle": "შიდა ფერი = გარეთა",
+          "hint": "შიდა ფერი 60% ფასი ⋅ ცალკე ფერი მხოლოდ PVC-ისთვის",
+          "innerDiscountHint": "60% ფასი (-40%)"
+        },
+        "surchargeLabel": "+{{amount}} ₾",
+        "noSurcharge": "ფასი არ იცვლება",
+        "default": "ნაგულისხმევი",
+        "swatchAria": "{{name}}{{ralCode}}, {{family}}{{surcharge}}",
+        "ralPalette": {
+          "button": "RAL პალიტრა",
+          "modal": {
+            "title": "RAL ფერების პალიტრა",
+            "search": "ფერი ან RAL კოდი",
+            "searchPlaceholder": "მაგ. ანტრაციტი, RAL 7016",
+            "noResults": "ფერი ვერ მოიძებნა",
+            "preview": "არჩეული ფერი",
+            "confirm": "ეს ფერი მინდა",
+            "cancel": "გავაუქმოთ",
+            "surcharge": "RAL ფერი ემატება 250 ₾"
+          }
+        },
+        "errorTitle": "ვერ ჩავტვირთეთ ფერების კატალოგი",
+        "errorBody": "ქსელი ან სერვერი არ პასუხობს. შევეცადოთ თავიდან."
+      },
       "glass": {
         "title": "მინა",
         "heading": "მინის ფენები და დანამატები",
@@ -197,6 +236,17 @@
         "frostedTintedConflict": "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
         "extraInvalid": "{{position}}-ე პანელის მინის დანამატის ტიპი არასწორია.",
         "fallback": "მინის შერჩევა არ შეესაბამება მოთხოვნებს."
+      },
+      "color": {
+        "catalogMissing": "ფერების კატალოგი ვერ ჩაიტვირთა.",
+        "notCompatibleWithMaterial": "ეს ფერი ამ მასალაში არ მუშავდება.",
+        "notCompatibleOuter": "გარეთა ფერი ამ მასალაში არ მუშავდება.",
+        "notCompatibleInner": "შიდა ფერი ამ მასალაში არ მუშავდება.",
+        "dualOnlyOnPvc": "ცალკე შიდა ფერი მხოლოდ PVC-ისთვის — ალუმინი ერთფეროვანი იწერება.",
+        "ralCustomMissing": "RAL პალიტრიდან ფერი არ აირჩა.",
+        "ralCustomHexInvalid": "ფერის hex კოდი არასწორია.",
+        "ralCustomCodeInvalid": "RAL კოდის ფორმატი არასწორია — მაგ. RAL 9016.",
+        "fallback": "ფერის შერჩევა არ შეესაბამება მოთხოვნებს."
       }
     },
     "price": {

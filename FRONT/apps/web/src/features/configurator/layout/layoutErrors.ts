@@ -59,6 +59,23 @@ export function translateLayoutError(error: ApiError, t: TFunction): string {
       return t('configurator.errors.glass.frostedTintedConflict');
     case 'configurator.glass.extraInvalid':
       return t('configurator.errors.glass.extraInvalid', { position: meta.position });
+    // Step-6 color codes.
+    case 'configurator.color.catalogMissing':
+      return t('configurator.errors.color.catalogMissing');
+    case 'configurator.color.notCompatibleWithMaterial': {
+      const which = (meta.which as string) ?? '';
+      if (which === 'outer') return t('configurator.errors.color.notCompatibleOuter');
+      if (which === 'inner') return t('configurator.errors.color.notCompatibleInner');
+      return t('configurator.errors.color.notCompatibleWithMaterial');
+    }
+    case 'configurator.color.dualOnlyOnPvc':
+      return t('configurator.errors.color.dualOnlyOnPvc');
+    case 'configurator.color.ralCustomMissing':
+      return t('configurator.errors.color.ralCustomMissing');
+    case 'configurator.color.ralCustomHexInvalid':
+      return t('configurator.errors.color.ralCustomHexInvalid');
+    case 'configurator.color.ralCustomCodeInvalid':
+      return t('configurator.errors.color.ralCustomCodeInvalid');
     default:
       return t('configurator.errors.layout.fallback');
   }
@@ -75,7 +92,8 @@ export function firstLayoutError(unknownError: unknown): ApiError | null {
     unknownError.errors.find(
       (e) =>
         e.code.startsWith('configurator.layout.') ||
-        e.code.startsWith('configurator.glass.'),
+        e.code.startsWith('configurator.glass.') ||
+        e.code.startsWith('configurator.color.'),
     ) ?? null
   );
 }

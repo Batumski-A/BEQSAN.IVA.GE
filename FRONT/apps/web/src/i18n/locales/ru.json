@@ -83,6 +83,45 @@
         "srWidth": "Ширина {{value}} {{unit}}",
         "srHeight": "Высота {{value}} {{unit}}"
       },
+      "color": {
+        "title": "Цвет",
+        "heading": "Цвет или текстура",
+        "intro": "Цвет или отделка — для фасада и для интерьера.",
+        "family": {
+          "standard": "Стандарт",
+          "premium": "Premium",
+          "woodLaminate": "Текстура дерева",
+          "ralCustom": "RAL палитра"
+        },
+        "tabs": {
+          "outer": "Снаружи",
+          "inner": "Внутри"
+        },
+        "dualColor": {
+          "toggle": "Внутри = снаружи",
+          "hint": "Внутренний цвет 60% ⋅ отдельный цвет только для PVC",
+          "innerDiscountHint": "60% цены (-40%)"
+        },
+        "surchargeLabel": "+{{amount}} ₾",
+        "noSurcharge": "Без доплаты",
+        "default": "По умолчанию",
+        "swatchAria": "{{name}}{{ralCode}}, {{family}}{{surcharge}}",
+        "ralPalette": {
+          "button": "RAL палитра",
+          "modal": {
+            "title": "Палитра RAL",
+            "search": "Цвет или RAL код",
+            "searchPlaceholder": "напр. антрацит, RAL 7016",
+            "noResults": "Цвет не найден",
+            "preview": "Выбрано",
+            "confirm": "Выбрать этот цвет",
+            "cancel": "Отмена",
+            "surcharge": "RAL custom + 250 ₾"
+          }
+        },
+        "errorTitle": "Не удалось загрузить каталог цветов",
+        "errorBody": "Сеть или сервер не отвечают. Попробуем ещё раз."
+      },
       "glass": {
         "title": "Стекло",
         "heading": "Слои стекла и добавки",
@@ -164,6 +203,17 @@
         "frostedTintedConflict": "Матовое и тонированное нельзя сочетать — выберите одно.",
         "extraInvalid": "У створки {{position}} неверная опция стекла.",
         "fallback": "Такой выбор стекла недопустим."
+      },
+      "color": {
+        "catalogMissing": "Каталог цветов не загрузился.",
+        "notCompatibleWithMaterial": "Этот цвет недоступен с выбранным материалом.",
+        "notCompatibleOuter": "Внешний цвет недоступен с этим материалом.",
+        "notCompatibleInner": "Внутренний цвет недоступен с этим материалом.",
+        "dualOnlyOnPvc": "Отдельный внутренний цвет — только для PVC, алюминий красится в один цвет.",
+        "ralCustomMissing": "Цвет из палитры RAL не выбран.",
+        "ralCustomHexInvalid": "Неверный hex-код цвета.",
+        "ralCustomCodeInvalid": "Неверный формат RAL-кода — например, RAL 9016.",
+        "fallback": "Такой выбор цвета недопустим."
       }
     },
     "price": {

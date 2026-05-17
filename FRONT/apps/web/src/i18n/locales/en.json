@@ -83,6 +83,45 @@
         "srWidth": "Width {{value}} {{unit}}",
         "srHeight": "Height {{value}} {{unit}}"
       },
+      "color": {
+        "title": "Colour",
+        "heading": "Colour or finish",
+        "intro": "Colour or wood finish — for the façade and the room behind it.",
+        "family": {
+          "standard": "Standard",
+          "premium": "Premium",
+          "woodLaminate": "Wood finish",
+          "ralCustom": "RAL palette"
+        },
+        "tabs": {
+          "outer": "Outside",
+          "inner": "Inside"
+        },
+        "dualColor": {
+          "toggle": "Inside = outside",
+          "hint": "Inside colour at 60% ⋅ separate inside only on PVC",
+          "innerDiscountHint": "60% price (-40%)"
+        },
+        "surchargeLabel": "+{{amount}} ₾",
+        "noSurcharge": "No upcharge",
+        "default": "Default",
+        "swatchAria": "{{name}}{{ralCode}}, {{family}}{{surcharge}}",
+        "ralPalette": {
+          "button": "RAL palette",
+          "modal": {
+            "title": "RAL colour palette",
+            "search": "Colour name or RAL code",
+            "searchPlaceholder": "e.g. anthracite, RAL 7016",
+            "noResults": "No colour found",
+            "preview": "Selected",
+            "confirm": "Use this colour",
+            "cancel": "Cancel",
+            "surcharge": "RAL custom adds 250 ₾"
+          }
+        },
+        "errorTitle": "Couldn't load colour catalog",
+        "errorBody": "Network or server didn't reply. We'll try again."
+      },
       "glass": {
         "title": "Glass",
         "heading": "Glass layers and treatments",
@@ -164,6 +203,17 @@
         "frostedTintedConflict": "Frosted and tinted can't be applied to the same pane — pick one.",
         "extraInvalid": "Pane {{position}} has an invalid glass add-on.",
         "fallback": "This glass selection isn't valid."
+      },
+      "color": {
+        "catalogMissing": "Colour catalog couldn't load.",
+        "notCompatibleWithMaterial": "This colour isn't available with the chosen material.",
+        "notCompatibleOuter": "Outside colour isn't available with this material.",
+        "notCompatibleInner": "Inside colour isn't available with this material.",
+        "dualOnlyOnPvc": "Separate inside colour is PVC-only — aluminum is painted as a single colour.",
+        "ralCustomMissing": "No colour was picked from the RAL palette.",
+        "ralCustomHexInvalid": "Hex colour code is invalid.",
+        "ralCustomCodeInvalid": "RAL code format is invalid — e.g. RAL 9016.",
+        "fallback": "This colour selection isn't valid."
       }
     },
     "price": {
