@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/product-types/{idOrSlug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Full product type by id or slug, including dimension constraints */
+        get: operations["GetProductTypeDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/catalog/product-types/{productTypeId}/materials": {
         parameters: {
             query?: never;
@@ -80,6 +97,9 @@ export interface components {
             code?: string | null;
             message?: string | null;
             field?: string | null;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
         };
         ComputePriceCommand: {
             /** Format: uuid */
@@ -90,6 +110,16 @@ export interface components {
             widthCm?: number;
             /** Format: int32 */
             heightCm?: number;
+        };
+        DimensionConstraintsDto: {
+            /** Format: int32 */
+            minWidthCm?: number;
+            /** Format: int32 */
+            maxWidthCm?: number;
+            /** Format: int32 */
+            minHeightCm?: number;
+            /** Format: int32 */
+            maxHeightCm?: number;
         };
         LocalizedText: {
             ka?: string | null;
@@ -154,6 +184,22 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        ProductTypeDetailDto: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            heroImageUrl?: string | null;
+            /** Format: int32 */
+            sortOrder?: number;
+            constraints?: components["schemas"]["DimensionConstraintsDto"];
+        };
+        ProductTypeDetailDtoApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["ProductTypeDetailDto"];
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
         ProductTypeDto: {
             /** Format: uuid */
             id?: string;
@@ -194,6 +240,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProductTypeDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetProductTypeDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idOrSlug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductTypeDetailDtoApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
                 };
             };
             /** @description Internal Server Error */
