@@ -69,6 +69,52 @@ public async Task<IActionResult> CalculatePrice(
 - `Failure(BusinessRuleError)` → 422
 - `Failure(Internal)` → 500 (caught by middleware, logged with correlation id)
 
+## Dapper + SQLite — known gotchas (learned the hard way)
+
+Three rules that prevent ~95% of the head-scratching:
+
+1. **`AddDbContext` must resolve options at construction time, not at registration time.**
+   Capture `IOptions<DatabaseOptions>` in the lambda, don't bake the connection string into a local var:
+   ```csharp
+   // ✅ Resolved per-construction — IConfiguration overrides (test factory, env vars) win
+   services.AddDbContext<BeqsanDbContext>((sp, opts) =>
+   {
+       var dbOpts = sp.GetRequiredService<IOptions<DatabaseOptions>>().Value;
+       opts.UseSqlite(dbOpts.ConnectionString);
+       opts.UseSnakeCaseNamingConvention();
+   });
+
+   // ❌ Captures config-as-of-AddInfrastructure. Test factory overrides arrive too late.
+   var dbOpts = configuration.GetSection(...).Get<DatabaseOptions>();
+   services.AddDbContext<BeqsanDbContext>(opts => opts.UseSqlite(dbOpts.ConnectionString));
+   ```
+
+2. **EF Core's SQLite Guid converter stores UPPER-case strings; SQLite TEXT is case-sensitive.**
+   Dapper's default `Guid.ToString()` is lower-case → silent zero-hit on every `WHERE id = @Id`.
+   Fix in the central `SqlMapper.TypeHandler<Guid>`:
+   ```csharp
+   public override void SetValue(IDbDataParameter parameter, Guid value) =>
+       parameter.Value = value.ToString("D", CultureInfo.InvariantCulture).ToUpperInvariant();
+   ```
+   Belt-and-suspenders: explicit `.ToString("D").ToUpperInvariant()` in any Dapper reader passing anonymous-object parameters.
+
+3. **Dapper's compiled per-type deserializer ignores `TypeHandler<Guid>` for column-direct properties.**
+   If a Row class has a `public Guid Id { get; set; }`, the SELECT will throw `Invalid cast from String to Guid` even with the handler registered. **Declare `Row.Id` as `string`** and parse in the projector:
+   ```csharp
+   return rows.Select(r => new ProductTypeDto(
+       Id: Guid.Parse(r.Id, CultureInfo.InvariantCulture),
+       Slug: r.Slug, ...)).ToList();
+
+   private sealed class Row
+   {
+       public string Id { get; set; } = string.Empty;  // ← string, not Guid
+       public string Slug { get; set; } = string.Empty;
+   }
+   ```
+   The handler still helps for **parameter** binding (rule 2); it's the **column read** path that doesn't honour it.
+
+The `BeqsanWebAppFactory` (integration tests) uses a per-instance temp `.db` file, not `:memory:` — `:memory:` forks across each new connection, so EF's migration runs in one DB while Dapper reads from another. Same file = same database.
+
 ## EF Core vs Dapper — when to use which
 
 **EF Core** for:
