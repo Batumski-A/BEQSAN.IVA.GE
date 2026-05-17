@@ -1,14 +1,14 @@
 import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { useConfiguratorStore, type ConfiguratorStep } from './store';
 import { StepIndicator } from './StepIndicator';
 import { StepType } from './steps/StepType';
 import { StepMaterial } from './steps/StepMaterial';
 import { StepDimensions } from './steps/StepDimensions';
-import { StepDimensionsStub } from './steps/StepDimensionsStub';
+import { StepLayout } from './steps/StepLayout';
 
 // Lazy 3D scene — heavy bundle, only paid when configurator opens.
 const ConfiguratorScene = lazy(() =>
@@ -18,7 +18,6 @@ const ConfiguratorScene = lazy(() =>
 export default function ConfiguratorPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const stepParam = parseStep(params.get('step'));
   const storedStep = useConfiguratorStore((s) => s.step);
@@ -26,13 +25,17 @@ export default function ConfiguratorPage() {
   const material = useConfiguratorStore((s) => s.material);
   const goToStep = useConfiguratorStore((s) => s.goToStep);
 
-  // Guard rails: step 2 needs productType, step 3 needs material, step 4 needs
-  // valid dimensions (TODO when Step 4 lands — for now step 4 is the cliff).
+  // Guard rails: each step depends on the prior selection landing. Step 4
+  // assumes dimensions exist — the store always seeds them at midpoint, so
+  // the only invalid path is missing productType or material.
   useEffect(() => {
     const desired = stepParam ?? storedStep;
     let normalised: ConfiguratorStep = desired;
     if (desired >= 2 && !productType) normalised = 1;
     if (desired >= 3 && !material) {
+      normalised = (productType ? 2 : 1) as ConfiguratorStep;
+    }
+    if (desired >= 4 && !material) {
       normalised = (productType ? 2 : 1) as ConfiguratorStep;
     }
 
@@ -87,7 +90,7 @@ export default function ConfiguratorPage() {
                 onAdvance={() => handleAdvance(4)}
               />
             ) : (
-              <StepDimensionsStub onBack={() => handleAdvance(3)} onHome={() => navigate('/')} />
+              <StepLayout onBack={() => handleAdvance(3)} />
             )}
           </div>
 
