@@ -116,6 +116,79 @@
         "srWidth": "სიგანე {{value}} {{unit}}",
         "srHeight": "სიმაღლე {{value}} {{unit}}"
       },
+      "accessories": {
+        "title": "აქსესუარები",
+        "heading": "სრულყოფისთვის",
+        "intro": "სახელური, საკეტი, ფერთულა, ჟალუზი — სრულყოფისთვის.",
+        "empty": "აქსესუარები არჩევითია — გადასვით თუ არც ერთი არ გჭირდება.",
+        "subSummary": "აქსესუარების ჯამი: +{{amount}} ₾",
+        "sections": {
+          "handle": {
+            "title": "სახელური",
+            "perPaneBadge": "× {{count}} პანელი",
+            "skip": "სახელური არ მინდა",
+            "doorRequired": "კარს სახელური სავალდებულოა"
+          },
+          "lock": {
+            "title": "საკეტი",
+            "skip": "საკეტი არ მინდა",
+            "doorRequired": "კარს საკეტი სავალდებულოა",
+            "gradeBadge": {
+              "basic": "Basic",
+              "multiPoint": "Multi-point",
+              "smart": "Smart"
+            },
+            "requiresCasement": "საჭიროა გასაღები ან გასაღები+დასაკეცი პანელი"
+          },
+          "sill": {
+            "title": "ფერთულა",
+            "toggle": "ფერთულა მინდა",
+            "position": {
+              "label": "მხარე",
+              "inner": "შიდა",
+              "outer": "გარეთა",
+              "both": "ორივე",
+              "innerHint": "ბინიდან გასასვლელად",
+              "outerHint": "ფანჯრის გადახედვაზე",
+              "bothHint": "ფუნქცია + ვიზუალი"
+            },
+            "length": {
+              "label": "სიგრძე",
+              "auto": "ჩარჩოს სიგრძე ({{cm}} სმ)",
+              "customToggle": "ცალკე სიგრძე",
+              "customRange": "30-800 სმ"
+            },
+            "perMeterHint": "+80 ₾/მ"
+          },
+          "blind": {
+            "title": "ჟალუზი",
+            "toggle": "ჟალუზი მინდა",
+            "placement": {
+              "external": "გარეთა (ფასადზე)",
+              "internal": "შიდა (ფანჯრის უკან)"
+            },
+            "control": {
+              "label": "მართვა",
+              "manual": "მექანიკური",
+              "electric": "ელექტრო",
+              "remote": "დისტანციური",
+              "electricSurcharge": "+45 ₾",
+              "remoteSurcharge": "+85 ₾",
+              "notSupported": "მართვის ეს ვარიანტი არ არის"
+            },
+            "pricingHint": "+{{base}} ₾ მონტაჟი + {{perSqm}} ₾/მ²"
+          },
+          "mosquito": {
+            "title": "მწერების ბადე",
+            "review": "Step 4-ში დაარედაქტირე →",
+            "paneOn": "✓",
+            "paneOff": "✗",
+            "paneSummary": "პანელი {{n}}: {{state}}"
+          }
+        },
+        "errorTitle": "ვერ ჩავტვირთეთ აქსესუარების კატალოგი",
+        "errorBody": "ქსელი ან სერვერი არ პასუხობს. შევეცადოთ თავიდან."
+      },
       "color": {
         "title": "ფერი",
         "heading": "ფერი ან ფაქტურა",
@@ -236,6 +309,20 @@
         "frostedTintedConflict": "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
         "extraInvalid": "{{position}}-ე პანელის მინის დანამატის ტიპი არასწორია.",
         "fallback": "მინის შერჩევა არ შეესაბამება მოთხოვნებს."
+      },
+      "accessory": {
+        "handleRequired": "კარს სახელური სავალდებულოა.",
+        "handleNoOpenablePane": "სახელური საჭიროა მხოლოდ გასაღებ პანელისთვის.",
+        "handleNotCompatible": "ეს სახელური ამ მასალაში არ მუშავდება.",
+        "lockRequired": "კარს საკეტი სავალდებულოა.",
+        "lockNotCompatibleProduct": "ეს საკეტი ამ პროდუქტისთვის არ მუშავდება.",
+        "lockRequiresFullOpening": "ეს საკეტი საჭიროებს გასაღები ან გასაღები+დასაკეცი პანელს.",
+        "sillLengthOutOfRange": "ფერთულის სიგრძე {{min}}-{{max}} სმ შორის უნდა იყოს.",
+        "sillPositionInvalid": "ფერთულის პოზიცია არასწორია.",
+        "blindNotCompatibleProduct": "ეს ჟალუზი ამ პროდუქტისთვის არ მუშავდება.",
+        "blindControlNotSupported": "ამ ჟალუზს მითითებული მართვა არ აქვს.",
+        "blindControlInvalid": "ჟალუზის მართვა არასწორია.",
+        "fallback": "აქსესუარების შერჩევა არ შეესაბამება მოთხოვნებს."
       },
       "color": {
         "catalogMissing": "ფერების კატალოგი ვერ ჩაიტვირთა.",

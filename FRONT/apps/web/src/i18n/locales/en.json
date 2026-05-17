@@ -83,6 +83,79 @@
         "srWidth": "Width {{value}} {{unit}}",
         "srHeight": "Height {{value}} {{unit}}"
       },
+      "accessories": {
+        "title": "Accessories",
+        "heading": "Hardware and finishing",
+        "intro": "Handle, lock, sill, blind — pick what completes the package.",
+        "empty": "Accessories are optional — skip if you don't need any.",
+        "subSummary": "Accessories total: +{{amount}} ₾",
+        "sections": {
+          "handle": {
+            "title": "Handle",
+            "perPaneBadge": "× {{count}} pane",
+            "skip": "No handle",
+            "doorRequired": "A handle is required for doors"
+          },
+          "lock": {
+            "title": "Lock",
+            "skip": "No lock",
+            "doorRequired": "A lock is required for doors",
+            "gradeBadge": {
+              "basic": "Basic",
+              "multiPoint": "Multi-point",
+              "smart": "Smart"
+            },
+            "requiresCasement": "Requires a casement or tilt-and-turn pane"
+          },
+          "sill": {
+            "title": "Sill",
+            "toggle": "Add a sill",
+            "position": {
+              "label": "Side",
+              "inner": "Inside",
+              "outer": "Outside",
+              "both": "Both",
+              "innerHint": "Inside ledge",
+              "outerHint": "Façade ledge",
+              "bothHint": "Function + visual"
+            },
+            "length": {
+              "label": "Length",
+              "auto": "Frame length ({{cm}} cm)",
+              "customToggle": "Custom length",
+              "customRange": "30-800 cm"
+            },
+            "perMeterHint": "+80 ₾/m"
+          },
+          "blind": {
+            "title": "Blind",
+            "toggle": "Add a blind",
+            "placement": {
+              "external": "External (on the façade)",
+              "internal": "Internal (behind the frame)"
+            },
+            "control": {
+              "label": "Control",
+              "manual": "Manual",
+              "electric": "Electric",
+              "remote": "Remote",
+              "electricSurcharge": "+45 ₾",
+              "remoteSurcharge": "+85 ₾",
+              "notSupported": "This control type isn't supported"
+            },
+            "pricingHint": "+{{base}} ₾ mount + {{perSqm}} ₾/m²"
+          },
+          "mosquito": {
+            "title": "Mosquito net",
+            "review": "Edit in Step 4 →",
+            "paneOn": "✓",
+            "paneOff": "✗",
+            "paneSummary": "Pane {{n}}: {{state}}"
+          }
+        },
+        "errorTitle": "Couldn't load accessory catalog",
+        "errorBody": "Network or server didn't reply. We'll try again."
+      },
       "color": {
         "title": "Colour",
         "heading": "Colour or finish",
@@ -203,6 +276,20 @@
         "frostedTintedConflict": "Frosted and tinted can't be applied to the same pane — pick one.",
         "extraInvalid": "Pane {{position}} has an invalid glass add-on.",
         "fallback": "This glass selection isn't valid."
+      },
+      "accessory": {
+        "handleRequired": "A handle is required for doors.",
+        "handleNoOpenablePane": "A handle only fits on openable panes.",
+        "handleNotCompatible": "This handle isn't available with the chosen material.",
+        "lockRequired": "A lock is required for doors.",
+        "lockNotCompatibleProduct": "This lock isn't available with the chosen product.",
+        "lockRequiresFullOpening": "This lock requires a casement or tilt-and-turn pane.",
+        "sillLengthOutOfRange": "Sill length must be between {{min}} and {{max}} cm.",
+        "sillPositionInvalid": "Sill position is invalid.",
+        "blindNotCompatibleProduct": "This blind isn't available with the chosen product.",
+        "blindControlNotSupported": "This blind doesn't support that control type.",
+        "blindControlInvalid": "Blind control type is invalid.",
+        "fallback": "This accessory selection isn't valid."
       },
       "color": {
         "catalogMissing": "Colour catalog couldn't load.",

@@ -76,6 +76,32 @@ export function translateLayoutError(error: ApiError, t: TFunction): string {
       return t('configurator.errors.color.ralCustomHexInvalid');
     case 'configurator.color.ralCustomCodeInvalid':
       return t('configurator.errors.color.ralCustomCodeInvalid');
+    // Step 7 accessory codes.
+    case 'configurator.accessory.handleRequired':
+      return t('configurator.errors.accessory.handleRequired');
+    case 'configurator.accessory.handleNoOpenablePane':
+      return t('configurator.errors.accessory.handleNoOpenablePane');
+    case 'configurator.accessory.handleNotCompatible':
+      return t('configurator.errors.accessory.handleNotCompatible');
+    case 'configurator.accessory.lockRequired':
+      return t('configurator.errors.accessory.lockRequired');
+    case 'configurator.accessory.lockNotCompatibleProduct':
+      return t('configurator.errors.accessory.lockNotCompatibleProduct');
+    case 'configurator.accessory.lockRequiresFullOpening':
+      return t('configurator.errors.accessory.lockRequiresFullOpening');
+    case 'configurator.accessory.sillLengthOutOfRange':
+      return t('configurator.errors.accessory.sillLengthOutOfRange', {
+        min: meta.min,
+        max: meta.max,
+      });
+    case 'configurator.accessory.sillPositionInvalid':
+      return t('configurator.errors.accessory.sillPositionInvalid');
+    case 'configurator.accessory.blindNotCompatibleProduct':
+      return t('configurator.errors.accessory.blindNotCompatibleProduct');
+    case 'configurator.accessory.blindControlNotSupported':
+      return t('configurator.errors.accessory.blindControlNotSupported');
+    case 'configurator.accessory.blindControlInvalid':
+      return t('configurator.errors.accessory.blindControlInvalid');
     default:
       return t('configurator.errors.layout.fallback');
   }
@@ -93,7 +119,8 @@ export function firstLayoutError(unknownError: unknown): ApiError | null {
       (e) =>
         e.code.startsWith('configurator.layout.') ||
         e.code.startsWith('configurator.glass.') ||
-        e.code.startsWith('configurator.color.'),
+        e.code.startsWith('configurator.color.') ||
+        e.code.startsWith('configurator.accessory.'),
     ) ?? null
   );
 }

@@ -83,6 +83,79 @@
         "srWidth": "Ширина {{value}} {{unit}}",
         "srHeight": "Высота {{value}} {{unit}}"
       },
+      "accessories": {
+        "title": "Аксессуары",
+        "heading": "Фурнитура и отделка",
+        "intro": "Ручка, замок, подоконник, жалюзи — соберите полный комплект.",
+        "empty": "Аксессуары необязательны — пропустите, если не нужны.",
+        "subSummary": "Аксессуары итого: +{{amount}} ₾",
+        "sections": {
+          "handle": {
+            "title": "Ручка",
+            "perPaneBadge": "× {{count}} створка",
+            "skip": "Без ручки",
+            "doorRequired": "У двери ручка обязательна"
+          },
+          "lock": {
+            "title": "Замок",
+            "skip": "Без замка",
+            "doorRequired": "У двери замок обязателен",
+            "gradeBadge": {
+              "basic": "Basic",
+              "multiPoint": "Multi-point",
+              "smart": "Smart"
+            },
+            "requiresCasement": "Нужна распашная или поворотно-откидная створка"
+          },
+          "sill": {
+            "title": "Подоконник",
+            "toggle": "Добавить подоконник",
+            "position": {
+              "label": "Сторона",
+              "inner": "Внутри",
+              "outer": "Снаружи",
+              "both": "Оба",
+              "innerHint": "Внутренняя полка",
+              "outerHint": "Внешний отлив",
+              "bothHint": "Функция + вид"
+            },
+            "length": {
+              "label": "Длина",
+              "auto": "По ширине рамы ({{cm}} см)",
+              "customToggle": "Своя длина",
+              "customRange": "30-800 см"
+            },
+            "perMeterHint": "+80 ₾/м"
+          },
+          "blind": {
+            "title": "Жалюзи",
+            "toggle": "Добавить жалюзи",
+            "placement": {
+              "external": "Снаружи (на фасаде)",
+              "internal": "Внутри (за рамой)"
+            },
+            "control": {
+              "label": "Управление",
+              "manual": "Механическое",
+              "electric": "Электро",
+              "remote": "Пульт",
+              "electricSurcharge": "+45 ₾",
+              "remoteSurcharge": "+85 ₾",
+              "notSupported": "Это управление не поддерживается"
+            },
+            "pricingHint": "+{{base}} ₾ монтаж + {{perSqm}} ₾/м²"
+          },
+          "mosquito": {
+            "title": "Москитная сетка",
+            "review": "Изменить в Шаге 4 →",
+            "paneOn": "✓",
+            "paneOff": "✗",
+            "paneSummary": "Створка {{n}}: {{state}}"
+          }
+        },
+        "errorTitle": "Не удалось загрузить каталог аксессуаров",
+        "errorBody": "Сеть или сервер не отвечают. Попробуем ещё раз."
+      },
       "color": {
         "title": "Цвет",
         "heading": "Цвет или текстура",
@@ -203,6 +276,20 @@
         "frostedTintedConflict": "Матовое и тонированное нельзя сочетать — выберите одно.",
         "extraInvalid": "У створки {{position}} неверная опция стекла.",
         "fallback": "Такой выбор стекла недопустим."
+      },
+      "accessory": {
+        "handleRequired": "У двери ручка обязательна.",
+        "handleNoOpenablePane": "Ручка нужна только для открываемых створок.",
+        "handleNotCompatible": "Эта ручка недоступна с выбранным материалом.",
+        "lockRequired": "У двери замок обязателен.",
+        "lockNotCompatibleProduct": "Этот замок недоступен с выбранным продуктом.",
+        "lockRequiresFullOpening": "Этот замок требует распашную или поворотно-откидную створку.",
+        "sillLengthOutOfRange": "Длина подоконника должна быть от {{min}} до {{max}} см.",
+        "sillPositionInvalid": "Сторона подоконника неверная.",
+        "blindNotCompatibleProduct": "Эти жалюзи недоступны с выбранным продуктом.",
+        "blindControlNotSupported": "Эти жалюзи не поддерживают такое управление.",
+        "blindControlInvalid": "Тип управления жалюзи неверный.",
+        "fallback": "Такой выбор аксессуаров недопустим."
       },
       "color": {
         "catalogMissing": "Каталог цветов не загрузился.",
