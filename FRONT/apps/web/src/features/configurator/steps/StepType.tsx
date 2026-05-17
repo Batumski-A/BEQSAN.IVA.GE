@@ -1,8 +1,16 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Check } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
 
-import { useProductTypes, type ProductType } from '@/features/catalog/api';
+import {
+  catalogKeys,
+  useProductTypes,
+  type ProductType,
+  type ProductTypeDetail,
+} from '@/features/catalog/api';
 import { resolveLocalized } from '@/features/catalog/localized';
+import { api, unwrap, type ApiResponse } from '@/shared/api/client';
 import { useConfiguratorStore } from '../store';
 import { cn } from '@/shared/lib/cn';
 
@@ -13,16 +21,45 @@ type Props = {
 export function StepType({ onAdvance }: Props) {
   const { t, i18n } = useTranslation();
   const { data, isLoading, isError, refetch } = useProductTypes();
+  const queryClient = useQueryClient();
 
   const productType = useConfiguratorStore((s) => s.productType);
   const setProductType = useConfiguratorStore((s) => s.setProductType);
+  const [picking, setPicking] = useState<string | null>(null);
 
-  const handlePick = (p: ProductType) => {
-    setProductType({
-      id: String(p.id),
-      slug: p.slug ?? '',
-      name: resolveLocalized(p.name, i18n.language),
-    });
+  const handlePick = async (p: ProductType) => {
+    if (!p.slug || !p.id) return;
+    const slug = p.slug;
+    setPicking(slug);
+    try {
+      // Pull detail (with constraints) into TanStack cache so the store
+      // gets a fully-populated SelectedProductType — Step 3 needs the
+      // bounds immediately and we don't want to flash a stale dimension.
+      const detail = await queryClient.fetchQuery({
+        queryKey: catalogKeys.productTypeDetail(slug),
+        queryFn: async () => {
+          const response = await api.get<ApiResponse<ProductTypeDetail>>(
+            `/catalog/product-types/${encodeURIComponent(slug)}`,
+          );
+          return unwrap(response);
+        },
+        staleTime: 5 * 60_000,
+      });
+
+      setProductType({
+        id: String(detail.id ?? p.id),
+        slug: detail.slug ?? slug,
+        name: resolveLocalized(detail.name, i18n.language),
+        constraints: {
+          minWidthCm: detail.constraints?.minWidthCm ?? 30,
+          maxWidthCm: detail.constraints?.maxWidthCm ?? 400,
+          minHeightCm: detail.constraints?.minHeightCm ?? 30,
+          maxHeightCm: detail.constraints?.maxHeightCm ?? 400,
+        },
+      });
+    } finally {
+      setPicking(null);
+    }
   };
 
   return (
@@ -68,6 +105,7 @@ export function StepType({ onAdvance }: Props) {
         <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data.map((p) => {
             const isSelected = productType?.id === String(p.id);
+            const isPicking = picking === p.slug;
             const name = resolveLocalized(p.name, i18n.language);
             const desc = resolveLocalized(p.shortDescription, i18n.language);
 
@@ -75,18 +113,24 @@ export function StepType({ onAdvance }: Props) {
               <li key={p.id}>
                 <button
                   type="button"
-                  onClick={() => handlePick(p)}
+                  onClick={() => void handlePick(p)}
                   aria-pressed={isSelected}
+                  disabled={Boolean(picking) && !isPicking}
                   className={cn(
                     'group relative flex w-full flex-col gap-2 rounded-sm border bg-bg-raised p-5 text-left transition-all duration-240 ease-standard',
                     isSelected
                       ? 'border-accent-amber shadow-[0_0_0_1px_var(--tw-shadow-color)] shadow-accent-amber/60'
                       : 'border-hairline hover:-translate-y-0.5 hover:border-hairline-strong',
+                    Boolean(picking) && !isPicking && 'opacity-50',
                   )}
                 >
                   {isSelected ? (
                     <span className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent-amber text-bg-base">
                       <Check className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  ) : isPicking ? (
+                    <span className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center text-accent-amber">
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                     </span>
                   ) : null}
                   <span className="font-mono text-mono-spec uppercase tracking-wider text-fg-tertiary">
