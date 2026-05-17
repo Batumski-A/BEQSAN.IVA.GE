@@ -23,6 +23,11 @@ internal sealed class ComputePriceValidator : AbstractValidator<ComputePriceComm
         "Left", "Right",
     };
 
+    private static readonly HashSet<string> ValidGlassExtras = new(StringComparer.Ordinal)
+    {
+        "LowECoating", "Tempered", "Frosted", "Tinted",
+    };
+
     public ComputePriceValidator()
     {
         RuleFor(x => x.ProductTypeId)
@@ -73,6 +78,18 @@ internal sealed class ComputePriceValidator : AbstractValidator<ComputePriceComm
                 .Must(ValidHinges.Contains)
                 .When(p => p.HingeSide is not null)
                 .WithMessage("მენტეშის მხარე არასწორია.");
+
+            // Per-pane glass extras: each token must be a known enum name and
+            // the list must be distinct. Frosted+Tinted conflict is a layout
+            // rule that runs later in the calculator with metadata.position.
+            RuleForEach(p => p.GlassExtras!)
+                .Must(ValidGlassExtras.Contains)
+                .When(p => p.GlassExtras is not null)
+                .WithMessage("მინის დანამატის ტიპი არასწორია.");
+
+            RuleFor(p => p.GlassExtras)
+                .Must(extras => extras is null || extras.Distinct(StringComparer.Ordinal).Count() == extras.Count)
+                .WithMessage("მინის დანამატები უნდა იყოს უნიკალური.");
         }
     }
 }

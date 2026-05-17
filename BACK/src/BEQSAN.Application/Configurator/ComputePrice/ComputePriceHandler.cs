@@ -1,4 +1,5 @@
 using System.Globalization;
+using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Domain.Catalog;
@@ -11,17 +12,19 @@ namespace BEQSAN.Application.Configurator.ComputePrice;
 
 internal sealed class ComputePriceHandler(
     IProductTypeReader productTypeReader,
-    IMaterialReader materialReader)
+    IMaterialReader materialReader,
+    IGlassTypeReader glassTypeReader)
     : IRequestHandler<ComputePriceCommand, Result<PriceBreakdownDto>>
 {
     private readonly IProductTypeReader _productTypeReader = productTypeReader;
     private readonly IMaterialReader _materialReader = materialReader;
+    private readonly IGlassTypeReader _glassTypeReader = glassTypeReader;
 
     public async Task<Result<PriceBreakdownDto>> Handle(
         ComputePriceCommand request,
         CancellationToken ct)
     {
-        // Independent lookups run in parallel — both required before pricing math.
+        // Independent lookups run in parallel — all three required before pricing math.
         var productTypeTask = _productTypeReader.GetByIdAsync(request.ProductTypeId, ct);
         var materialTask = _materialReader.GetByIdAsync(request.MaterialId, ct);
         await Task.WhenAll(productTypeTask, materialTask).ConfigureAwait(false);
@@ -37,6 +40,15 @@ internal sealed class ComputePriceHandler(
         {
             return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotFound);
         }
+
+        // Load the glass types compatible with the chosen material now that
+        // material existence is confirmed. Empty list is a legitimate
+        // success state (mis-seeded environment); the calculator falls back
+        // to the legacy no-glass code path so canaries still hold.
+        var availableGlass = await _glassTypeReader
+            .LoadDomainByMaterialAsync(request.MaterialId, ct)
+            .ConfigureAwait(false);
+        var availableGlassById = availableGlass.ToDictionary(g => g.Id);
 
         // Translate wire-shape ConfigurationPaneInput[] (string enums) into domain
         // ConfigurationPane records. Invalid enum tokens bubble up as validation
@@ -75,14 +87,40 @@ internal sealed class ComputePriceHandler(
                     hinge = hingeParsed;
                 }
 
-                domainPanes.Add(new ConfigurationPane(p.Position, p.WidthRatio, opening, hinge, p.HasMosquitoNet));
+                // Translate glass extras with a defensive Enum.TryParse — invalid
+                // tokens flow back as structured errors with the offending value
+                // in metadata.got so the FRONT can highlight without parsing.
+                var extras = new List<GlassExtra>();
+                if (p.GlassExtras is { Count: > 0 })
+                {
+                    foreach (var token in p.GlassExtras)
+                    {
+                        if (!Enum.TryParse<GlassExtra>(token, ignoreCase: false, out var parsedExtra))
+                        {
+                            return Result.Failure<PriceBreakdownDto>(
+                                Error.Validation(
+                                    "configurator.glass.extraInvalid",
+                                    "მინის დანამატის ტიპი არასწორია.",
+                                    field: "panes")
+                                    .WithMetadata("position", p.Position)
+                                    .WithMetadata("got", token));
+                        }
+                        extras.Add(parsedExtra);
+                    }
+                }
+
+                var glassId = p.GlassTypeId ?? Guid.Empty;
+                domainPanes.Add(new ConfigurationPane(
+                    p.Position, p.WidthRatio, opening, hinge, p.HasMosquitoNet,
+                    glassId, extras));
             }
             panes = domainPanes;
         }
 
         // Cross-field, constraints, layout, math — all in the calculator.
         var breakdownResult = PriceCalculator.Compute(
-            productType, material, request.WidthCm, request.HeightCm, panes);
+            productType, material, request.WidthCm, request.HeightCm, panes,
+            availableGlassById.Count > 0 ? availableGlassById : null);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);
