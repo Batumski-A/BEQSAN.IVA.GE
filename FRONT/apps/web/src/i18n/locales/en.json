@@ -46,6 +46,51 @@
     "heroCta": "Configure yours",
     "heroCtaSub": "1 minute · no phone call needed"
   },
+  "configurator": {
+    "metaTitle": "Configurator",
+    "metaDescription": "Configure your window — product, material, price in one minute, no operator needed.",
+    "stepNavLabel": "Configurator steps",
+    "upcoming": "Coming",
+    "steps": {
+      "type": {
+        "title": "Product",
+        "heading": "What are we building?",
+        "intro": "Pick a product — window, door or more. Material comes next."
+      },
+      "material": {
+        "title": "Material",
+        "heading": "Which material?",
+        "intro": "Per m² starting price under each option. Step 3 computes the final price from your real dimensions.",
+        "family": { "aluminum": "ALU", "pvc": "PVC" },
+        "thermal": {
+          "label": "Thermal break",
+          "none": "None",
+          "basic": "Basic",
+          "thermal": "Thermal",
+          "highThermal": "Premium"
+        },
+        "startingFrom": "Per m²",
+        "errorTitle": "Couldn't load materials",
+        "errorBody": "Network or server didn't reply. We'll try again."
+      },
+      "dimensions": { "title": "Dimensions" }
+    },
+    "price": {
+      "eyebrow": "Estimated price",
+      "defaultSize": "120×140 cm",
+      "material": "Material",
+      "vat": "VAT (18%)",
+      "total": "Total",
+      "footnote": "Step 3 computes the exact price from your real dimensions.",
+      "loading": "Calculating…",
+      "needSelections": "Pick a product and material — the price will show immediately."
+    },
+    "scene": { "loading": "Preparing 3D view…" },
+    "stub": {
+      "title": "Dimensions step is coming",
+      "body": "Step 3 — width and height, then Step 4-9: layout, glass, colour, accessories, order. Part of Phase 1 MVP."
+    }
+  },
   "catalog": {
     "metaTitle": "Catalog",
     "metaDescription": "Windows and doors handmade in a Batumi workshop — aluminium, PVC, sliding, panoramic, balcony glazing.",

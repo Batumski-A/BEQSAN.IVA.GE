@@ -4,7 +4,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Layout } from '@/features/_layout/Layout';
 
 const Home = lazy(() => import('@/features/home/Home'));
-const Configurator = lazy(() => import('@/features/configurator/Configurator'));
+const Configurator = lazy(() => import('@/features/configurator/ConfiguratorPage'));
 const Catalog = lazy(() => import('@/features/catalog/Catalog'));
 const Gallery = lazy(() => import('@/features/gallery/Gallery'));
 const Contact = lazy(() => import('@/features/contact/Contact'));
