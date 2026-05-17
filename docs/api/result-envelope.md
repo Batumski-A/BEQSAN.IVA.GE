@@ -103,6 +103,10 @@ Multiple errors are common from validation (one per failed field). Other failure
 | `configurator.layout.pane.hingeForbidden` | `position` (int), `openingType` (string, lowercased) |
 | `configurator.layout.pane.openingTypeInvalid` | `position` (int), `got` (string) |
 | `configurator.layout.pane.hingeSideInvalid` | `position` (int), `got` (string) |
+| `configurator.glass.required` | `position` (int) |
+| `configurator.glass.notCompatibleWithMaterial` | `position` (int) |
+| `configurator.glass.frostedTintedConflict` | `position` (int) |
+| `configurator.glass.extraInvalid` | `position` (int), `got` (string) |
 
 ### Pattern: metadata as contract carrier
 

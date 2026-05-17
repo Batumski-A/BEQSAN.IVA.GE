@@ -195,6 +195,99 @@ segmented control):
 `ProductType.MinPaneCount` / `MaxPaneCount` columns are Phase 2 admin
 work; the static table is the source of truth until then.
 
+### 2026-05-18 — Per-pane glass packages + extras (Step 5 slice)
+
+`PriceCalculator.Compute` signature extended to accept an optional
+`IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes` parameter
+representing the glass packages compatible with the chosen material.
+Reasons:
+
+1. Real glazing isn't a single sheet — customers pick from a 7-package
+   catalog (double-standard, double-low-e, triple-low-e, quadruple-
+   low-e, tempered-double, frosted-double, tinted-double) per pane,
+   and stack additive treatments (Low-E coating, Tempered, Frosted,
+   Tinted) on top.
+2. Compatibility is **material-keyed**: aluminum-thermal allows all 7;
+   PVC-white tops out at double (no triple/quad weight-allowed). New
+   `material_glass_compatibility` table holds the M:M mesh; the
+   pricing handler pulls the per-material slice and hands the
+   dictionary to the calculator.
+3. **Per-pane glass surcharge** valued at `round(paneArea × glass.SurchargePerSqmMinor)` —
+   emitted as `pane.{n}.glass.{slug}` lines, suppressed when surcharge
+   is 0 (the default package).
+4. **Per-pane extras** — additive treatments per pane area at hard-
+   coded rates (Roman-locked; Phase 2 promotes to admin PricingRule):
+   Low-E 45 ₾/m², Tempered 70 ₾/m², Frosted 35 ₾/m², Tinted 40 ₾/m².
+   Distinct-deduped before pricing; Frosted+Tinted on the same pane
+   is rejected by the validator (visual conflict).
+5. **VAT semantics widen further**: VAT is now applied to
+   `material + opening + glass + extras + mosquito`. The previous
+   three canaries hold because surcharges = 0 when glass falls back
+   to the default + no extras + no panes (single-Fixed synth).
+6. **Backwards compatibility**: when `availableGlassTypes` is null or
+   empty, the whole glass branch is skipped. Step 4 tests and callers
+   that don't know about glass still pass byte-for-byte (canary #3
+   = 1077.23 ₾ asserted on the new code path with `availableGlassTypes:
+   null`).
+7. **Default-glass auto-resolution**: when a glass set IS supplied but
+   a pane carries `GlassTypeId == Guid.Empty`, the calculator resolves
+   it to the IsDefault row in the available set (deterministic
+   tiebreaker: lowest surcharge, then SortOrder). So canary #1
+   (753.31 ₾) and canary #2 (832.61 ₾) also re-pass on the new code
+   path because the handler-resolved default for ALU-thermal is
+   `double-standard` (surcharge 0).
+
+**Fourth regression canary locked**: window 165×140 cm × aluminum-
+thermal, two equal-width panes; both `triple-low-e`, pane-1 also
+`tempered`:
+- area = 2.31 m² (165 × 140 / 10 000)
+- material = round(2.31 × 38 000) = 87 780 tetri
+- pane 1: paneArea 1.155 m², Casement-Right
+  - opening = round(1.155 × 38 000 × 0.08) = 3 511 tetri
+  - glass triple-low-e (6 000 tetri/m²) = round(1.155 × 6 000) = 6 930 tetri
+  - tempered (7 000 tetri/m²) = round(1.155 × 7 000) = 8 085 tetri
+- pane 2: paneArea 1.155 m², Fixed
+  - glass triple-low-e = 6 930 tetri
+- subtotal = 87 780 + 3 511 + 6 930 + 8 085 + 6 930 = 113 236 tetri
+- vat = round(113 236 × 0.18) = 20 382 tetri (banker's: 20 382.48)
+- total = **133 618 tetri = 1336.18 ₾**
+
+Asserted at unit
+(`Canary4_Window_165x140_TripleLowE_Plus_Tempered_Equals_1336_18` in
+`PriceCalculatorGlassTests`) and HTTP
+(`PostPrice_Canary4_Window_165x140_TripleLowEPlusTempered_Equals_1336_18`
+in `GlassEndpointTests`).
+
+New domain types: `GlassType` entity, `GlassExtra` enum,
+`GlassExtraPricing` static table. `ConfigurationPane` gains optional
+`GlassTypeId` + `GlassExtras` params (defaulted so Steps 1-4 record
+literals still compile). `LayoutValidator.Validate` gains an optional
+`availableGlassTypes` dictionary and three new error codes:
+`configurator.glass.required`, `.notCompatibleWithMaterial`
+(BusinessRule → 422), `.frostedTintedConflict`. New wire-shape:
+`ConfigurationPaneInput` gains optional `GlassTypeId?` +
+`GlassExtras` (string[]); validator + handler defensive on token
+parsing.
+
+New tables: `glass_types`, `material_glass_compatibility` (composite
+PK, cascade FKs). Seeded with the 7 Roman-locked packages + 25 compat
+rows by material slug.
+
+Glass surcharge table (tetri / m² above material baseline):
+
+| Slug              | Pane count | Surcharge | U-value |
+|-------------------|-----------:|----------:|--------:|
+| double-standard   | 2          | 0         | 2.8     |
+| double-low-e      | 2          | 2 500     | 1.6     |
+| triple-low-e      | 3          | 6 000     | 1.0     |
+| quadruple-low-e   | 4          | 12 000    | 0.7     |
+| tempered-double   | 2          | 5 500     | 2.7     |
+| frosted-double    | 2          | 3 000     | 2.7     |
+| tinted-double     | 2          | 3 500     | 2.5     |
+
+Roman to verify U-values against actual ALUPROF / ASAŞ datasheets
+before public launch.
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.
