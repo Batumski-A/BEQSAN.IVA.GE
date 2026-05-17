@@ -33,7 +33,7 @@ internal sealed class ProductTypeDapperReader(IDbConnectionFactory factory) : IP
         var rows = await connection.QueryAsync<Row>(Sql).ConfigureAwait(false);
 
         return rows.Select(r => new ProductTypeDto(
-                Id: r.Id,
+                Id: Guid.Parse(r.Id, System.Globalization.CultureInfo.InvariantCulture),
                 Slug: r.Slug,
                 Name: Deserialize(r.NameJson),
                 ShortDescription: Deserialize(r.ShortDescriptionJson),
@@ -45,10 +45,14 @@ internal sealed class ProductTypeDapperReader(IDbConnectionFactory factory) : IP
     private static LocalizedText Deserialize(string json) =>
         JsonSerializer.Deserialize<LocalizedText>(json, JsonOptions) ?? new LocalizedText();
 
-    /// <summary>Row shape returned by Dapper; mirrored exactly to columns above.</summary>
+    /// <summary>
+    /// Row shape Dapper materializes. Id stays as TEXT (string) because
+    /// SQLite stores GUIDs as text and Dapper's default convert path
+    /// refuses string → Guid. We parse it once in the projector above.
+    /// </summary>
     private sealed class Row
     {
-        public Guid Id { get; set; }
+        public string Id { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
         public string NameJson { get; set; } = "{}";
         public string ShortDescriptionJson { get; set; } = "{}";

@@ -18,6 +18,10 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Register Dapper handlers once at composition root — SQLite stores
+        // GUIDs and DateTimes as TEXT, default Dapper mapping rejects those casts.
+        SqliteDapperTypeHandlers.Register();
+
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<StorageOptions>(configuration.GetSection(StorageOptions.SectionName));
 

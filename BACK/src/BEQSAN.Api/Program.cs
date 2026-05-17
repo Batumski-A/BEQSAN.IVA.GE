@@ -79,6 +79,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHealthEndpoints();
+app.MapCatalogEndpoints();
 
 app.MapGet("/", () => Results.Redirect(app.Environment.IsDevelopment() ? "/scalar/v1" : "/api/v1/health"))
     .ExcludeFromDescription();
