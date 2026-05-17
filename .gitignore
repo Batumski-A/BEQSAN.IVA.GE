@@ -4,8 +4,8 @@
 !*.env.example
 .env.local
 secrets/
-**/appsettings.Development.json
 **/appsettings.Local.json
+**/appsettings.*.Local.json
 
 # --- .NET ---
 [Bb]in/
