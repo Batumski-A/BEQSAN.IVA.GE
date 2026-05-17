@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Group } from 'three';
 
 import type { ConfigurationPaneInput, PaneOpeningType } from '@beqsan/api-types';
+import { useGlassTypesByMaterial, type GlassType } from '../api';
 import { useConfiguratorStore } from '../store';
 
 /**
@@ -20,6 +21,12 @@ export function ConfiguratorScene() {
   const material = useConfiguratorStore((s) => s.material);
   const dimensions = useConfiguratorStore((s) => s.dimensions);
   const panes = useConfiguratorStore((s) => s.panes);
+  // Same cache key as StepGlass — TanStack dedupes the network request.
+  const glassQuery = useGlassTypesByMaterial(material?.id);
+  const glassById = useMemo(
+    () => new Map((glassQuery.data ?? []).map((g) => [g.id!, g])),
+    [glassQuery.data],
+  );
 
   const isMobile = useMemo(
     () =>
@@ -62,6 +69,7 @@ export function ConfiguratorScene() {
             widthCm={dimensions.widthCm}
             heightCm={dimensions.heightCm}
             panes={panes}
+            glassById={glassById}
             mobile={isMobile}
           />
           <Ground />
@@ -92,12 +100,14 @@ function Window({
   widthCm,
   heightCm,
   panes,
+  glassById,
   mobile,
 }: {
   family: 'aluminum' | 'pvc';
   widthCm: number;
   heightCm: number;
   panes: ConfigurationPaneInput[];
+  glassById: Map<string, GlassType>;
   mobile: boolean;
 }) {
   const ref = useRef<Group>(null);
@@ -147,21 +157,29 @@ function Window({
       </mesh>
 
       {/* Per-pane glass + opening accent tint, plus a mullion to the right of
-          every pane except the last (the outer frame closes that side). */}
+          every pane except the last (the outer frame closes that side).
+          Glass material reacts to:
+            - pane.glassExtras (Frosted → roughness↑ + transmission↓;
+              Tinted → amber shift + slight transmission↓; Low-E → faint
+              warm shimmer; Tempered → no visual change)
+            - glass.paneCount (more layers → marginally lower transmission +
+              cool blue undertone for 3+ layers) */}
       {paneRects.map(({ pane, cx, pw }, i) => {
-        const tint = paneTint(pane.openingType);
+        const opening = paneTint(pane.openingType);
+        const glass = pane.glassTypeId ? glassById.get(pane.glassTypeId) ?? null : null;
+        const visual = glassVisualFor(opening, pane.glassExtras ?? [], glass?.paneCount ?? 2, mobile);
         return (
           <group key={pane.position} position={[cx, 0, 0]}>
             <mesh receiveShadow={!mobile}>
               <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
               <meshPhysicalMaterial
-                color={tint}
+                color={visual.color}
                 transparent
-                opacity={pane.openingType === 'Fixed' ? 0.16 : 0.22}
-                transmission={mobile ? 0.5 : 0.92}
+                opacity={visual.opacity}
+                transmission={visual.transmission}
                 ior={1.52}
                 thickness={0.01}
-                roughness={0.05}
+                roughness={visual.roughness}
               />
             </mesh>
             {i < paneRects.length - 1 && (
@@ -178,6 +196,64 @@ function Window({
       })}
     </group>
   );
+}
+
+/**
+ * Compose the per-pane glass material from opening tint + glass-type
+ * paneCount + extras. Each extra is layered onto the base in priority order
+ * (Frosted dominates if present — opaqueness wins over tint).
+ */
+function glassVisualFor(
+  openingTint: string,
+  extras: readonly string[],
+  paneCount: number,
+  mobile: boolean,
+): { color: string; opacity: number; transmission: number; roughness: number } {
+  let color = openingTint;
+  let opacity = openingTint === '#F0F8FF' ? 0.16 : 0.22; // neutral vs opening-tinted
+  let transmission = mobile ? 0.5 : 0.92;
+  let roughness = 0.05;
+
+  // Layer count: each extra pane reduces transmission a touch and shifts cool.
+  if (paneCount >= 3) {
+    transmission = Math.max(0, transmission - 0.05 * (paneCount - 2));
+    // Subtle cool wash on 3+ layers — only when there's no other tint pulling.
+    if (openingTint === '#F0F8FF') color = paneCount >= 4 ? '#E0EAF8' : '#E8F0F8';
+  }
+
+  if (extras.includes('Tinted')) {
+    color = '#C8A878'; // bronze
+    transmission = Math.max(0, transmission - 0.08);
+  }
+  if (extras.includes('LowECoating')) {
+    // Faint warm shimmer — small color drift toward amber, no transmission hit.
+    color = mixHexToward(color, '#FFE9B0', 0.18);
+  }
+  if (extras.includes('Frosted')) {
+    // Frosted dominates: high roughness + opaqueness override any tint above.
+    roughness = 0.6;
+    transmission = mobile ? 0.2 : 0.35;
+    opacity = 0.55;
+    color = '#E4ECF4';
+  }
+
+  return { color, opacity, transmission, roughness };
+}
+
+/** Quick hex-to-hex linear blend for the Low-E shimmer. */
+function mixHexToward(a: string, b: string, t: number): string {
+  const ah = a.replace('#', '');
+  const bh = b.replace('#', '');
+  const ar = parseInt(ah.slice(0, 2), 16);
+  const ag = parseInt(ah.slice(2, 4), 16);
+  const ab = parseInt(ah.slice(4, 6), 16);
+  const br = parseInt(bh.slice(0, 2), 16);
+  const bg = parseInt(bh.slice(2, 4), 16);
+  const bb = parseInt(bh.slice(4, 6), 16);
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${bl.toString(16).padStart(2, '0')}`;
 }
 
 /**
