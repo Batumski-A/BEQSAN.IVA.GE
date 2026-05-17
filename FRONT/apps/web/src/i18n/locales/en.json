@@ -73,7 +73,22 @@
         "errorTitle": "Couldn't load materials",
         "errorBody": "Network or server didn't reply. We'll try again."
       },
-      "dimensions": { "title": "Dimensions" }
+      "dimensions": {
+        "title": "Dimensions",
+        "heading": "Your opening size",
+        "intro": "Width and height in centimetres. The price updates as you type.",
+        "widthLabel": "Width",
+        "heightLabel": "Height",
+        "areaLabel": "Area",
+        "srWidth": "Width {{value}} {{unit}}",
+        "srHeight": "Height {{value}} {{unit}}"
+      }
+    },
+    "errors": {
+      "dimensions": {
+        "widthOutOfRange": "Width must be between {{min}} and {{max}} cm",
+        "heightOutOfRange": "Height must be between {{min}} and {{max}} cm"
+      }
     },
     "price": {
       "eyebrow": "Estimated price",

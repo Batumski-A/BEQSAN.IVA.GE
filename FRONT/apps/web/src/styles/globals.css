@@ -118,4 +118,39 @@
   .border-hairline-strong {
     border-color: theme('colors.hairline.strong');
   }
+
+  /* Configurator Step 3 — range slider thumb in amber over a hairline track. */
+  .dimension-slider {
+    background: theme('colors.bg.elevated');
+  }
+
+  .dimension-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: theme('colors.accent.amber');
+    border: 2px solid theme('colors.bg.base');
+    box-shadow: 0 0 0 1px theme('colors.accent.amber-glow');
+    cursor: ew-resize;
+    transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .dimension-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+  }
+
+  .dimension-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: theme('colors.accent.amber');
+    border: 2px solid theme('colors.bg.base');
+    cursor: ew-resize;
+  }
+
+  .dimension-slider:focus-visible {
+    outline: 2px solid theme('colors.accent.amber');
+    outline-offset: 4px;
+  }
 }

@@ -73,7 +73,22 @@
         "errorTitle": "Не удалось загрузить материалы",
         "errorBody": "Сеть или сервер не отвечают. Попробуем ещё раз."
       },
-      "dimensions": { "title": "Размеры" }
+      "dimensions": {
+        "title": "Размеры",
+        "heading": "Размер вашего проёма",
+        "intro": "Ширина и высота в сантиметрах. Цена пересчитывается сразу.",
+        "widthLabel": "Ширина",
+        "heightLabel": "Высота",
+        "areaLabel": "Площадь",
+        "srWidth": "Ширина {{value}} {{unit}}",
+        "srHeight": "Высота {{value}} {{unit}}"
+      }
+    },
+    "errors": {
+      "dimensions": {
+        "widthOutOfRange": "Ширина должна быть от {{min}} до {{max}} см",
+        "heightOutOfRange": "Высота должна быть от {{min}} до {{max}} см"
+      }
     },
     "price": {
       "eyebrow": "Предв. цена",

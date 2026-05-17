@@ -107,7 +107,20 @@
         "errorBody": "ქსელი ან სერვერი არ პასუხობს. შევეცადოთ თავიდან."
       },
       "dimensions": {
-        "title": "ზომები"
+        "title": "ზომები",
+        "heading": "შენი ღიობის ზომა",
+        "intro": "სიგანე და სიმაღლე სანტიმეტრებში. ფასი მაშინვე გადაითვლება.",
+        "widthLabel": "სიგანე",
+        "heightLabel": "სიმაღლე",
+        "areaLabel": "ფართობი",
+        "srWidth": "სიგანე {{value}} {{unit}}",
+        "srHeight": "სიმაღლე {{value}} {{unit}}"
+      }
+    },
+    "errors": {
+      "dimensions": {
+        "widthOutOfRange": "სიგანე {{min}}–{{max}} სმ შორის უნდა იყოს",
+        "heightOutOfRange": "სიმაღლე {{min}}–{{max}} სმ შორის უნდა იყოს"
       }
     },
     "price": {

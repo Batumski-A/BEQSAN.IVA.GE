@@ -7,6 +7,7 @@ import { useConfiguratorStore, type ConfiguratorStep } from './store';
 import { StepIndicator } from './StepIndicator';
 import { StepType } from './steps/StepType';
 import { StepMaterial } from './steps/StepMaterial';
+import { StepDimensions } from './steps/StepDimensions';
 import { StepDimensionsStub } from './steps/StepDimensionsStub';
 
 // Lazy 3D scene — heavy bundle, only paid when configurator opens.
@@ -25,13 +26,15 @@ export default function ConfiguratorPage() {
   const material = useConfiguratorStore((s) => s.material);
   const goToStep = useConfiguratorStore((s) => s.goToStep);
 
-  // Guard rails: step 2 needs productType, step 3 needs material.
-  // Effect-driven so URL + store stay synced both directions.
+  // Guard rails: step 2 needs productType, step 3 needs material, step 4 needs
+  // valid dimensions (TODO when Step 4 lands — for now step 4 is the cliff).
   useEffect(() => {
     const desired = stepParam ?? storedStep;
     let normalised: ConfiguratorStep = desired;
     if (desired >= 2 && !productType) normalised = 1;
-    if (desired >= 3 && !material) normalised = Math.max(2, productType ? 2 : 1) as ConfiguratorStep;
+    if (desired >= 3 && !material) {
+      normalised = (productType ? 2 : 1) as ConfiguratorStep;
+    }
 
     if (normalised !== stepParam) {
       const next = new URLSearchParams(params);
@@ -78,8 +81,13 @@ export default function ConfiguratorPage() {
                 onBack={() => handleAdvance(1)}
                 onAdvance={() => handleAdvance(3)}
               />
+            ) : activeStep === 3 ? (
+              <StepDimensions
+                onBack={() => handleAdvance(2)}
+                onAdvance={() => handleAdvance(4)}
+              />
             ) : (
-              <StepDimensionsStub onBack={() => handleAdvance(2)} onHome={() => navigate('/')} />
+              <StepDimensionsStub onBack={() => handleAdvance(3)} onHome={() => navigate('/')} />
             )}
           </div>
 
@@ -107,7 +115,7 @@ function SceneFallback({ label }: { label: string }) {
 }
 
 function parseStep(raw: string | null): ConfiguratorStep | null {
-  if (raw === '1' || raw === '2' || raw === '3') {
+  if (raw === '1' || raw === '2' || raw === '3' || raw === '4') {
     return Number(raw) as ConfiguratorStep;
   }
   return null;
