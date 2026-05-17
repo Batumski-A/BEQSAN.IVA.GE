@@ -78,6 +78,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@beqsan/api-types':
+        specifier: workspace:*
+        version: link:../../packages/api-types
       '@beqsan/ui':
         specifier: workspace:*
         version: link:../../packages/ui
