@@ -38,8 +38,51 @@ internal sealed class ComputePriceHandler(
             return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotFound);
         }
 
-        // Cross-field check + per-type constraint enforcement + math all in calculator.
-        var breakdownResult = PriceCalculator.Compute(productType, material, request.WidthCm, request.HeightCm);
+        // Translate wire-shape ConfigurationPaneInput[] (string enums) into domain
+        // ConfigurationPane records. Invalid enum tokens bubble up as validation
+        // errors before reaching the pure calculator; the FluentValidation pipeline
+        // catches them earlier but we keep a defensive fallback here.
+        IReadOnlyList<ConfigurationPane>? panes = null;
+        if (request.Panes is { Count: > 0 })
+        {
+            var domainPanes = new List<ConfigurationPane>(request.Panes.Count);
+            foreach (var p in request.Panes)
+            {
+                if (!Enum.TryParse<PaneOpeningType>(p.OpeningType, ignoreCase: false, out var opening))
+                {
+                    return Result.Failure<PriceBreakdownDto>(
+                        Error.Validation(
+                            "configurator.layout.pane.openingTypeInvalid",
+                            "გასაღების ტიპი არასწორია.",
+                            field: "panes")
+                            .WithMetadata("position", p.Position)
+                            .WithMetadata("got", p.OpeningType));
+                }
+
+                HingeSide? hinge = null;
+                if (p.HingeSide is not null)
+                {
+                    if (!Enum.TryParse<HingeSide>(p.HingeSide, ignoreCase: false, out var hingeParsed))
+                    {
+                        return Result.Failure<PriceBreakdownDto>(
+                            Error.Validation(
+                                "configurator.layout.pane.hingeSideInvalid",
+                                "მენტეშის მხარე არასწორია.",
+                                field: "panes")
+                                .WithMetadata("position", p.Position)
+                                .WithMetadata("got", p.HingeSide));
+                    }
+                    hinge = hingeParsed;
+                }
+
+                domainPanes.Add(new ConfigurationPane(p.Position, p.WidthRatio, opening, hinge, p.HasMosquitoNet));
+            }
+            panes = domainPanes;
+        }
+
+        // Cross-field, constraints, layout, math — all in the calculator.
+        var breakdownResult = PriceCalculator.Compute(
+            productType, material, request.WidthCm, request.HeightCm, panes);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);
