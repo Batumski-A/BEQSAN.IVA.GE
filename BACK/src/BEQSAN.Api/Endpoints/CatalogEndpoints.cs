@@ -1,4 +1,5 @@
 using BEQSAN.Api.Common;
+using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypeDetail;
@@ -69,6 +70,20 @@ public static class CatalogEndpoints
             .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapGet("materials/{materialId:guid}/colors", async (
+                Guid materialId, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender
+                    .Send(new GetColorsByMaterialQuery(materialId), ct)
+                    .ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("GetColorsByMaterial")
+            .WithSummary("Frame colors compatible with a material, default first; excludes ral-custom placeholder")
+            .Produces<ApiResponse<IReadOnlyList<ColorOptionDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return app;
     }
 }
@@ -86,4 +101,5 @@ internal sealed class CatalogSchemaAnchor
     public ApiResponse<IReadOnlyList<MaterialDto>>? MaterialsResponse { get; init; }
     public ApiResponse<ProductTypeDetailDto>? ProductTypeDetailResponse { get; init; }
     public ApiResponse<IReadOnlyList<GlassTypeDto>>? GlassTypesResponse { get; init; }
+    public ApiResponse<IReadOnlyList<ColorOptionDto>>? ColorsResponse { get; init; }
 }
