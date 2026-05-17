@@ -1,3 +1,4 @@
+using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IProductTypeExistsCheck, ProductTypeExistsCheckDapper>();
         services.AddScoped<IMaterialReader, MaterialDapperReader>();
         services.AddScoped<IGlassTypeReader, GlassTypeDapperReader>();
+        services.AddScoped<IColorOptionReader, ColorOptionDapperReader>();
 
         return services;
     }
@@ -99,5 +101,6 @@ public static class DependencyInjection
         await ProductTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await MaterialSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await GlassTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
+        await ColorOptionSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
     }
 }
