@@ -1,6 +1,7 @@
 using System.Globalization;
 using BEQSAN.Domain.Catalog;
 using BEQSAN.Domain.Common;
+using BEQSAN.Domain.ValueObjects;
 
 namespace BEQSAN.Domain.Configurator;
 
@@ -63,6 +64,19 @@ public static class PriceCalculator
     /// the inner face is reworked from the baseline white.</summary>
     public const decimal InnerColorRate = 0.60m;
 
+    /// <summary>Sill per-meter base rate in tetri (8 000 = 80 ₾/m). Phase-2
+    /// admin tooling promotes this to a PricingRule row.</summary>
+    public const long SillPerMeterMinor = 8000L;
+
+    /// <summary>Tetri added on top of a blind's base + per-m² when the
+    /// requested control is Electric.</summary>
+    public const long BlindElectricControlSurchargeMinor = 4500L;
+
+    /// <summary>Tetri added when the requested control is Remote (motor +
+    /// handheld). Higher than Electric because the remote bundle includes
+    /// a paired transmitter.</summary>
+    public const long BlindRemoteControlSurchargeMinor = 8500L;
+
     public static Result<PriceBreakdown> Compute(
         ProductType productType,
         Material material,
@@ -71,7 +85,9 @@ public static class PriceCalculator
         IReadOnlyList<ConfigurationPane>? panes = null,
         IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null,
         ColorSelection? colorSelection = null,
-        IReadOnlyDictionary<Guid, ColorOption>? availableColorOptions = null)
+        IReadOnlyDictionary<Guid, ColorOption>? availableColorOptions = null,
+        AccessorySelection? accessories = null,
+        AccessoryCatalog? accessoryCatalog = null)
     {
         if (productType is null)
         {
@@ -164,6 +180,22 @@ public static class PriceCalculator
         if (layoutResult.IsFailure)
         {
             return Result.Failure<PriceBreakdown>(layoutResult.Errors);
+        }
+
+        // Step-7 accessory rules — null catalog means "no validator data,
+        // skip the block" so Steps 1-6 callers stay byte-for-byte
+        // identical. When the catalog is supplied, the validator runs
+        // regardless of whether accessories is null (handles the door-
+        // required-accessory cases).
+        var effectiveCatalog = accessoryCatalog ?? AccessoryCatalog.Empty;
+        if (!effectiveCatalog.IsEmpty || accessories is not null)
+        {
+            var accessoryResult = AccessoryValidator.Validate(
+                productType, material, effective, accessories, effectiveCatalog);
+            if (accessoryResult.IsFailure)
+            {
+                return Result.Failure<PriceBreakdown>(accessoryResult.Errors);
+            }
         }
 
         var areaSqm = decimal.Round(
@@ -312,8 +344,96 @@ public static class PriceCalculator
             }
         }
 
+        // Step-7 accessory line items. Validator above already accepted
+        // the selection (or rejected it). Lines are emitted only when
+        // the calculated amount is > 0 to keep the breakdown clean for
+        // skipped sections.
+        var accessoryTotalMinor = 0L;
+        if (accessories is not null && !effectiveCatalog.IsEmpty)
+        {
+            var openableCount = effective.Count(p => p.OpeningType != PaneOpeningType.Fixed);
+
+            // Handle — per openable pane.
+            if (accessories.HandleStyleId is { } handleId && openableCount > 0
+                && effectiveCatalog.TryGetHandle(handleId) is { } handle)
+            {
+                var handleTotalMinor = (long)handle.SurchargePerPaneMinor * openableCount;
+                if (handleTotalMinor > 0)
+                {
+                    accessoryTotalMinor += handleTotalMinor;
+                    lines.Add(new PriceLine(
+                        Code: $"accessory.handle.{handle.Slug}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"სახელური · {LocalKa(handle.Name, handle.Slug)} × {openableCount}"),
+                        AmountMinor: handleTotalMinor));
+                }
+            }
+
+            // Lock — per openable pane.
+            if (accessories.LockTypeId is { } lockId && openableCount > 0
+                && effectiveCatalog.TryGetLock(lockId) is { } lockType)
+            {
+                var lockTotalMinor = (long)lockType.SurchargePerPaneMinor * openableCount;
+                if (lockTotalMinor > 0)
+                {
+                    accessoryTotalMinor += lockTotalMinor;
+                    lines.Add(new PriceLine(
+                        Code: $"accessory.lock.{lockType.Slug}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"საკეტი · {LocalKa(lockType.Name, lockType.Slug)} × {openableCount}"),
+                        AmountMinor: lockTotalMinor));
+                }
+            }
+
+            // Sill — linear-metre rate × multiplier (Both = 2×).
+            if (accessories.Sill is { } sill)
+            {
+                var lengthCm = sill.CustomLengthCm ?? widthCm;
+                var lengthM = lengthCm / 100m;
+                var multiplier = sill.Position == SillPosition.Both ? 2m : 1m;
+                var sillMinor = (long)decimal.Round(
+                    lengthM * multiplier * SillPerMeterMinor,
+                    0,
+                    MidpointRounding.ToEven);
+                if (sillMinor > 0)
+                {
+                    accessoryTotalMinor += sillMinor;
+                    var posToken = sill.Position.ToString().ToLowerInvariant();
+                    lines.Add(new PriceLine(
+                        Code: $"accessory.sill.{posToken}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"ფერთულა · {SillPositionLabelKa(sill.Position)} · {lengthM.ToString("F2", CultureInfo.InvariantCulture)}მ"),
+                        AmountMinor: sillMinor));
+                }
+            }
+
+            // Blind — base mounting + per-m² + control surcharge.
+            if (accessories.Blind is { } blind
+                && effectiveCatalog.TryGetBlind(blind.BlindTypeId) is { } blindType)
+            {
+                var blindAreaMinor = (long)decimal.Round(
+                    areaSqm * blindType.SurchargePerSqmMinor,
+                    0,
+                    MidpointRounding.ToEven);
+                var controlSurchargeMinor = blind.Control switch
+                {
+                    BlindControl.Electric => BlindElectricControlSurchargeMinor,
+                    BlindControl.Remote => BlindRemoteControlSurchargeMinor,
+                    BlindControl.Manual => 0L,
+                    _ => 0L,
+                };
+                var blindTotalMinor = blindType.BaseMountingMinor + blindAreaMinor + controlSurchargeMinor;
+                if (blindTotalMinor > 0)
+                {
+                    accessoryTotalMinor += blindTotalMinor;
+                    lines.Add(new PriceLine(
+                        Code: $"accessory.blind.{blindType.Slug}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"ჟალუზი · {LocalKa(blindType.Name, blindType.Slug)}"),
+                        AmountMinor: blindTotalMinor));
+                }
+            }
+        }
+
         var subtotalMinor = materialMinor + surchargeTotalMinor + glassTotalMinor
-            + extrasTotalMinor + mosquitoMinor + colorOuterMinor + colorInnerMinor;
+            + extrasTotalMinor + mosquitoMinor + colorOuterMinor + colorInnerMinor
+            + accessoryTotalMinor;
         var vatMinor = (long)decimal.Round(
             subtotalMinor * VatRate,
             0,
@@ -391,6 +511,20 @@ public static class PriceCalculator
         var ka = color.Name.Ka;
         return string.IsNullOrWhiteSpace(ka) ? color.Slug : ka;
     }
+
+    private static string LocalKa(LocalizedText name, string slug)
+    {
+        var ka = name.Ka;
+        return string.IsNullOrWhiteSpace(ka) ? slug : ka;
+    }
+
+    private static string SillPositionLabelKa(SillPosition pos) => pos switch
+    {
+        SillPosition.Inner => "შიდა",
+        SillPosition.Outer => "გარეთა",
+        SillPosition.Both => "ორივე",
+        _ => "?",
+    };
 }
 
 public static class PriceErrors
