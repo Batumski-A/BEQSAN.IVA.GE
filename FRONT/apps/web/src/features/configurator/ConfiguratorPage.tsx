@@ -11,6 +11,7 @@ import { StepDimensions } from './steps/StepDimensions';
 import { StepLayout } from './steps/StepLayout';
 import { StepGlass } from './steps/StepGlass';
 import { StepColor } from './steps/StepColor';
+import { StepAccessories } from './steps/StepAccessories';
 
 // Lazy 3D scene — heavy bundle, only paid when configurator opens.
 const ConfiguratorScene = lazy(() =>
@@ -44,6 +45,9 @@ export default function ConfiguratorPage() {
       normalised = (productType ? 2 : 1) as ConfiguratorStep;
     }
     if (desired >= 6 && !material) {
+      normalised = (productType ? 2 : 1) as ConfiguratorStep;
+    }
+    if (desired >= 7 && !material) {
       normalised = (productType ? 2 : 1) as ConfiguratorStep;
     }
 
@@ -107,8 +111,16 @@ export default function ConfiguratorPage() {
                 onBack={() => handleAdvance(4)}
                 onAdvance={() => handleAdvance(6)}
               />
+            ) : activeStep === 6 ? (
+              <StepColor
+                onBack={() => handleAdvance(5)}
+                onAdvance={() => handleAdvance(7)}
+              />
             ) : (
-              <StepColor onBack={() => handleAdvance(5)} />
+              <StepAccessories
+                onBack={() => handleAdvance(6)}
+                onGoToStep={handleAdvance}
+              />
             )}
           </div>
 
@@ -136,7 +148,8 @@ function SceneFallback({ label }: { label: string }) {
 }
 
 function parseStep(raw: string | null): ConfiguratorStep | null {
-  if (raw === '1' || raw === '2' || raw === '3' || raw === '4' || raw === '5' || raw === '6') {
+  if (raw === '1' || raw === '2' || raw === '3' || raw === '4'
+      || raw === '5' || raw === '6' || raw === '7') {
     return Number(raw) as ConfiguratorStep;
   }
   return null;

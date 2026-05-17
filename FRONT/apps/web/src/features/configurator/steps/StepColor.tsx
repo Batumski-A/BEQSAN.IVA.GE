@@ -12,13 +12,14 @@ import { RalPaletteModal } from '../color/RalPaletteModal';
 
 type Props = {
   onBack: () => void;
+  onAdvance: () => void;
 };
 
 type Tab = 'outer' | 'inner';
 
 const FAMILY_ORDER = ['standard', 'premium', 'woodLaminate'] as const;
 
-export function StepColor({ onBack }: Props) {
+export function StepColor({ onBack, onAdvance }: Props) {
   const { t, i18n } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
@@ -305,13 +306,20 @@ export function StepColor({ onBack }: Props) {
           </button>
           <button
             type="button"
-            disabled
-            // Step 7 (hardware) lands in the next slice; for now Continue
-            // is a disabled stub on the final step that is implemented.
-            className="inline-flex h-12 items-center gap-3 rounded-sm bg-bg-elevated px-6 font-mono text-mono-spec uppercase tracking-wider text-fg-disabled"
+            onClick={onAdvance}
+            disabled={Boolean(layoutErrorText)}
+            className={cn(
+              'group inline-flex h-12 items-center gap-3 rounded-sm px-6 font-mono text-mono-spec uppercase tracking-wider transition-all duration-120 ease-standard',
+              layoutErrorText
+                ? 'cursor-not-allowed bg-bg-elevated text-fg-disabled'
+                : 'bg-accent-amber text-bg-base hover:bg-accent-amber-h active:scale-[0.98]',
+            )}
           >
             <span>{t('common.actions.continue')}</span>
-            <ArrowRight className="h-4 w-4" aria-hidden />
+            <ArrowRight
+              className="h-4 w-4 transition-transform group-enabled:group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </button>
         </div>
       </div>
