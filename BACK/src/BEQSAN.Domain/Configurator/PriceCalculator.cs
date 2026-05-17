@@ -216,7 +216,7 @@ public static class PriceCalculator
                     }
                 }
 
-                foreach (var extra in pane.GlassExtras.Distinct())
+                foreach (var extra in pane.Extras.Distinct())
                 {
                     var rateMinor = GlassExtraPricing.SurchargeMinor(extra);
                     if (rateMinor == 0)

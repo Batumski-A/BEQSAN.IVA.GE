@@ -17,7 +17,16 @@ namespace BEQSAN.Domain.Configurator;
 /// pick the default for this material" — the backcompat path that keeps
 /// canaries #1, #2, #3 valid (they default to <c>double-standard</c>).
 /// <see cref="GlassExtras"/> are additive per-pane treatments on top of the
-/// glass type. Frosted + Tinted is rejected by the validator.
+/// glass type. Frosted + Tinted is rejected by the validator. Null is
+/// treated as empty by <see cref="Extras"/> so consumers don't have to
+/// coalesce manually.
+/// </para>
+/// <para>
+/// The last two params default so Steps 1-4 call sites that never knew
+/// about glass still construct valid panes — pass
+/// <c>(Position, WidthRatio, OpeningType, HingeSide, HasMosquitoNet)</c>
+/// and the calculator resolves the rest from the material's default
+/// glass package.
 /// </para>
 /// </summary>
 public sealed record ConfigurationPane(
@@ -26,21 +35,13 @@ public sealed record ConfigurationPane(
     PaneOpeningType OpeningType,
     HingeSide? HingeSide,
     bool HasMosquitoNet,
-    Guid GlassTypeId,
-    IReadOnlyList<GlassExtra> GlassExtras)
+    Guid GlassTypeId = default,
+    IReadOnlyList<GlassExtra>? GlassExtras = null)
 {
     /// <summary>
-    /// Backwards-compat constructor for Steps 1-4 call sites that don't yet
-    /// know about glass. Equivalent to picking <see cref="Guid.Empty"/> +
-    /// no extras — the calculator resolves this to "material default".
+    /// Null-safe accessor for the extras list — consumers iterate this
+    /// instead of <see cref="GlassExtras"/> directly so a pane built from
+    /// the 5-arg backcompat constructor doesn't crash on NPE.
     /// </summary>
-    public ConfigurationPane(
-        int position,
-        decimal widthRatio,
-        PaneOpeningType openingType,
-        HingeSide? hingeSide,
-        bool hasMosquitoNet)
-        : this(position, widthRatio, openingType, hingeSide, hasMosquitoNet, Guid.Empty, [])
-    {
-    }
+    public IReadOnlyList<GlassExtra> Extras => GlassExtras ?? [];
 }

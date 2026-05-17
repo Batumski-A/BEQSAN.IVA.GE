@@ -59,7 +59,15 @@ public class ComputePriceHandlerTests
         var materials = Substitute.For<IMaterialReader>();
         materials.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(material);
 
-        return (new ComputePriceHandler(productTypes, materials), productTypes, materials);
+        // Step 5 introduced a third reader. Existing handler tests don't
+        // exercise the glass path so the substitute returns an empty list —
+        // the calculator's "no glass set → skip glass math" branch kicks
+        // in and canaries #1 / #2 / #3 hold byte-for-byte.
+        var glass = Substitute.For<BEQSAN.Application.Catalog.GetGlassTypesByMaterial.IGlassTypeReader>();
+        glass.LoadDomainByMaterialAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<BEQSAN.Domain.Catalog.GlassType>());
+
+        return (new ComputePriceHandler(productTypes, materials, glass), productTypes, materials);
     }
 
     [Fact]

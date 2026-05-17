@@ -1,4 +1,6 @@
 using System;
+using BEQSAN.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BEQSAN.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(BeqsanDbContext))]
     [Migration("20260517210000_AddGlassTypes")]
     public partial class AddGlassTypes : Migration
     {

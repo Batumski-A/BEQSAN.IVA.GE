@@ -138,8 +138,8 @@ public static class LayoutValidator
                             .WithMetadata("position", pane.Position));
                 }
 
-                if (pane.GlassExtras.Contains(GlassExtra.Frosted)
-                    && pane.GlassExtras.Contains(GlassExtra.Tinted))
+                if (pane.Extras.Contains(GlassExtra.Frosted)
+                    && pane.Extras.Contains(GlassExtra.Tinted))
                 {
                     return Result.Failure(
                         LayoutErrors.GlassFrostedTintedConflict

@@ -1,4 +1,5 @@
 using BEQSAN.Api.Common;
+using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypeDetail;
 using BEQSAN.Application.Catalog.GetProductTypes;
@@ -54,6 +55,20 @@ public static class CatalogEndpoints
             .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapGet("materials/{materialId:guid}/glass-types", async (
+                Guid materialId, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender
+                    .Send(new GetGlassTypesByMaterialQuery(materialId), ct)
+                    .ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("GetGlassTypesByMaterial")
+            .WithSummary("Glass packages compatible with a material, default first")
+            .Produces<ApiResponse<IReadOnlyList<GlassTypeDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return app;
     }
 }
@@ -70,4 +85,5 @@ internal sealed class CatalogSchemaAnchor
     public ApiResponse<IReadOnlyList<ProductTypeDto>>? ProductTypesResponse { get; init; }
     public ApiResponse<IReadOnlyList<MaterialDto>>? MaterialsResponse { get; init; }
     public ApiResponse<ProductTypeDetailDto>? ProductTypeDetailResponse { get; init; }
+    public ApiResponse<IReadOnlyList<GlassTypeDto>>? GlassTypesResponse { get; init; }
 }

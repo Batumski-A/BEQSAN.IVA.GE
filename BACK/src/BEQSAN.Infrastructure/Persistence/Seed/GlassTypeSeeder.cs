@@ -86,16 +86,22 @@ internal static class GlassTypeSeeder
             return;
         }
 
-        // Filter to only-new rows.
-        var existing = await db.Database
-            .SqlQuery<CompatRow>(
-                $"SELECT material_id AS {nameof(CompatRow.MaterialId)}, glass_type_id AS {nameof(CompatRow.GlassTypeId)} FROM material_glass_compatibility")
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+        // Filter to only-new rows + insert via the DbContext connection.
+        // GetDbConnection returns the underlying ADO connection (same one
+        // EF uses); we don't dispose it — EF manages its lifecycle.
+        var connection = db.Database.GetDbConnection();
+        await connection.OpenAsync(ct).ConfigureAwait(false);
 
-        var existingSet = existing
-            .Select(r => (Guid.Parse(r.MaterialId), Guid.Parse(r.GlassTypeId)))
-            .ToHashSet();
+        var existingSet = new HashSet<(Guid, Guid)>();
+        using (var readCmd = connection.CreateCommand())
+        {
+            readCmd.CommandText = "SELECT material_id, glass_type_id FROM material_glass_compatibility";
+            using var reader = await readCmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                existingSet.Add((Guid.Parse(reader.GetString(0)), Guid.Parse(reader.GetString(1))));
+            }
+        }
 
         var newRows = compatRows.Where(r => !existingSet.Contains((r.MaterialId, r.GlassTypeId))).ToList();
         if (newRows.Count == 0)
@@ -103,17 +109,26 @@ internal static class GlassTypeSeeder
             return;
         }
 
-        // Raw insert — no domain entity, no DbSet. Batched into a single
-        // multi-row INSERT for the typical "fresh DB" case (~25 rows).
-        var sql = "INSERT INTO material_glass_compatibility (material_id, glass_type_id) VALUES "
-            + string.Join(", ", newRows.Select((_, i) => $"(@m{i}, @g{i})"));
-        var parameters = new List<Microsoft.Data.Sqlite.SqliteParameter>();
-        for (var i = 0; i < newRows.Count; i++)
+        // One INSERT per row inside a single transaction. Seed table is
+        // tiny (~25 rows) so the chattier-than-batched approach is fine
+        // and keeps the parameter handling simple.
+        using var tx = await connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+        foreach (var (materialId, glassTypeId) in newRows)
         {
-            parameters.Add(new Microsoft.Data.Sqlite.SqliteParameter($"@m{i}", newRows[i].MaterialId.ToString("D").ToUpperInvariant()));
-            parameters.Add(new Microsoft.Data.Sqlite.SqliteParameter($"@g{i}", newRows[i].GlassTypeId.ToString("D").ToUpperInvariant()));
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "INSERT INTO material_glass_compatibility (material_id, glass_type_id) VALUES ($m, $g)";
+            var mParam = cmd.CreateParameter();
+            mParam.ParameterName = "$m";
+            mParam.Value = materialId.ToString("D").ToUpperInvariant();
+            cmd.Parameters.Add(mParam);
+            var gParam = cmd.CreateParameter();
+            gParam.ParameterName = "$g";
+            gParam.Value = glassTypeId.ToString("D").ToUpperInvariant();
+            cmd.Parameters.Add(gParam);
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
-        await db.Database.ExecuteSqlRawAsync(sql, parameters.ToArray(), ct).ConfigureAwait(false);
+        await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
     private sealed class CompatRow
