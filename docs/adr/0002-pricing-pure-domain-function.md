@@ -89,6 +89,39 @@ Failure error codes follow the [Result envelope taxonomy](../api/result-envelope
 - Endpoint `POST /api/v1/configurator/price` in `feat(api): /v1/configurator/price endpoint` (commit `a06e15c`).
 - 16 unit tests (`PriceCalculatorTests`) + 6 handler tests (`ComputePriceHandlerTests`) + 4 endpoint tests (`MaterialsAndPriceEndpointTests`).
 
+## Amendments
+
+### 2026-05-17 — Constraint dependency (Step 3 slice)
+
+`PriceCalculator.Compute` signature extended to take `ProductType` as the
+first argument. Reasons:
+
+1. Per-product-type dimension ranges (door 60-140 × 180-260 cm differs from
+   window 30-300 × 30-250 cm) — needed for Step 3 inputs. Hardcoding them
+   in the calculator would lose admin editability; loading them in the
+   handler and passing in works.
+2. Cross-field check (material belongs to product type) moved from the
+   handler into the calculator. Same input → same output still holds —
+   the cross-field error is determined by `material.ProductTypeId ==
+   productType.Id`, no I/O.
+3. Out-of-range failures now carry **metadata** (`min`, `max`, `actual`)
+   via the new `Error.WithMetadata(key, value)` helper. FRONT renders
+   "სიგანე 60–140 სმ შორის უნდა იყოს" from the metadata, not by parsing
+   the server's Georgian message.
+
+**Second regression canary locked**: door 80×210 cm × door-aluminum-thermal
+(42 000 tetri/m²) → area 1.68 m² → material 70 560 → vat 12 701 (banker's
+12 700.8) → total **83 261 tetri = 832.61 ₾**. Asserted at the unit
+(`Compute_Door_80x210_AluminumThermal_Matches_851_47`), handler
+(`Handle_Door_80x210_DoorThermal_Matches_832_61`), and HTTP
+(`PostPrice_Door_80x210_Matches_832_61` in
+`ProductTypeDetailEndpointTests`) layers.
+
+Constraint columns added to `product_types`: `min_width_cm`, `max_width_cm`,
+`min_height_cm`, `max_height_cm`. Seeded with market-realistic values by
+slug. Admin-editable Phase 2; for now Roman locks the numbers before
+public preview (see docs/questions.md).
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.
