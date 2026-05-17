@@ -1,0 +1,49 @@
+{
+  "common": {
+    "actions": {
+      "continue": "Continue",
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save",
+      "submit": "Send",
+      "retry": "Try again",
+      "close": "Close",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirm": "Confirm",
+      "configure": "Configure yours",
+      "explore": "Explore"
+    },
+    "states": {
+      "loading": "Loading…",
+      "saving": "Saving…",
+      "searching": "Searching…",
+      "error": "Something went wrong",
+      "empty": "Nothing here yet",
+      "offline": "You're offline"
+    },
+    "units": {
+      "cm": "cm",
+      "mm": "mm",
+      "m": "m",
+      "sqm": "m²",
+      "kg": "kg",
+      "gel": "GEL"
+    }
+  },
+  "nav": {
+    "home": "Home",
+    "configurator": "Configurator",
+    "catalog": "Catalog",
+    "gallery": "Gallery",
+    "warranty": "Warranty",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "home": {
+    "heroTitle": "Windows handmade in a Batumi workshop.",
+    "heroSub": "Aluminium and PVC. Roman Sharashidze's workshop in Salibauri — since 1998.",
+    "heroCta": "Configure yours",
+    "heroCtaSub": "1 minute · no phone call needed"
+  }
+}
