@@ -98,3 +98,4 @@ BACK/**/data/
 # --- Misc ---
 .history/
 .scannerwork/
+*.tsbuildinfo

@@ -45,5 +45,23 @@
     "heroSub": "Aluminium and PVC. Roman Sharashidze's workshop in Salibauri — since 1998.",
     "heroCta": "Configure yours",
     "heroCtaSub": "1 minute · no phone call needed"
+  },
+  "catalog": {
+    "metaTitle": "Catalog",
+    "metaDescription": "Windows and doors handmade in a Batumi workshop — aluminium, PVC, sliding, panoramic, balcony glazing.",
+    "eyebrow": "Catalog",
+    "heading": "Windows and doors handmade in a Batumi workshop.",
+    "intro": "Five product families. Material, install, starting price visible per card. Pick one and the configurator takes over.",
+    "empty": "Nothing to show yet.",
+    "errorTitle": "Couldn't load the catalog",
+    "errorBody": "Network or server didn't reply. We'll try again — if the problem persists, get in touch.",
+    "spec": {
+      "materialLabel": "Material",
+      "materialValue": "ALU · PVC",
+      "installLabel": "Install",
+      "installValue": "Free in Batumi",
+      "priceLabel": "From",
+      "priceValue": "280 ₾/m²"
+    }
   }
 }
