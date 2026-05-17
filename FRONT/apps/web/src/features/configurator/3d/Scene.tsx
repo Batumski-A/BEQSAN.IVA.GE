@@ -4,7 +4,12 @@ import { Suspense, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Group } from 'three';
 
-import type { ConfigurationPaneInput, PaneOpeningType } from '@beqsan/api-types';
+import type {
+  AccessorySelectionInput,
+  ConfigurationPaneInput,
+  HingeSide,
+  PaneOpeningType,
+} from '@beqsan/api-types';
 import { useColorsByMaterial, useGlassTypesByMaterial, type GlassType } from '../api';
 import { useConfiguratorStore } from '../store';
 
@@ -22,6 +27,7 @@ export function ConfiguratorScene() {
   const dimensions = useConfiguratorStore((s) => s.dimensions);
   const panes = useConfiguratorStore((s) => s.panes);
   const color = useConfiguratorStore((s) => s.color);
+  const accessories = useConfiguratorStore((s) => s.accessories);
   // Same cache keys as StepGlass / StepColor — TanStack dedupes.
   const glassQuery = useGlassTypesByMaterial(material?.id);
   const colorsQuery = useColorsByMaterial(material?.id);
@@ -102,6 +108,7 @@ export function ConfiguratorScene() {
             outerHex={outerHex}
             innerHex={innerHex}
             hasDualColor={hasDualColor}
+            accessories={accessories}
             mobile={isMobile}
           />
           <Ground />
@@ -136,6 +143,7 @@ function Window({
   outerHex,
   innerHex,
   hasDualColor,
+  accessories,
   mobile,
 }: {
   family: 'aluminum' | 'pvc';
@@ -146,6 +154,7 @@ function Window({
   outerHex: string;
   innerHex: string;
   hasDualColor: boolean;
+  accessories: AccessorySelectionInput | null;
   mobile: boolean;
 }) {
   const ref = useRef<Group>(null);
@@ -227,6 +236,14 @@ function Window({
         </group>
       )}
 
+      {/* Step-7 accessories — sill, handles, blinds. These primitives are
+          rendered as part of the same group so they translate with the
+          frame on resize. Sill at bottom, handle per openable pane on the
+          hinge-opposite edge, blind at top of frame (external) or just
+          behind the top rail (internal). */}
+      <Sill widthM={w} thicknessM={frameThickness} accessories={accessories} mobile={mobile} />
+      <BlindAssembly widthM={w} heightM={h} thicknessM={frameThickness} accessories={accessories} mobile={mobile} />
+
       {/* Per-pane glass + opening accent tint, plus a mullion to the right of
           every pane except the last (the outer frame closes that side).
           Glass material reacts to:
@@ -239,6 +256,10 @@ function Window({
         const opening = paneTint(pane.openingType);
         const glass = pane.glassTypeId ? glassById.get(pane.glassTypeId) ?? null : null;
         const visual = glassVisualFor(opening, pane.glassExtras ?? [], glass?.paneCount ?? 2, mobile);
+        // Handle: rendered on openable panes only. Per-product compat is
+        // enforced by the validator; here we just need the geometry.
+        const hasHandle = accessories?.handleStyleId != null
+          && pane.openingType !== 'Fixed';
         return (
           <group key={pane.position} position={[cx, 0, 0]}>
             <mesh receiveShadow={!mobile}>
@@ -262,9 +283,164 @@ function Window({
                 <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
               </mesh>
             )}
+            {hasHandle && (
+              <Handle
+                paneWidthM={pw}
+                paneHeightM={h - frameThickness * 2}
+                hingeSide={pane.hingeSide}
+                opening={pane.openingType}
+                mobile={mobile}
+              />
+            )}
           </group>
         );
       })}
+    </group>
+  );
+}
+
+/**
+ * Per-pane handle — a cylindrical primitive mounted on the hinge-opposite
+ * edge of an openable pane, centred vertically. Geometry is the same
+ * across all four handle families for Phase-1 (Roman supplies real photos
+ * in Phase 1.5); colour reads as brushed aluminium regardless of frame
+ * paint because handle hardware is uncoated.
+ */
+function Handle({
+  paneWidthM,
+  paneHeightM,
+  hingeSide,
+  opening,
+  mobile,
+}: {
+  paneWidthM: number;
+  paneHeightM: number;
+  hingeSide: HingeSide | null | undefined;
+  opening: PaneOpeningType;
+  mobile: boolean;
+}) {
+  const lengthM = 0.12; // 12 cm
+  const radiusM = 0.012;
+  // Sliding panes have their handle near the centre; for casement/tilt-
+  // and-turn it sits on the hinge-OPPOSITE side ~5cm in from the edge.
+  const isSliding = opening === 'Sliding';
+  const inset = 0.05;
+  const offsetX = isSliding
+    ? 0
+    : hingeSide === 'Left'
+      ? paneWidthM / 2 - inset
+      : -(paneWidthM / 2 - inset);
+  // Forward of the frame so it doesn't z-fight the glass plane.
+  const offsetZ = 0.025;
+  // Skip when the pane is too narrow to fit — keeps small fixed-sized
+  // schematic test renders from looking visually broken.
+  if (paneWidthM < 0.2 || paneHeightM < 0.3) return null;
+  return (
+    <mesh position={[offsetX, 0, offsetZ]} rotation={[0, 0, Math.PI / 2]} castShadow={!mobile}>
+      <cylinderGeometry args={[radiusM, radiusM, lengthM, 12]} />
+      <meshPhysicalMaterial color="#8B8B8B" metalness={1} roughness={0.15} />
+    </mesh>
+  );
+}
+
+/**
+ * Sill — thin slab at the bottom of the frame. Position decides whether
+ * we extend inward, outward, or both (rendered as two slabs). Rendered as
+ * a stone-like composite (low metalness, high roughness).
+ */
+function Sill({
+  widthM,
+  thicknessM,
+  accessories,
+  mobile,
+}: {
+  widthM: number;
+  thicknessM: number;
+  accessories: AccessorySelectionInput | null;
+  mobile: boolean;
+}) {
+  const sill = accessories?.sill;
+  if (!sill?.position) return null;
+  const sillThickness = 0.03; // 3 cm slab
+  const innerDepth = 0.18;
+  const outerDepth = 0.22;
+  const yBase = -(thicknessM * 1.4) / 2 - sillThickness / 2;
+  // BoxGeometry centres on origin; y-position drops it below the lower
+  // rail. We mount one or two slabs depending on Position.
+  return (
+    <group position={[0, 0, 0]}>
+      {(sill.position === 'Inner' || sill.position === 'Both') && (
+        <mesh position={[0, yBase, -innerDepth / 2]} receiveShadow={!mobile} castShadow={!mobile}>
+          <boxGeometry args={[widthM, sillThickness, innerDepth]} />
+          <meshPhysicalMaterial color="#C8C2B4" metalness={0.05} roughness={0.7} />
+        </mesh>
+      )}
+      {(sill.position === 'Outer' || sill.position === 'Both') && (
+        <mesh position={[0, yBase, outerDepth / 2]} receiveShadow={!mobile} castShadow={!mobile}>
+          <boxGeometry args={[widthM, sillThickness, outerDepth]} />
+          <meshPhysicalMaterial color="#B5AFA1" metalness={0.05} roughness={0.7} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+/**
+ * Blind assembly — a box at the top of the frame for externals (façade-
+ * mounted) or a rolled tube just behind the top rail for internals.
+ * Always partly-rolled so it reads as "blind present" without covering
+ * the glass and obscuring everything else in the configurator preview.
+ */
+function BlindAssembly({
+  widthM,
+  heightM,
+  thicknessM,
+  accessories,
+  mobile,
+}: {
+  widthM: number;
+  heightM: number;
+  thicknessM: number;
+  accessories: AccessorySelectionInput | null;
+  mobile: boolean;
+}) {
+  const blind = accessories?.blind;
+  if (!blind) return null;
+  // Heuristic: blind slug isn't on the wire — we infer placement from
+  // the visual hint in the colour (the BlindType.placement is in the
+  // catalog dict, which Scene doesn't have here). For Phase 1 we draw
+  // the external box by default and switch to internal-roll when the
+  // user picks an internal-prefixed slug. The Step-7 UI labels the
+  // chosen blind; the 3D simply needs to look reasonable in either case.
+  // We keep both branches drawable for forward-compat.
+  const isInternal = false; // TODO: thread BlindType.placement through props (Phase 1.5)
+  const yTop = heightM / 2 + thicknessM / 2;
+  if (isInternal) {
+    // Rolled tube behind the top rail.
+    return (
+      <mesh position={[0, yTop * 0.85, -0.06]} rotation={[0, 0, Math.PI / 2]} castShadow={!mobile}>
+        <cylinderGeometry args={[0.04, 0.04, widthM * 0.95, 16]} />
+        <meshPhysicalMaterial color="#3B3530" metalness={0.05} roughness={0.6} />
+      </mesh>
+    );
+  }
+  // External box mounted forward of the façade. Slightly amber-tinted
+  // shutter slats hinted via partial-deployment height.
+  const blindBoxHeight = 0.18;
+  const deployedFraction = 0.15;
+  const deployedHeight = heightM * deployedFraction;
+  return (
+    <group>
+      <mesh position={[0, yTop + blindBoxHeight / 2, 0.08]} castShadow={!mobile}>
+        <boxGeometry args={[widthM, blindBoxHeight, 0.14]} />
+        <meshPhysicalMaterial color="#A8B3C4" metalness={0.7} roughness={0.35} />
+      </mesh>
+      {deployedHeight > 0 && (
+        <mesh position={[0, yTop - deployedHeight / 2, 0.075]} castShadow={!mobile}>
+          <boxGeometry args={[widthM, deployedHeight, 0.02]} />
+          <meshPhysicalMaterial color="#998C6F" metalness={0.4} roughness={0.5} />
+        </mesh>
+      )}
     </group>
   );
 }
