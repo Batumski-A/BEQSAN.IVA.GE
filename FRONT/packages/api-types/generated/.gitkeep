@@ -1,0 +1,2 @@
+# generated/v1.d.ts lands here after the first `pnpm gen-api` run.
+# Commit the generated file so reviewers can diff API surface changes.
