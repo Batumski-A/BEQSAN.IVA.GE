@@ -34,13 +34,30 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+const string ViteDevCorsPolicy = "vite-dev";
+const string ProductionCorsPolicy = "production";
+
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy => policy
-        .WithOrigins("http://localhost:5173", "http://localhost:5174", "https://beqsan.iva.ge")
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials());
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy(ViteDevCorsPolicy, policy => policy
+            .WithOrigins(
+                "http://localhost:5173",   // Vite default
+                "http://localhost:5174",   // Vite alt (when 5173 is taken)
+                "http://localhost:4173")   // Vite preview (pnpm preview)
+            .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id")
+            .WithExposedHeaders("X-Correlation-Id")
+            .AllowCredentials());
+    }
+
+    // Production policy stays empty until beqsan.iva.ge CNAME + admin.beqsan.iva.ge
+    // are confirmed. Filled in a separate commit when deploy lands.
+    options.AddPolicy(ProductionCorsPolicy, policy =>
+    {
+        // placeholder — no origins, denies all
+    });
 });
 
 var app = builder.Build();
@@ -48,7 +65,7 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseCorrelationId();
 app.UseSerilogRequestLogging();
-app.UseCors();
+app.UseCors(app.Environment.IsDevelopment() ? ViteDevCorsPolicy : ProductionCorsPolicy);
 
 if (app.Environment.IsDevelopment())
 {
