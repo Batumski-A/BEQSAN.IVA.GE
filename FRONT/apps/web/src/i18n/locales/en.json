@@ -83,10 +83,38 @@
         "srWidth": "Width {{value}} {{unit}}",
         "srHeight": "Height {{value}} {{unit}}"
       },
+      "glass": {
+        "title": "Glass",
+        "heading": "Glass layers and treatments",
+        "intro": "Layers and add-ons — pick what fits your home and your budget.",
+        "allPanesToggle": "Same glass on every pane",
+        "paneTab": "Pane {{n}}",
+        "default": "Default",
+        "uValueLabel": "U-VALUE",
+        "uValueUnit": "W/m²K",
+        "surchargeLabel": "+{{amount}} ₾/m²",
+        "noSurcharge": "No upcharge",
+        "paneCount": "Layers: {{n}}",
+        "extras": {
+          "label": "Add-ons",
+          "lowE": "Low-E coating",
+          "lowEDescription": "Heat-reflective coating — energy efficient",
+          "tempered": "Tempered",
+          "temperedDescription": "Safety glass — breaks into small pieces",
+          "frosted": "Frosted",
+          "frostedDescription": "Privacy for bathrooms",
+          "tinted": "Tinted",
+          "tintedDescription": "Reduces sun glare for seaside flats"
+        },
+        "errorTitle": "Couldn't load glass catalog",
+        "errorBody": "Network or server didn't reply. We'll try again."
+      },
       "layout": {
         "title": "Layout",
         "heading": "Your window's structure",
         "intro": "How many panes and how each one opens — fixed, casement, tilt or sliding. The price updates live.",
+        "paneWidthHandleLabel": "Width divider between pane {{from}} and pane {{to}}",
+        "paneWidthSliderLabel": "Pane {{n}} width share",
         "paneCountLabel": "Number of panes",
         "paneCountHint": "{{min}}–{{max}}",
         "paneCountAria": "Pane count {{count}}",
@@ -129,6 +157,13 @@
         "openingTypeInvalid": "Pane {{position}} has an invalid opening type.",
         "hingeSideInvalid": "Pane {{position}} has an invalid hinge side.",
         "fallback": "This layout isn't valid."
+      },
+      "glass": {
+        "required": "Pane {{position}} needs a glass type.",
+        "notCompatibleWithMaterial": "This glass isn't available with the chosen material.",
+        "frostedTintedConflict": "Frosted and tinted can't be applied to the same pane — pick one.",
+        "extraInvalid": "Pane {{position}} has an invalid glass add-on.",
+        "fallback": "This glass selection isn't valid."
       }
     },
     "price": {

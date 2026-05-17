@@ -116,10 +116,38 @@
         "srWidth": "სიგანე {{value}} {{unit}}",
         "srHeight": "სიმაღლე {{value}} {{unit}}"
       },
+      "glass": {
+        "title": "მინა",
+        "heading": "მინის ფენები და დანამატები",
+        "intro": "მინის ფენები და დანამატები — შენი ბინისთვის და ბიუჯეტისთვის.",
+        "allPanesToggle": "ერთი მინა ყველა პანელისთვის",
+        "paneTab": "პანელი {{n}}",
+        "default": "ნაგულისხმევი",
+        "uValueLabel": "U-VALUE",
+        "uValueUnit": "W/მ²K",
+        "surchargeLabel": "+{{amount}} ₾/მ²",
+        "noSurcharge": "ფასი არ იცვლება",
+        "paneCount": "ფენები: {{n}}",
+        "extras": {
+          "label": "დანამატები",
+          "lowE": "Low-E საფარი",
+          "lowEDescription": "თბური საფარი — ენერგო-ეფექტური",
+          "tempered": "დაკაჟებული",
+          "temperedDescription": "უსაფრთხო — წვრილ ნაწილებად ტყდება",
+          "frosted": "მქრქალი",
+          "frostedDescription": "კონფიდენციალურობა აბაზანებისთვის",
+          "tinted": "ტონირებული",
+          "tintedDescription": "მზის სხივების შემცირება სანაპირო ბინებისთვის"
+        },
+        "errorTitle": "ვერ ჩავტვირთეთ მინის კატალოგი",
+        "errorBody": "ქსელი ან სერვერი არ პასუხობს. შევეცადოთ თავიდან."
+      },
       "layout": {
         "title": "კონფიგურაცია",
         "heading": "შენი ფანჯრის სტრუქტურა",
         "intro": "რამდენი პანელი და როგორ — ყრუ, გასაღები, დასაკეცი ან სლაიდინგი. ფასი ცოცხლად გადაითვლება.",
+        "paneWidthHandleLabel": "პანელ {{from}}-სა და {{to}}-ს შორის სიგანის გასაყოფი",
+        "paneWidthSliderLabel": "პანელ {{n}}-ის სიგანის წილი",
         "paneCountLabel": "პანელების რაოდენობა",
         "paneCountHint": "{{min}}–{{max}}",
         "paneCountAria": "პანელების რაოდენობა {{count}}",
@@ -162,6 +190,13 @@
         "openingTypeInvalid": "{{position}}-ე პანელის გასაღების ტიპი არასწორია.",
         "hingeSideInvalid": "{{position}}-ე პანელის მენტეშის მხარე არასწორია.",
         "fallback": "კონფიგურაცია არ შეესაბამება მოთხოვნებს."
+      },
+      "glass": {
+        "required": "პანელ {{position}}-ს მინის ტიპი არ აქვს არჩეული.",
+        "notCompatibleWithMaterial": "ეს მინა ამ მასალაში არ მუშავდება.",
+        "frostedTintedConflict": "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
+        "extraInvalid": "{{position}}-ე პანელის მინის დანამატის ტიპი არასწორია.",
+        "fallback": "მინის შერჩევა არ შეესაბამება მოთხოვნებს."
       }
     },
     "price": {

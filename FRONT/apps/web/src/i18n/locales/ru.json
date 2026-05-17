@@ -83,10 +83,38 @@
         "srWidth": "Ширина {{value}} {{unit}}",
         "srHeight": "Высота {{value}} {{unit}}"
       },
+      "glass": {
+        "title": "Стекло",
+        "heading": "Слои стекла и добавки",
+        "intro": "Слои и опции — под ваш дом и бюджет.",
+        "allPanesToggle": "Одно стекло на все створки",
+        "paneTab": "Створка {{n}}",
+        "default": "По умолчанию",
+        "uValueLabel": "U-VALUE",
+        "uValueUnit": "Вт/м²K",
+        "surchargeLabel": "+{{amount}} ₾/м²",
+        "noSurcharge": "Без доплаты",
+        "paneCount": "Слоёв: {{n}}",
+        "extras": {
+          "label": "Опции",
+          "lowE": "Low-E покрытие",
+          "lowEDescription": "Тепловое покрытие — энергоэффективно",
+          "tempered": "Закалённое",
+          "temperedDescription": "Безопасное — рассыпается мелкими частицами",
+          "frosted": "Матовое",
+          "frostedDescription": "Приватность для санузла",
+          "tinted": "Тонированное",
+          "tintedDescription": "Снижает блики солнца для прибрежного жилья"
+        },
+        "errorTitle": "Не удалось загрузить каталог стёкол",
+        "errorBody": "Сеть или сервер не отвечают. Попробуем ещё раз."
+      },
       "layout": {
         "title": "Конфигурация",
         "heading": "Структура вашего окна",
         "intro": "Сколько створок и как каждая открывается — глухая, распашная, откидная или раздвижная. Цена пересчитывается сразу.",
+        "paneWidthHandleLabel": "Разделитель ширины между створкой {{from}} и створкой {{to}}",
+        "paneWidthSliderLabel": "Доля ширины створки {{n}}",
         "paneCountLabel": "Количество створок",
         "paneCountHint": "{{min}}–{{max}}",
         "paneCountAria": "Створок {{count}}",
@@ -129,6 +157,13 @@
         "openingTypeInvalid": "У створки {{position}} неверный тип открытия.",
         "hingeSideInvalid": "У створки {{position}} неверная сторона петель.",
         "fallback": "Такая конфигурация недопустима."
+      },
+      "glass": {
+        "required": "Створка {{position}} — нужен тип стекла.",
+        "notCompatibleWithMaterial": "Это стекло недоступно с выбранным материалом.",
+        "frostedTintedConflict": "Матовое и тонированное нельзя сочетать — выберите одно.",
+        "extraInvalid": "У створки {{position}} неверная опция стекла.",
+        "fallback": "Такой выбор стекла недопустим."
       }
     },
     "price": {

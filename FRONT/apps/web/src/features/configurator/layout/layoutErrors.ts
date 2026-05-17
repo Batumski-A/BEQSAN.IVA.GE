@@ -49,16 +49,33 @@ export function translateLayoutError(error: ApiError, t: TFunction): string {
       return t('configurator.errors.layout.hingeSideInvalid', {
         position: meta.position,
       });
+    // Step-5 glass codes flow through the same renderer so a Step-4 page
+    // hosting the PricePreview surfaces them too.
+    case 'configurator.glass.required':
+      return t('configurator.errors.glass.required', { position: meta.position });
+    case 'configurator.glass.notCompatibleWithMaterial':
+      return t('configurator.errors.glass.notCompatibleWithMaterial');
+    case 'configurator.glass.frostedTintedConflict':
+      return t('configurator.errors.glass.frostedTintedConflict');
+    case 'configurator.glass.extraInvalid':
+      return t('configurator.errors.glass.extraInvalid', { position: meta.position });
     default:
       return t('configurator.errors.layout.fallback');
   }
 }
 
 /**
- * Pull the first layout error out of a query error, if any. Returns null if
- * the error wasn't an envelope failure or no layout code was present.
+ * Pull the first layout-or-glass error out of a query error, if any.
+ * Returns null if the error wasn't an envelope failure or no relevant
+ * code was present.
  */
 export function firstLayoutError(unknownError: unknown): ApiError | null {
   if (!(unknownError instanceof ApiResponseError)) return null;
-  return unknownError.errors.find((e) => e.code.startsWith('configurator.layout.')) ?? null;
+  return (
+    unknownError.errors.find(
+      (e) =>
+        e.code.startsWith('configurator.layout.') ||
+        e.code.startsWith('configurator.glass.'),
+    ) ?? null
+  );
 }
