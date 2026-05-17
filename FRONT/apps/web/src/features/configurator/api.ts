@@ -6,6 +6,7 @@ import type { components } from '@beqsan/api-types/generated';
 
 export type Material = components['schemas']['MaterialDto'];
 export type PriceBreakdown = components['schemas']['PriceBreakdownDto'];
+export type GlassType = components['schemas']['GlassTypeDto'];
 
 export type PriceRequest = {
   productTypeId: string;
@@ -22,6 +23,8 @@ export const configuratorKeys = {
   all: ['configurator'] as const,
   materials: (productTypeId: string | null | undefined) =>
     ['catalog', 'materials', productTypeId ?? null] as const,
+  glassTypes: (materialId: string | null | undefined) =>
+    ['catalog', 'glass-types', materialId ?? null] as const,
   price: (req: PriceRequest | null) => ['configurator', 'price', req] as const,
 };
 
@@ -37,6 +40,23 @@ export function useMaterialsByProductType(productTypeId: string | null | undefin
     queryKey: configuratorKeys.materials(productTypeId),
     queryFn: () => fetchMaterials(productTypeId!),
     enabled: Boolean(productTypeId),
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchGlassTypes(materialId: string): Promise<GlassType[]> {
+  const response = await api.get<ApiResponse<GlassType[]>>(
+    `/catalog/materials/${materialId}/glass-types`,
+  );
+  return unwrap(response);
+}
+
+export function useGlassTypesByMaterial(materialId: string | null | undefined) {
+  return useQuery({
+    queryKey: configuratorKeys.glassTypes(materialId),
+    queryFn: () => fetchGlassTypes(materialId!),
+    enabled: Boolean(materialId),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
   });

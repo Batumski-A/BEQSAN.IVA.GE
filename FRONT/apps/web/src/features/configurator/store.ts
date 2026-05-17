@@ -2,11 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   ConfigurationPaneInput,
+  GlassExtra,
   HingeSide,
   PaneOpeningType,
 } from '@beqsan/api-types';
 
-export type ConfiguratorStep = 1 | 2 | 3 | 4;
+export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5;
 
 export type DimensionConstraints = {
   minWidthCm: number;
@@ -43,6 +44,13 @@ export type ConfiguratorState = {
   material: SelectedMaterial | null;
   dimensions: ConfiguratorDimensions;
   panes: ConfigurationPaneInput[];
+  /**
+   * Default glass id resolved from the material's compat set. Used by Step 5
+   * to auto-select on entry and by `setMaterial` to reset panes to a sensible
+   * baseline when material changes. `null` means "not yet known" (Step 1/2
+   * before the glass-types hook runs).
+   */
+  defaultGlassTypeId: string | null;
 };
 
 export type ConfiguratorActions = {
@@ -54,6 +62,10 @@ export type ConfiguratorActions = {
   setPaneHinge: (position: number, hinge: HingeSide | null) => void;
   setPaneRatios: (ratios: number[]) => void;
   togglePaneMosquito: (position: number) => void;
+  setPaneGlass: (position: number, glassTypeId: string) => void;
+  togglePaneGlassExtra: (position: number, extra: GlassExtra) => void;
+  setAllPanesGlass: (glassTypeId: string) => void;
+  setDefaultGlassTypeId: (glassTypeId: string | null) => void;
   goToStep: (n: ConfiguratorStep) => void;
   reset: () => void;
 };
@@ -79,21 +91,23 @@ export function paneRangeFor(slug: string | null | undefined): {
   return PANE_COUNT_RANGE[slug ?? ''] ?? { min: 1, max: 4, defaultCount: 1 };
 }
 
-/**
- * Choose a sensible default opening for the first pane of a freshly-sized
- * layout. Matches BACK rules: sliding-only for sliding, otherwise Fixed.
- */
 function defaultOpeningFor(slug: string | null | undefined): PaneOpeningType {
   return slug === 'sliding' ? 'Sliding' : 'Fixed';
 }
 
 /**
- * Build N equal-width panes whose ratios sum to exactly 1.000 (last pane
- * absorbs rounding so Σ stays within validator tolerance). All panes start
- * with the slug-default opening so the user sees a legal layout immediately;
- * they can switch individual panes from there.
+ * Build N equal-width panes. All panes start with the slug-default opening
+ * + the material's default glass + no extras. The legacy 5-arg pane shape
+ * is no longer constructed here — every pane carries explicit glass state
+ * from Step 5 on. When `defaultGlassTypeId` is null (Step 1/2 before the
+ * material query resolves), an empty string is written so the server falls
+ * back to its own default-glass lookup.
  */
-function buildEqualPanes(count: number, slug: string | null | undefined): ConfigurationPaneInput[] {
+function buildEqualPanes(
+  count: number,
+  slug: string | null | undefined,
+  defaultGlassTypeId: string | null,
+): ConfigurationPaneInput[] {
   if (count < 1) return [];
   const opening = defaultOpeningFor(slug);
   const ratio = Number((1 / count).toFixed(4));
@@ -103,6 +117,8 @@ function buildEqualPanes(count: number, slug: string | null | undefined): Config
     openingType: opening,
     hingeSide: null,
     hasMosquitoNet: false,
+    glassTypeId: defaultGlassTypeId,
+    glassExtras: [],
   }));
 }
 
@@ -111,7 +127,8 @@ const INITIAL: ConfiguratorState = {
   productType: null,
   material: null,
   dimensions: { widthCm: 120, heightCm: 140 },
-  panes: buildEqualPanes(1, 'window'),
+  panes: buildEqualPanes(1, 'window', null),
+  defaultGlassTypeId: null,
 };
 
 function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
@@ -121,21 +138,12 @@ function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
   };
 }
 
-/**
- * Normalise an updated panes array so positions are 1..N in order and the
- * ratio sum stays at 1.000. Used by mutators that could otherwise leave
- * fractional drift after several edits.
- */
 function normalize(panes: ConfigurationPaneInput[]): ConfigurationPaneInput[] {
   if (panes.length === 0) return panes;
   const sum = panes.reduce((s, p) => s + p.widthRatio, 0);
-  // Within 0.001 of 1.000 — let the validator's tolerance accept it without
-  // a forced redistribute that would visually jolt the schematic.
   if (Math.abs(sum - 1) <= 0.001) {
     return panes.map((p, i) => ({ ...p, position: i + 1 }));
   }
-  // Out of tolerance — rescale proportionally, then absorb residue into the
-  // last pane so Σ lands exactly at 1.000.
   const scale = 1 / sum;
   const scaled = panes.map((p) => ({
     ...p,
@@ -163,12 +171,28 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           return {
             productType,
             material: null,
+            defaultGlassTypeId: null,
             dimensions: midpoint(productType.constraints),
-            panes: buildEqualPanes(defaultCount, productType.slug),
+            panes: buildEqualPanes(defaultCount, productType.slug, null),
           };
         }),
 
-      setMaterial: (material) => set({ material }),
+      setMaterial: (material) =>
+        set((prev) => {
+          if (prev.material?.id === material.id) return { material };
+          // Material change invalidates the glass selection — defaults will
+          // reload via useGlassTypesByMaterial. Reset glass on every pane to
+          // null so the server resolves the new material's default.
+          return {
+            material,
+            defaultGlassTypeId: null,
+            panes: prev.panes.map((p) => ({
+              ...p,
+              glassTypeId: null,
+              glassExtras: [],
+            })),
+          };
+        }),
 
       setDimensions: (delta) =>
         set((prev) => ({ dimensions: { ...prev.dimensions, ...delta } })),
@@ -178,7 +202,9 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           const range = paneRangeFor(prev.productType?.slug);
           const target = Math.max(range.min, Math.min(range.max, n));
           if (target === prev.panes.length) return prev;
-          return { panes: buildEqualPanes(target, prev.productType?.slug) };
+          return {
+            panes: buildEqualPanes(target, prev.productType?.slug, prev.defaultGlassTypeId),
+          };
         }),
 
       setPaneOpening: (position, opening) =>
@@ -188,8 +214,6 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
               ? {
                   ...p,
                   openingType: opening,
-                  // Clear hinge when switching to an opening that forbids it;
-                  // require the user to set it when switching to one that needs it.
                   hingeSide:
                     opening === 'Casement' || opening === 'TiltAndTurn'
                       ? p.hingeSide ?? 'Right'
@@ -221,6 +245,52 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           ),
         })),
 
+      setPaneGlass: (position, glassTypeId) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) =>
+            p.position === position ? { ...p, glassTypeId } : p,
+          ),
+        })),
+
+      togglePaneGlassExtra: (position, extra) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) => {
+            if (p.position !== position) return p;
+            const present = (p.glassExtras ?? []).includes(extra);
+            let next = present
+              ? (p.glassExtras ?? []).filter((e) => e !== extra)
+              : [...(p.glassExtras ?? []), extra];
+            // Frosted + Tinted on the same pane is a server-side conflict;
+            // mirror the rule client-side by removing the other when one is
+            // turned on. Tested in StepGlass component spec.
+            if (!present && extra === 'Frosted') {
+              next = next.filter((e) => e !== 'Tinted');
+            }
+            if (!present && extra === 'Tinted') {
+              next = next.filter((e) => e !== 'Frosted');
+            }
+            return { ...p, glassExtras: next };
+          }),
+        })),
+
+      setAllPanesGlass: (glassTypeId) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) => ({ ...p, glassTypeId })),
+        })),
+
+      setDefaultGlassTypeId: (defaultGlassTypeId) =>
+        set((prev) => {
+          // Adopting a default — apply it to any pane that hasn't picked
+          // a glass yet (null id). User overrides stay intact.
+          if (defaultGlassTypeId === null) return { defaultGlassTypeId };
+          return {
+            defaultGlassTypeId,
+            panes: prev.panes.map((p) =>
+              p.glassTypeId == null ? { ...p, glassTypeId: defaultGlassTypeId } : p,
+            ),
+          };
+        }),
+
       goToStep: (step) => set({ step }),
 
       reset: () => set(INITIAL),
@@ -234,21 +304,39 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         material: s.material,
         dimensions: s.dimensions,
         panes: s.panes,
+        defaultGlassTypeId: s.defaultGlassTypeId,
       }),
-      version: 3, // bumped — panes added
+      version: 4, // bumped — panes carry glassTypeId + glassExtras
       migrate: (persisted, fromVersion) => {
-        // v1 → v3: drop everything; productType constraints are missing.
         if (fromVersion < 2) {
           return INITIAL;
         }
-        // v2 → v3: synthesize a single Fixed pane so the user picks up where
-        // they left off without a forced step reset.
         if (fromVersion < 3) {
-          const prior = persisted as Omit<ConfiguratorState, 'panes'>;
+          // v2 → v3: synthesise a single Fixed pane.
+          const prior = persisted as Omit<ConfiguratorState, 'panes' | 'defaultGlassTypeId'>;
           return {
             ...prior,
-            panes: buildEqualPanes(paneRangeFor(prior.productType?.slug).defaultCount, prior.productType?.slug),
+            defaultGlassTypeId: null,
+            panes: buildEqualPanes(
+              paneRangeFor(prior.productType?.slug).defaultCount,
+              prior.productType?.slug,
+              null,
+            ),
           } as ConfiguratorState;
+        }
+        if (fromVersion < 4) {
+          // v3 → v4: existing panes don't carry glass fields. Add nulls so
+          // the server resolves defaults on the next price request.
+          const prior = persisted as ConfiguratorState;
+          return {
+            ...prior,
+            defaultGlassTypeId: null,
+            panes: prior.panes.map((p) => ({
+              ...p,
+              glassTypeId: null,
+              glassExtras: [],
+            })),
+          };
         }
         return persisted as ConfiguratorState;
       },
