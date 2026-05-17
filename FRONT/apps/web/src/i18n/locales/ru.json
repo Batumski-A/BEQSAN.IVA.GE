@@ -82,12 +82,53 @@
         "areaLabel": "Площадь",
         "srWidth": "Ширина {{value}} {{unit}}",
         "srHeight": "Высота {{value}} {{unit}}"
+      },
+      "layout": {
+        "title": "Конфигурация",
+        "heading": "Структура вашего окна",
+        "intro": "Сколько створок и как каждая открывается — глухая, распашная, откидная или раздвижная. Цена пересчитывается сразу.",
+        "paneCountLabel": "Количество створок",
+        "paneCountHint": "{{min}}–{{max}}",
+        "paneCountAria": "Створок {{count}}",
+        "schematicLabel": "Схема окна",
+        "schematicAria": "Схема из {{count}} створок",
+        "paneLabel": "Створка {{position}}",
+        "openingLabel": "Тип открытия",
+        "openings": {
+          "fixed": "Глухая",
+          "casement": "Распашная",
+          "tilt": "Откидная",
+          "tiltAndTurn": "Поворотно-откидная",
+          "sliding": "Раздвижная"
+        },
+        "hingeLabel": "Сторона петель",
+        "hinges": {
+          "left": "Слева",
+          "right": "Справа"
+        },
+        "mosquitoLabel": "Москитная сетка",
+        "mosquitoHint": "+ 80 ₾",
+        "ratioLabel": "Ширина",
+        "ratioAria": "Створка {{position}} — доля ширины {{percent}}%"
       }
     },
     "errors": {
       "dimensions": {
         "widthOutOfRange": "Ширина должна быть от {{min}} до {{max}} см",
         "heightOutOfRange": "Высота должна быть от {{min}} до {{max}} см"
+      },
+      "layout": {
+        "panesRequired": "Нужна как минимум одна створка.",
+        "paneCount": "Количество створок должно быть от {{min}} до {{max}}.",
+        "widthRatioSum": "Ширины створок должны складываться в полную ширину.",
+        "positions": "Номера створок должны идти подряд.",
+        "doorTooManyFixed": "У двери может быть максимум одна глухая створка (боковина).",
+        "slidingInvalidOpening": "Створка {{position}} не может иметь такой тип — в раздвижной системе только глухая или раздвижная.",
+        "hingeRequired": "Для створки {{position}} нужно указать сторону петель.",
+        "hingeForbidden": "Для створки {{position}} сторона петель не указывается.",
+        "openingTypeInvalid": "У створки {{position}} неверный тип открытия.",
+        "hingeSideInvalid": "У створки {{position}} неверная сторона петель.",
+        "fallback": "Такая конфигурация недопустима."
       }
     },
     "price": {

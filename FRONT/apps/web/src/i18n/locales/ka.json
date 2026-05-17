@@ -115,12 +115,53 @@
         "areaLabel": "ფართობი",
         "srWidth": "სიგანე {{value}} {{unit}}",
         "srHeight": "სიმაღლე {{value}} {{unit}}"
+      },
+      "layout": {
+        "title": "კონფიგურაცია",
+        "heading": "შენი ფანჯრის სტრუქტურა",
+        "intro": "რამდენი პანელი და როგორ — ყრუ, გასაღები, დასაკეცი ან სლაიდინგი. ფასი ცოცხლად გადაითვლება.",
+        "paneCountLabel": "პანელების რაოდენობა",
+        "paneCountHint": "{{min}}–{{max}}",
+        "paneCountAria": "პანელების რაოდენობა {{count}}",
+        "schematicLabel": "ფანჯრის სქემა",
+        "schematicAria": "{{count}} პანელის სქემა",
+        "paneLabel": "პანელი {{position}}",
+        "openingLabel": "გასაღების ტიპი",
+        "openings": {
+          "fixed": "ყრუ",
+          "casement": "გასაღები",
+          "tilt": "დასაკეცი",
+          "tiltAndTurn": "გასაღები + დასაკეცი",
+          "sliding": "სლაიდინგი"
+        },
+        "hingeLabel": "მენტეშის მხარე",
+        "hinges": {
+          "left": "მარცხნივ",
+          "right": "მარჯვნივ"
+        },
+        "mosquitoLabel": "მოსკიტური ბადე",
+        "mosquitoHint": "+ 80 ₾",
+        "ratioLabel": "სიგანე",
+        "ratioAria": "პანელი {{position}} — სიგანის წილი {{percent}}%"
       }
     },
     "errors": {
       "dimensions": {
         "widthOutOfRange": "სიგანე {{min}}–{{max}} სმ შორის უნდა იყოს",
         "heightOutOfRange": "სიმაღლე {{min}}–{{max}} სმ შორის უნდა იყოს"
+      },
+      "layout": {
+        "panesRequired": "მინიმუმ ერთი პანელია სავალდებულო.",
+        "paneCount": "პანელების რაოდენობა {{min}}–{{max}} შორის უნდა იყოს.",
+        "widthRatioSum": "პანელების სიგანე უნდა ჯამდებოდეს მთლიან სიგანემდე.",
+        "positions": "პანელების ნომრები არასწორია.",
+        "doorTooManyFixed": "კარს მაქს. 1 ყრუ პანელი (გვერდითი) შეიძლება ჰქონდეს.",
+        "slidingInvalidOpening": "{{position}}-ე პანელი არ შეიძლება იყოს ამ ტიპის — სლაიდინგში მხოლოდ ყრუ ან მცოცავი.",
+        "hingeRequired": "{{position}}-ე პანელს მენტეშის მხარე უნდა მიეთითოს.",
+        "hingeForbidden": "{{position}}-ე პანელისთვის მენტეშის მხარე არ უნდა მიეთითოს.",
+        "openingTypeInvalid": "{{position}}-ე პანელის გასაღების ტიპი არასწორია.",
+        "hingeSideInvalid": "{{position}}-ე პანელის მენტეშის მხარე არასწორია.",
+        "fallback": "კონფიგურაცია არ შეესაბამება მოთხოვნებს."
       }
     },
     "price": {

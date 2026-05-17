@@ -82,12 +82,53 @@
         "areaLabel": "Area",
         "srWidth": "Width {{value}} {{unit}}",
         "srHeight": "Height {{value}} {{unit}}"
+      },
+      "layout": {
+        "title": "Layout",
+        "heading": "Your window's structure",
+        "intro": "How many panes and how each one opens — fixed, casement, tilt or sliding. The price updates live.",
+        "paneCountLabel": "Number of panes",
+        "paneCountHint": "{{min}}–{{max}}",
+        "paneCountAria": "Pane count {{count}}",
+        "schematicLabel": "Window diagram",
+        "schematicAria": "{{count}}-pane diagram",
+        "paneLabel": "Pane {{position}}",
+        "openingLabel": "Opening",
+        "openings": {
+          "fixed": "Fixed",
+          "casement": "Casement",
+          "tilt": "Tilt",
+          "tiltAndTurn": "Tilt-and-turn",
+          "sliding": "Sliding"
+        },
+        "hingeLabel": "Hinge side",
+        "hinges": {
+          "left": "Left",
+          "right": "Right"
+        },
+        "mosquitoLabel": "Mosquito net",
+        "mosquitoHint": "+ 80 ₾",
+        "ratioLabel": "Width",
+        "ratioAria": "Pane {{position}} — width share {{percent}}%"
       }
     },
     "errors": {
       "dimensions": {
         "widthOutOfRange": "Width must be between {{min}} and {{max}} cm",
         "heightOutOfRange": "Height must be between {{min}} and {{max}} cm"
+      },
+      "layout": {
+        "panesRequired": "At least one pane is required.",
+        "paneCount": "Pane count must be between {{min}} and {{max}}.",
+        "widthRatioSum": "Pane widths must add up to the full width.",
+        "positions": "Pane positions must be sequential.",
+        "doorTooManyFixed": "A door may have at most one fixed pane (a sidelight).",
+        "slidingInvalidOpening": "Pane {{position}} can't use that opening — sliding systems allow only fixed or sliding.",
+        "hingeRequired": "Pane {{position}} needs a hinge side.",
+        "hingeForbidden": "Pane {{position}} shouldn't have a hinge side.",
+        "openingTypeInvalid": "Pane {{position}} has an invalid opening type.",
+        "hingeSideInvalid": "Pane {{position}} has an invalid hinge side.",
+        "fallback": "This layout isn't valid."
       }
     },
     "price": {
