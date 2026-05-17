@@ -19,10 +19,21 @@ namespace BEQSAN.Domain.Configurator;
 ///   5. Hinge side matrix:
 ///        Casement / TiltAndTurn → HingeSide required
 ///        Fixed / Tilt / Sliding → HingeSide forbidden
+///   6. Glass rules (only when an availableGlassTypes set is supplied):
+///        - Each pane's GlassTypeId must be a key in the available set
+///          (i.e. the chosen material lists it as compatible).
+///        - Frosted + Tinted may not coexist on a single pane (visual
+///          conflict — one obscures, the other shades; combining is
+///          pointless and likely a mistake).
+///   The availableGlassTypes param is optional so Step 1-4 call sites that
+///   don't know about glass still work — when null, glass rules are skipped.
 /// </summary>
 public static class LayoutValidator
 {
-    public static Result Validate(ProductType productType, IReadOnlyList<ConfigurationPane> panes)
+    public static Result Validate(
+        ProductType productType,
+        IReadOnlyList<ConfigurationPane> panes,
+        IReadOnlyDictionary<Guid, GlassType>? availableGlassTypes = null)
     {
         if (productType is null)
         {
@@ -104,6 +115,39 @@ public static class LayoutValidator
             }
         }
 
+        // Glass rules — skipped entirely when the caller hasn't supplied a
+        // compatible-types set (Step 4 tests + back-compat path). When the
+        // set is present, every pane must reference a glass type from it,
+        // and per-pane extras must not include the visually-conflicting
+        // Frosted + Tinted pair.
+        if (availableGlassTypes is { Count: > 0 })
+        {
+            foreach (var pane in panes)
+            {
+                if (pane.GlassTypeId == Guid.Empty)
+                {
+                    return Result.Failure(
+                        LayoutErrors.GlassRequired
+                            .WithMetadata("position", pane.Position));
+                }
+
+                if (!availableGlassTypes.ContainsKey(pane.GlassTypeId))
+                {
+                    return Result.Failure(
+                        LayoutErrors.GlassNotCompatibleWithMaterial
+                            .WithMetadata("position", pane.Position));
+                }
+
+                if (pane.GlassExtras.Contains(GlassExtra.Frosted)
+                    && pane.GlassExtras.Contains(GlassExtra.Tinted))
+                {
+                    return Result.Failure(
+                        LayoutErrors.GlassFrostedTintedConflict
+                            .WithMetadata("position", pane.Position));
+                }
+            }
+        }
+
         return Result.Success();
     }
 
@@ -164,5 +208,20 @@ public static class LayoutErrors
     public static readonly Error HingeForbidden = Error.Validation(
         "configurator.layout.pane.hingeForbidden",
         "ამ პანელისთვის მენტეშის მხარე არ უნდა მიეთითოს.",
+        field: "panes");
+
+    public static readonly Error GlassRequired = Error.Validation(
+        "configurator.glass.required",
+        "პანელს მინის ტიპი არ აქვს არჩეული.",
+        field: "panes");
+
+    public static readonly Error GlassNotCompatibleWithMaterial = Error.BusinessRule(
+        "configurator.glass.notCompatibleWithMaterial",
+        "ეს მინა ამ მასალაში არ მუშავდება.") with
+    { Field = "panes" };
+
+    public static readonly Error GlassFrostedTintedConflict = Error.Validation(
+        "configurator.glass.frostedTintedConflict",
+        "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
         field: "panes");
 }
