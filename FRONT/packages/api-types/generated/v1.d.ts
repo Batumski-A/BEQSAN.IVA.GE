@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/catalog/materials/{materialId}/colors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Frame colors compatible with a material, default first; excludes ral-custom placeholder */
+        get: operations["GetColorsByMaterial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/configurator/price": {
         parameters: {
             query?: never;
@@ -118,6 +135,37 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        ColorOptionDto: {
+            /** Format: uuid */
+            id?: string;
+            slug?: string | null;
+            name?: components["schemas"]["LocalizedText"];
+            shortDescription?: components["schemas"]["LocalizedText"];
+            family?: string | null;
+            hexCode?: string | null;
+            ralCode?: string | null;
+            woodTextureUrl?: string | null;
+            /** Format: int32 */
+            surchargeMinor?: number;
+            surchargeDisplay?: string | null;
+            currency?: string | null;
+            isDefault?: boolean;
+            /** Format: int32 */
+            sortOrder?: number;
+        };
+        ColorOptionDtoIReadOnlyListApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["ColorOptionDto"][] | null;
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
+        ColorSelectionInput: {
+            /** Format: uuid */
+            outerColorOptionId?: string;
+            /** Format: uuid */
+            innerColorOptionId?: string | null;
+            customRalHex?: string | null;
+            customRalCode?: string | null;
+        };
         ComputePriceCommand: {
             /** Format: uuid */
             productTypeId?: string;
@@ -128,6 +176,7 @@ export interface components {
             /** Format: int32 */
             heightCm?: number;
             panes?: components["schemas"]["ConfigurationPaneInput"][] | null;
+            color?: components["schemas"]["ColorSelectionInput"];
         };
         ConfigurationPaneInput: {
             /** Format: int32 */
@@ -404,6 +453,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GlassTypeDtoIReadOnlyListApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetColorsByMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ColorOptionDtoIReadOnlyListApiResponse"];
                 };
             };
             /** @description Not Found */

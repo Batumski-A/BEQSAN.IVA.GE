@@ -44,6 +44,22 @@ export type ConfigurationPaneInput = {
   glassExtras?: GlassExtra[];
 };
 
+// Step 6 — color/finish. Family is string for FRONT readability; the wire
+// is camelCase matching the BACK ColorFamily enum.
+export type ColorFamily = 'standard' | 'premium' | 'woodLaminate' | 'ralCustom';
+
+/**
+ * Configuration-level color decision sent on the price request. Outer is
+ * required. Inner null = same as outer (typical). Custom RAL hex + code
+ * required only when the outer slug is `ral-custom`.
+ */
+export type ColorSelectionInput = {
+  outerColorOptionId: string;
+  innerColorOptionId?: string | null;
+  customRalHex?: string | null;
+  customRalCode?: string | null;
+};
+
 export type HealthChecks = {
   db: { status: 'up' | 'down' | 'degraded'; latencyMs: number };
   cache: { status: 'up' | 'down' | 'degraded'; latencyMs: number };
