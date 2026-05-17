@@ -122,6 +122,79 @@ Constraint columns added to `product_types`: `min_width_cm`, `max_width_cm`,
 slug. Admin-editable Phase 2; for now Roman locks the numbers before
 public preview (see docs/questions.md).
 
+### 2026-05-17 — Multi-pane layout (Step 4 slice)
+
+`PriceCalculator.Compute` signature extended to accept an optional
+`IReadOnlyList<ConfigurationPane>? panes` parameter. Reasons:
+
+1. Real windows aren't a single sheet of glass — they have **mullions and
+   sashes**: one fixed pane next to a casement, two sliders, three
+   panoramic fixed lights, etc. Each non-Fixed pane carries an opening
+   mechanism that costs more than plain glass.
+2. **Per-pane opening surcharge** computed against the pane's own
+   pro-rata area (`paneArea = totalArea × widthRatio`):
+   - Fixed (ყრუ): +0%
+   - Casement (გასაღები): +8%
+   - Tilt (დასაკეცი): +10%
+   - TiltAndTurn (გასაღები + დასაკეცი): +18%
+   - Sliding (სლაიდინგი): +12%
+3. **Mosquito net additive**: per-pane boolean `HasMosquitoNet` adds
+   80.00 ₾ (8 000 tetri) flat per opted pane. Aluminum-framed mesh,
+   per Roman's quote.
+4. **VAT semantics tightened**: VAT is now applied to the **subtotal**
+   (material + surcharges + mosquito) instead of material-only. Step 1+2
+   canaries hold because surcharges = 0 for a single Fixed pane and
+   mosquito = 0 by default, so material+vat math is unchanged.
+5. **Layout validation is its own pure function**: `LayoutValidator.Validate`
+   (Domain/Configurator) enforces pane-count ranges by slug, ratio sum =
+   1.000 ± 0.001, position sequence 1..N, slug-specific rules (door ≤ 1
+   Fixed; sliding only Sliding/Fixed), and the hinge matrix (Casement /
+   TiltAndTurn require HingeSide; others forbid it). All failures carry
+   structured metadata for FRONT rendering — see the
+   [result-envelope contract](../api/result-envelope.md).
+
+**Backwards compatibility**: `panes` is optional and null/empty means
+"synthesize a single full-width Fixed pane." Both prior canaries
+(753.31 ₾, 832.61 ₾) re-asserted against the new code path and pass
+unchanged. Integration test
+`PostPrice_OmittedPanes_PreservesCanary1_WindowDefaultFixedAt_753_31`
+locks the no-panes shape against canary #1.
+
+**Third regression canary locked**: window 165×140 cm × aluminum-thermal,
+two equal-width panes — pane 1 Casement (Right hinge), pane 2 Fixed.
+- area = 2.31 m² (165 × 140 / 10 000, banker's-rounded to 2dp for display)
+- material = round(2.31 × 38 000) = 87 780 tetri
+- pane 1 area = 2.31 × 0.5 = 1.155 m² → casement surcharge = round(1.155 × 38 000 × 0.08) = 3 511 tetri
+- pane 2 = Fixed → 0 tetri
+- subtotal = 87 780 + 3 511 = 91 291 tetri
+- vat = round(91 291 × 0.18) = 16 432 (banker's 16 432.38)
+- total = **107 723 tetri = 1077.23 ₾**
+
+Asserted at unit (`Compute_Canary3_Window_165x140_2pane_CasementFixed_Matches_1077_23`),
+endpoint (`PostPrice_Canary3_Window_165x140_2pane_CasementFixed_Equals_1077_23`),
+and as live curl smoke check before commit.
+
+New domain types: `PaneOpeningType` enum, `HingeSide` enum,
+`ConfigurationPane` record (Position, WidthRatio, OpeningType, HingeSide?,
+HasMosquitoNet), `LayoutValidator` static class with `LayoutErrors`
+constants. New wire-shape: `ConfigurationPaneInput` with string enums
+parsed defensively in the handler before reaching the calculator.
+
+Pane-count ranges (slug-keyed static table, mirrored on FRONT for the
+segmented control):
+
+| Slug      | Min | Max |
+|-----------|-----|-----|
+| window    | 1   | 4   |
+| door      | 1   | 2   |
+| sliding   | 2   | 4   |
+| panoramic | 1   | 6   |
+| balcony   | 1   | 8   |
+| (unknown) | 1   | 4   |
+
+`ProductType.MinPaneCount` / `MaxPaneCount` columns are Phase 2 admin
+work; the static table is the source of truth until then.
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.
