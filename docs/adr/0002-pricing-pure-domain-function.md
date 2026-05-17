@@ -288,6 +288,94 @@ Glass surcharge table (tetri / m² above material baseline):
 Roman to verify U-values against actual ALUPROF / ASAŞ datasheets
 before public launch.
 
+### 2026-05-18 — Color & finish + dual-color (Step 6 slice)
+
+`PriceCalculator.Compute` signature extended again to accept optional
+`ColorSelection? colorSelection` + `IReadOnlyDictionary<Guid, ColorOption>?
+availableColorOptions` parameters. Reasons:
+
+1. The customer picks a frame color / finish at Step 6 — standard
+   whites/grays/browns (included), Premium colors (anthracite, black,
+   bronze, dark green, wine red at +75-90 ₾), Wood Laminate textures
+   (PVC-laminated only, +180-210 ₾), or custom RAL from the modal
+   palette (+250 ₾).
+2. **Color surcharge is FLAT per order, not per m²** — paint match +
+   lamination film prep is mostly fixed setup cost, not material-
+   proportional. Roman-locked rates live in the seeder; Phase 2
+   promotes them to PricingRule.
+3. **Dual-color (PVC only)**: when `InnerColorOptionId` differs from
+   the outer, the inner side is repainted on top of the baseline.
+   Inner is billed at **60% of the inner option's surcharge** —
+   factory cost split (`InnerColorRate = 0.60m`) — because the outer
+   work is the bulk of paint setup.
+4. **`ral-custom` placeholder slug**: the catalog row carries the
+   250 ₾ surcharge; the actual hex + RAL code arrive on the request
+   body (`CustomRalHex`, `CustomRalCode`) and the validator demands
+   well-formed values when the outer slug matches.
+5. **Dual-color is PVC-only**: aluminum frames are single-pass painted
+   / anodized; trying to mix inner ≠ outer on aluminum returns
+   `configurator.color.dualOnlyOnPvc` (BusinessRule → 422).
+
+**Backwards compatibility**: when `colorSelection` is null but the
+catalog is supplied (typical handler-loaded shape), the calculator
+auto-resolves the material's IsDefault color (always
+`white-ral9016`, surcharge 0). When the catalog is null/empty, the
+whole color branch is skipped. Canaries #1-#4 hold byte-for-byte
+under both paths (verified at unit + handler + HTTP).
+
+**Fifth regression canary locked**: window 165×140 cm × aluminum-
+thermal, two equal-width panes (Casement-Right triple-low-e
+tempered + Fixed triple-low-e), outer color `anthracite-ral7016`:
+- canary #4 pre-VAT subtotal (material + opening + glass + tempered)
+  = 113 236 tetri
+- + anthracite outer surcharge = 7 500 tetri
+- subtotal = 120 736 tetri
+- vat = round(120 736 × 0.18) = 20 732.48 → banker's **21 732 tetri**
+- total = **142 468 tetri = 1424.68 ₾**
+
+Asserted at unit
+(`Canary5_Window_165x140_TripleLowE_Tempered_Plus_Anthracite_Equals_1424_68`
+in `PriceCalculatorColorTests`) and HTTP
+(`PostPrice_Canary5_*_Equals_1424_68` in `ColorEndpointTests`).
+
+New domain types: `ColorOption` entity (Catalog) with hex + RAL
+regex validation, `ColorFamily` enum (Standard / Premium /
+WoodLaminate / RalCustom), `ColorSelection` record (Configurator)
+with optional inner + custom hex/code. `LayoutValidator.Validate`
+gains the `material` + `colorSelection` + `availableColorOptions`
+params and six new error codes (`color.catalogMissing`,
+`.notCompatibleWithMaterial`, `.dualOnlyOnPvc`,
+`.ralCustomMissing`, `.ralCustomHexInvalid`,
+`.ralCustomCodeInvalid`). New wire-shape: `ColorSelectionInput`
+(camelCase) with optional inner + RAL fields.
+
+New tables: `color_options`, `material_color_compatibility`
+(composite PK, cascade FKs). Seeded with 14 Roman-locked color
+rows + ~41 compat pairs by material slug.
+
+Color surcharge table (tetri, flat per order):
+
+| Slug                       | Family       | Surcharge |
+|----------------------------|--------------|----------:|
+| white-ral9016 (default)    | Standard     | 0         |
+| cream-ral9001              | Standard     | 0         |
+| brown-ral8014              | Standard     | 0         |
+| gray-ral7035               | Standard     | 0         |
+| anthracite-ral7016         | Premium      | 7 500     |
+| black-ral9005              | Premium      | 7 500     |
+| bronze-custom              | Premium      | 9 000     |
+| dark-green-ral6009         | Premium      | 7 500     |
+| wine-red-ral3005           | Premium      | 7 500     |
+| oak-laminate               | WoodLaminate | 18 000    |
+| walnut-laminate            | WoodLaminate | 18 000    |
+| golden-oak-laminate        | WoodLaminate | 18 000    |
+| mahogany-laminate          | WoodLaminate | 21 000    |
+| ral-custom (modal)         | RalCustom    | 25 000    |
+
+Inner-side color is billed at 60% of the inner option's surcharge
+(`InnerColorRate = 0.60m`). Roman to validate the 60% split against
+his actual factory labor cost ratio.
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.

@@ -107,6 +107,12 @@ Multiple errors are common from validation (one per failed field). Other failure
 | `configurator.glass.notCompatibleWithMaterial` | `position` (int) |
 | `configurator.glass.frostedTintedConflict` | `position` (int) |
 | `configurator.glass.extraInvalid` | `position` (int), `got` (string) |
+| `configurator.color.catalogMissing` | _(none)_ |
+| `configurator.color.notCompatibleWithMaterial` | `which` (string: `"outer"` \| `"inner"`) |
+| `configurator.color.dualOnlyOnPvc` | `materialSlug` (string) |
+| `configurator.color.ralCustomMissing` | _(none)_ |
+| `configurator.color.ralCustomHexInvalid` | `got` (string) |
+| `configurator.color.ralCustomCodeInvalid` | `got` (string) |
 
 ### Pattern: metadata as contract carrier
 
