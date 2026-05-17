@@ -18,4 +18,5 @@ public sealed record ComputePriceCommand(
     Guid MaterialId,
     int WidthCm,
     int HeightCm,
-    IReadOnlyList<ConfigurationPaneInput>? Panes = null) : IRequest<Result<PriceBreakdownDto>>;
+    IReadOnlyList<ConfigurationPaneInput>? Panes = null,
+    ColorSelectionInput? Color = null) : IRequest<Result<PriceBreakdownDto>>;

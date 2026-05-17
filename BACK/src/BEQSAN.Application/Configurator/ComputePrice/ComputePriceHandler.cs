@@ -1,4 +1,5 @@
 using System.Globalization;
+using BEQSAN.Application.Catalog.GetColorsByMaterial;
 using BEQSAN.Application.Catalog.GetGlassTypesByMaterial;
 using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
@@ -13,12 +14,14 @@ namespace BEQSAN.Application.Configurator.ComputePrice;
 internal sealed class ComputePriceHandler(
     IProductTypeReader productTypeReader,
     IMaterialReader materialReader,
-    IGlassTypeReader glassTypeReader)
+    IGlassTypeReader glassTypeReader,
+    IColorOptionReader colorOptionReader)
     : IRequestHandler<ComputePriceCommand, Result<PriceBreakdownDto>>
 {
     private readonly IProductTypeReader _productTypeReader = productTypeReader;
     private readonly IMaterialReader _materialReader = materialReader;
     private readonly IGlassTypeReader _glassTypeReader = glassTypeReader;
+    private readonly IColorOptionReader _colorOptionReader = colorOptionReader;
 
     public async Task<Result<PriceBreakdownDto>> Handle(
         ComputePriceCommand request,
@@ -41,14 +44,20 @@ internal sealed class ComputePriceHandler(
             return Result.Failure<PriceBreakdownDto>(MaterialErrors.NotFound);
         }
 
-        // Load the glass types compatible with the chosen material now that
-        // material existence is confirmed. Empty list is a legitimate
-        // success state (mis-seeded environment); the calculator falls back
-        // to the legacy no-glass code path so canaries still hold.
-        var availableGlass = await _glassTypeReader
-            .LoadDomainByMaterialAsync(request.MaterialId, ct)
-            .ConfigureAwait(false);
+        // Load the glass + color catalogs compatible with the chosen material
+        // in parallel — both are needed before pricing math runs. Empty list
+        // on either is a legitimate success state (mis-seeded environment);
+        // the calculator falls back to the legacy no-glass / no-color code
+        // path so earlier-slice canaries still hold.
+        var glassTask = _glassTypeReader.LoadDomainByMaterialAsync(request.MaterialId, ct);
+        var colorTask = _colorOptionReader.LoadDomainByMaterialAsync(request.MaterialId, ct);
+        await Task.WhenAll(glassTask, colorTask).ConfigureAwait(false);
+
+        var availableGlass = await glassTask.ConfigureAwait(false);
         var availableGlassById = availableGlass.ToDictionary(g => g.Id);
+
+        var availableColors = await colorTask.ConfigureAwait(false);
+        var availableColorsById = availableColors.ToDictionary(c => c.Id);
 
         // Translate wire-shape ConfigurationPaneInput[] (string enums) into domain
         // ConfigurationPane records. Invalid enum tokens bubble up as validation
@@ -117,10 +126,25 @@ internal sealed class ComputePriceHandler(
             panes = domainPanes;
         }
 
+        // Translate the wire-shape ColorSelectionInput to the domain record.
+        // Nulls flow through — the calculator's own backcompat path picks
+        // the material default when the request omits color entirely.
+        ColorSelection? colorSelection = null;
+        if (request.Color is not null)
+        {
+            colorSelection = new ColorSelection(
+                OuterColorOptionId: request.Color.OuterColorOptionId,
+                InnerColorOptionId: request.Color.InnerColorOptionId,
+                CustomRalHex: request.Color.CustomRalHex,
+                CustomRalCode: request.Color.CustomRalCode);
+        }
+
         // Cross-field, constraints, layout, math — all in the calculator.
         var breakdownResult = PriceCalculator.Compute(
             productType, material, request.WidthCm, request.HeightCm, panes,
-            availableGlassById.Count > 0 ? availableGlassById : null);
+            availableGlassById.Count > 0 ? availableGlassById : null,
+            colorSelection,
+            availableColorsById.Count > 0 ? availableColorsById : null);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);
