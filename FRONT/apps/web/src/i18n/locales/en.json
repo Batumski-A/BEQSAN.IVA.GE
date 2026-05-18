@@ -159,6 +159,97 @@
     "ctaBody": "Stage one of the window's journey is your choice. The rest is on us.",
     "ctaButton": "Configure yours"
   },
+  "materials": {
+    "metaTitle": "Materials",
+    "metaDescription": "Aluminium, PVC, glass, RAL colour — BEQSAN uses only named-brand materials. We don't hide the spec.",
+    "eyebrow": "Materials and spec",
+    "heading": "Material that ages well.",
+    "lead": "Material choice largely defines window lifetime. Here's what we use, why, what spec we hold to — and who we buy from.",
+    "alumTitle": "Aluminium",
+    "alumLead": "Alumil S-77 and S-91 series, Greek-made. 24–34 mm polyamide thermal break that interrupts heat transfer from aluminium to aluminium.",
+    "alumSpec1Label": "Thermal break",
+    "alumSpec1Value": "24–34 mm",
+    "alumSpec2Label": "U-value (profile)",
+    "alumSpec2Value": "1.2 W/m²K",
+    "alumSpec3Label": "Min wall thickness",
+    "alumSpec3Value": "1.6 mm",
+    "alumSpec4Label": "Warranty",
+    "alumSpec4Value": "10 years",
+    "alumWhy": "Why aluminium? Permanent colour (anodised + powder coat), 50+ year lifespan, and for panoramic glass there's no real alternative.",
+    "pvcTitle": "PVC",
+    "pvcLead": "Rehau Synego 70 mm profile, German-made. Five chambers, central steel reinforcement, rubber gasket for sealing.",
+    "pvcSpec1Label": "Chambers",
+    "pvcSpec1Value": "5",
+    "pvcSpec2Label": "U-value (profile)",
+    "pvcSpec2Value": "1.0 W/m²K",
+    "pvcSpec3Label": "Steel reinforcement",
+    "pvcSpec3Value": "1.5 mm",
+    "pvcSpec4Label": "Warranty",
+    "pvcSpec4Value": "5 years",
+    "pvcWhy": "Why PVC? Better profile-level thermal insulation, ~25% cheaper than aluminium, best for residential windows. Limitation: large sizes (3m+) push back to aluminium.",
+    "glassTitle": "IGU (glass unit)",
+    "glassLead": "Triple-pane with Low-E coating and argon fill. 4-16-4-16-4 mm configuration, 44 mm total thickness.",
+    "glassSpec1Label": "U-value (unit)",
+    "glassSpec1Value": "0.6 W/m²K",
+    "glassSpec2Label": "Sound insulation",
+    "glassSpec2Value": "40 dB",
+    "glassSpec3Label": "Light transmittance",
+    "glassSpec3Value": "74%",
+    "glassSpec4Label": "Solar (g-value)",
+    "glassSpec4Value": "0.52",
+    "glassWhy": "Low-E is an invisible metallic layer on the glass interior — it reflects summer solar heat outward and retains room heat inward in winter.",
+    "ralTitle": "RAL colour",
+    "ralLead": "188 standard RAL colours, plus wood-effect foils (8 options) for PVC. Aluminium gets powder coat or anodising.",
+    "ralPopular": "Most-picked",
+    "ralColors": {
+      "9016": "Traffic white",
+      "7016": "Anthracite grey",
+      "8019": "Grey-brown",
+      "9005": "Jet black",
+      "7035": "Light grey",
+      "9007": "Grey aluminium"
+    },
+    "ralNote": "Colour doesn't have to be the same inside and out — bi-colour windows are possible (PVC only).",
+    "glossaryTitle": "A short glossary",
+    "glossaryLead": "Window terms you might want to recognise — short, no hand-waving.",
+    "glossary": {
+      "uvalue": {
+        "term": "U-value",
+        "def": "Heat transfer coefficient. Lower is better insulation. A good window's total U-value lands around 1.0–1.4 W/m²K."
+      },
+      "lowE": {
+        "term": "Low-E coating",
+        "def": "An invisible metallic layer on the inner glass surface that reflects infrared radiation — retains room heat in winter."
+      },
+      "argon": {
+        "term": "Argon fill",
+        "def": "Inert gas inside the IGU (instead of air) — better thermal insulation, doesn't degrade over time."
+      },
+      "thermal": {
+        "term": "Thermal break",
+        "def": "Polyamide insert between two aluminium layers that interrupts heat transfer. Critical for any aluminium window."
+      },
+      "triplex": {
+        "term": "Laminated (triplex)",
+        "def": "Two glass sheets bonded by a PVB layer — on impact it doesn't shatter, stays on the film. Used for safety."
+      },
+      "ral": {
+        "term": "RAL standard",
+        "def": "European colour standard — 188 named/numbered colours. RAL 9016 is bright white, RAL 7016 anthracite grey."
+      },
+      "casement": {
+        "term": "Tilt-and-turn",
+        "def": "Window opening mechanism — side-open + top-tilt from a single handle. The most common pattern in Europe."
+      },
+      "sliding": {
+        "term": "Sliding",
+        "def": "A horizontally sliding window sash. Common on balconies because it doesn't sweep into the room."
+      }
+    },
+    "ctaTitle": "Ready to pick a material?",
+    "ctaBody": "Step 2 of the configurator shows aluminium vs PVC with thermal coefficients and per-m² price.",
+    "ctaButton": "Open the configurator"
+  },
   "footer": {
     "company": "BEQSAN LTD",
     "tagline": "Hand-built windows and doors. Batumi, since 1998.",
