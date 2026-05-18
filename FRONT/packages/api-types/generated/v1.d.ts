@@ -157,6 +157,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/configurator/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rich review response — grouped pricing breakdown + warranty + lead time */
+        post: operations["ReviewConfiguration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -267,6 +284,7 @@ export interface components {
             panes?: components["schemas"]["ConfigurationPaneInput"][] | null;
             color?: components["schemas"]["ColorSelectionInput"];
             accessories?: components["schemas"]["AccessorySelectionInput"];
+            installation?: components["schemas"]["InstallationOptionInput"];
         };
         ConfigurationPaneInput: {
             /** Format: int32 */
@@ -279,6 +297,10 @@ export interface components {
             /** Format: uuid */
             glassTypeId?: string | null;
             glassExtras?: string[] | null;
+        };
+        DeliveryDto: {
+            warranty?: components["schemas"]["WarrantyTermsDto"];
+            leadTime?: components["schemas"]["LeadTimeEstimateDto"];
         };
         DimensionConstraintsDto: {
             /** Format: int32 */
@@ -313,6 +335,21 @@ export interface components {
             value?: components["schemas"]["GlassTypeDto"][] | null;
             errors?: components["schemas"]["ApiError"][] | null;
         };
+        GroupedBreakdownDto: {
+            material?: components["schemas"]["PriceGroupDto"];
+            glass?: components["schemas"]["PriceGroupDto"];
+            color?: components["schemas"]["PriceGroupDto"];
+            accessories?: components["schemas"]["PriceGroupDto"];
+            installation?: components["schemas"]["PriceGroupDto"];
+            vatDisplay?: string | null;
+            /** Format: int64 */
+            vatMinor?: number;
+            grandTotalDisplay?: string | null;
+            /** Format: int64 */
+            grandTotalMinor?: number;
+            currency?: string | null;
+            installationIsManualQuote?: boolean;
+        };
         HandleStyleDto: {
             /** Format: uuid */
             id?: string;
@@ -333,6 +370,22 @@ export interface components {
             isSuccess?: boolean;
             value?: components["schemas"]["HandleStyleDto"][] | null;
             errors?: components["schemas"]["ApiError"][] | null;
+        };
+        InstallationOptionInput: {
+            region?: string | null;
+            cityHint?: string | null;
+        };
+        LeadTimeEstimateDto: {
+            /** Format: int32 */
+            productionDaysMin?: number;
+            /** Format: int32 */
+            productionDaysMax?: number;
+            /** Format: int32 */
+            installationDays?: number;
+            /** Format: int32 */
+            totalDaysMin?: number;
+            /** Format: int32 */
+            totalDaysMax?: number;
         };
         LocalizedText: {
             ka?: string | null;
@@ -402,6 +455,12 @@ export interface components {
             value?: components["schemas"]["PriceBreakdownDto"];
             errors?: components["schemas"]["ApiError"][] | null;
         };
+        PriceGroupDto: {
+            totalDisplay?: string | null;
+            /** Format: int64 */
+            totalMinor?: number;
+            lines?: components["schemas"]["PriceLineDto"][] | null;
+        };
         PriceLineDto: {
             code?: string | null;
             label?: string | null;
@@ -409,6 +468,10 @@ export interface components {
             amountMinor?: number;
             amountDisplay?: string | null;
             currency?: string | null;
+        };
+        PricingDto: {
+            flat?: components["schemas"]["PriceBreakdownDto"];
+            grouped?: components["schemas"]["GroupedBreakdownDto"];
         };
         ProblemDetails: {
             type?: string | null;
@@ -451,12 +514,40 @@ export interface components {
             value?: components["schemas"]["ProductTypeDto"][] | null;
             errors?: components["schemas"]["ApiError"][] | null;
         };
+        ReviewCommand: {
+            /** Format: uuid */
+            productTypeId?: string;
+            /** Format: uuid */
+            materialId?: string;
+            /** Format: int32 */
+            widthCm?: number;
+            /** Format: int32 */
+            heightCm?: number;
+            panes?: components["schemas"]["ConfigurationPaneInput"][] | null;
+            color?: components["schemas"]["ColorSelectionInput"];
+            accessories?: components["schemas"]["AccessorySelectionInput"];
+            installation?: components["schemas"]["InstallationOptionInput"];
+        };
+        ReviewResponseDto: {
+            pricing?: components["schemas"]["PricingDto"];
+            delivery?: components["schemas"]["DeliveryDto"];
+        };
+        ReviewResponseDtoApiResponse: {
+            isSuccess?: boolean;
+            value?: components["schemas"]["ReviewResponseDto"];
+            errors?: components["schemas"]["ApiError"][] | null;
+        };
         SillSelectionInput: {
             position?: string | null;
             /** Format: uuid */
             colorOptionId?: string | null;
             /** Format: int32 */
             customLengthCm?: number | null;
+        };
+        WarrantyTermsDto: {
+            /** Format: int32 */
+            months?: number;
+            notes?: string[] | null;
         };
     };
     responses: never;
@@ -796,6 +887,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PriceBreakdownDtoApiResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObjectApiResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ReviewConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewResponseDtoApiResponse"];
                 };
             };
             /** @description Bad Request */

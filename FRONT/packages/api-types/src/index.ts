@@ -91,6 +91,22 @@ export type AccessorySelectionInput = {
   blind?: BlindSelectionInput | null;
 };
 
+// Step 8 — installation. PascalCase region matches the BACK Enum.TryParse
+// contract; invalid tokens flow back as configurator.installation.regionInvalid.
+export type InstallationRegion =
+  | 'Batumi'
+  | 'KobuletiCoast'
+  | 'Guria'
+  | 'Imereti'
+  | 'Samegrelo'
+  | 'EastGeorgia'
+  | 'Other';
+
+export type InstallationOptionInput = {
+  region: InstallationRegion;
+  cityHint?: string | null;
+};
+
 export type HealthChecks = {
   db: { status: 'up' | 'down' | 'degraded'; latencyMs: number };
   cache: { status: 'up' | 'down' | 'degraded'; latencyMs: number };
