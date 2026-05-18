@@ -102,6 +102,8 @@ export function translateLayoutError(error: ApiError, t: TFunction): string {
       return t('configurator.errors.accessory.blindControlNotSupported');
     case 'configurator.accessory.blindControlInvalid':
       return t('configurator.errors.accessory.blindControlInvalid');
+    case 'configurator.installation.regionInvalid':
+      return t('configurator.errors.installation.regionInvalid');
     default:
       return t('configurator.errors.layout.fallback');
   }
@@ -120,7 +122,8 @@ export function firstLayoutError(unknownError: unknown): ApiError | null {
         e.code.startsWith('configurator.layout.') ||
         e.code.startsWith('configurator.glass.') ||
         e.code.startsWith('configurator.color.') ||
-        e.code.startsWith('configurator.accessory.'),
+        e.code.startsWith('configurator.accessory.') ||
+        e.code.startsWith('configurator.installation.'),
     ) ?? null
   );
 }

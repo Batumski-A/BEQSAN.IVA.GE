@@ -116,6 +116,105 @@
         "srWidth": "სიგანე {{value}} {{unit}}",
         "srHeight": "სიმაღლე {{value}} {{unit}}"
       },
+      "review": {
+        "title": "გადახედე",
+        "heading": "შენი კონფიგურაცია",
+        "intro": "კონფიგურაცია, ფასი, გარანტია — შემოწმდი ბოლოს.",
+        "summary": {
+          "product": "პროდუქტი",
+          "dimensions": "{{w}} × {{h}} სმ · {{area}} მ²",
+          "panes": "პანელები",
+          "pane": "პანელი {{n}}",
+          "openingFixed": "ყრუ",
+          "openingTilt": "დასაკეცი",
+          "openingTiltTurn": "გასაღები + დასაკეცი",
+          "openingSliding": "სლაიდინგი",
+          "openingCasementLeft": "გასაღები (მარცხ. მენტეშე)",
+          "openingCasementRight": "გასაღები (მარჯვ. მენტეშე)",
+          "mosquitoYes": "მწერების ბადე: ✓",
+          "mosquitoNo": "მწერების ბადე: ✗",
+          "color": "ფერი",
+          "colorOuter": "გარეთა",
+          "colorInner": "შიდა",
+          "colorInnerSame": "იგივე",
+          "accessories": "აქსესუარები",
+          "handle": "სახელური",
+          "lock": "საკეტი",
+          "sill": "ფერთულა · {{position}}",
+          "sillBoth": "ფერთულა · ორივე მხარე",
+          "blind": "ჟალუზი",
+          "blindElectric": "ელექტრო",
+          "blindManual": "მექანიკური",
+          "blindRemote": "დისტანციური",
+          "editLink": "ნაბიჯ {{n}}-ში დაარედაქტირე →"
+        },
+        "installation": {
+          "title": "სად დაგიდგამთ?",
+          "region": {
+            "batumi": "ბათუმი + 30 კმ რადიუსი",
+            "batumi.cities": "ბათუმი და მისი შემოგარენი",
+            "batumi.price": "უფასო",
+            "kobuletiCoast": "ქობულეთი / ხელვაჩაური / ხულო",
+            "kobuletiCoast.price": "+100 ₾",
+            "guria": "გურია",
+            "guria.cities": "ოზურგეთი, ლანჩხუთი, ჩოხატაური",
+            "guria.price": "+150 ₾",
+            "imereti": "იმერეთი",
+            "imereti.cities": "ქუთაისი, წყალტუბო, სამტრედია",
+            "imereti.price": "+220 ₾",
+            "samegrelo": "სამეგრელო",
+            "samegrelo.cities": "ზუგდიდი, სენაკი, ფოთი",
+            "samegrelo.price": "+280 ₾",
+            "eastGeorgia": "აღმოსავლეთი",
+            "eastGeorgia.cities": "თბილისი, რუსთავი, სხვა",
+            "eastGeorgia.price": "+400 ₾",
+            "other": "სხვა — გავარკვევთ, დაგირეკავთ",
+            "other.cities": "სრულ ფასს ცალკე გავთვლით",
+            "other.cityInput": "ქალაქი/სოფელი"
+          }
+        },
+        "pricing": {
+          "group": {
+            "material": "მასალა",
+            "glass": "მინა",
+            "color": "ფერი",
+            "accessories": "აქსესუარები",
+            "installation": "მონტაჟი"
+          },
+          "vat": "დღგ 18%",
+          "grandTotal": "სულ ჩათვლით:",
+          "fixedFor14Days": "ფასი დღგ-ის ჩათვლით · ფიქსირებული 14 დღის განმავლობაში",
+          "manualQuote": "მონტაჟის ფასს ცალკე გავთვლით — დაგირეკავთ ერთ საათში"
+        },
+        "warranty": {
+          "title": "გარანტია",
+          "unit": "თვე",
+          "description": "სრულ კონსტრუქციაზე, დამზადებიდან მონტაჟის ჩათვლით",
+          "notesLabel": "დამატებითი:",
+          "noteSmartLockVendor": "Smart-lock-ს ემატება 24 თვე მწარმოებლის გარანტიით"
+        },
+        "leadTime": {
+          "title": "ვადა",
+          "production": "წარმოება",
+          "installation": "მონტაჟი",
+          "total": "სულ შენ ბინაში",
+          "unit": "დღე",
+          "range": "{{min}}–{{max}}",
+          "starts": "დაიწყება შეკვეთის დადასტურებიდან — რომან ერთ საათში დაგირეკავთ"
+        },
+        "cta": {
+          "send": "შეკვეთა გავაგზავნოთ →",
+          "nextStepHint": "შემდეგ ნაბიჯში ტელეფონის ნომერი — სხვა არაფერი"
+        },
+        "scene": {
+          "open": "გახსენი",
+          "close": "დახურე",
+          "openAria": "გახსენი ფანჯრის ანიმაცია",
+          "closeAria": "დახურე ფანჯრის ანიმაცია",
+          "announceOpen": "ფანჯარა გაიხსნა",
+          "announceClose": "ფანჯარა დაიხურა"
+        }
+      },
       "accessories": {
         "title": "აქსესუარები",
         "heading": "სრულყოფისთვის",
@@ -309,6 +408,10 @@
         "frostedTintedConflict": "მქრქალი და ტონირებული ერთად შეუძლებელია — ერთი აირჩიე.",
         "extraInvalid": "{{position}}-ე პანელის მინის დანამატის ტიპი არასწორია.",
         "fallback": "მინის შერჩევა არ შეესაბამება მოთხოვნებს."
+      },
+      "installation": {
+        "regionInvalid": "მონტაჟის რეგიონი არასწორია.",
+        "fallback": "მონტაჟის შერჩევა არ შეესაბამება მოთხოვნებს."
       },
       "accessory": {
         "handleRequired": "კარს სახელური სავალდებულოა.",

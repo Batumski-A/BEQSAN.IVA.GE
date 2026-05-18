@@ -83,6 +83,105 @@
         "srWidth": "Ширина {{value}} {{unit}}",
         "srHeight": "Высота {{value}} {{unit}}"
       },
+      "review": {
+        "title": "Обзор",
+        "heading": "Ваша конфигурация",
+        "intro": "Конфигурация, цена, гарантия — последний взгляд перед отправкой.",
+        "summary": {
+          "product": "Продукт",
+          "dimensions": "{{w}} × {{h}} см · {{area}} м²",
+          "panes": "Створки",
+          "pane": "Створка {{n}}",
+          "openingFixed": "Глухая",
+          "openingTilt": "Откидная",
+          "openingTiltTurn": "Поворотно-откидная",
+          "openingSliding": "Раздвижная",
+          "openingCasementLeft": "Распашная (петли слева)",
+          "openingCasementRight": "Распашная (петли справа)",
+          "mosquitoYes": "Москитная сетка: ✓",
+          "mosquitoNo": "Москитная сетка: ✗",
+          "color": "Цвет",
+          "colorOuter": "Снаружи",
+          "colorInner": "Внутри",
+          "colorInnerSame": "то же",
+          "accessories": "Аксессуары",
+          "handle": "Ручка",
+          "lock": "Замок",
+          "sill": "Подоконник · {{position}}",
+          "sillBoth": "Подоконник · обе стороны",
+          "blind": "Жалюзи",
+          "blindElectric": "Электро",
+          "blindManual": "Механическое",
+          "blindRemote": "Пульт",
+          "editLink": "Изменить в шаге {{n}} →"
+        },
+        "installation": {
+          "title": "Где будем устанавливать?",
+          "region": {
+            "batumi": "Батуми + 30 км радиус",
+            "batumi.cities": "Батуми и окрестности",
+            "batumi.price": "Бесплатно",
+            "kobuletiCoast": "Кобулети / Хелвачаури / Хуло",
+            "kobuletiCoast.price": "+100 ₾",
+            "guria": "Гурия",
+            "guria.cities": "Озургети, Ланчхути, Чохатаури",
+            "guria.price": "+150 ₾",
+            "imereti": "Имеретия",
+            "imereti.cities": "Кутаиси, Цхалтубо, Самтредиа",
+            "imereti.price": "+220 ₾",
+            "samegrelo": "Самегрело",
+            "samegrelo.cities": "Зугдиди, Сенаки, Поти",
+            "samegrelo.price": "+280 ₾",
+            "eastGeorgia": "Восточная Грузия",
+            "eastGeorgia.cities": "Тбилиси, Рустави, другие",
+            "eastGeorgia.price": "+400 ₾",
+            "other": "Другой регион — мы вам перезвоним",
+            "other.cities": "Стоимость монтажа уточним отдельно",
+            "other.cityInput": "Город / село"
+          }
+        },
+        "pricing": {
+          "group": {
+            "material": "Материал",
+            "glass": "Стекло",
+            "color": "Цвет",
+            "accessories": "Аксессуары",
+            "installation": "Монтаж"
+          },
+          "vat": "НДС 18%",
+          "grandTotal": "Итого:",
+          "fixedFor14Days": "Цена с НДС · фиксирована 14 дней",
+          "manualQuote": "Стоимость монтажа уточним отдельно — Роман позвонит в течение часа"
+        },
+        "warranty": {
+          "title": "Гарантия",
+          "unit": "мес",
+          "description": "На полную конструкцию, от производства до монтажа",
+          "notesLabel": "Дополнительно:",
+          "noteSmartLockVendor": "Smart-lock добавляет 24 месяца гарантии производителя"
+        },
+        "leadTime": {
+          "title": "Срок",
+          "production": "Производство",
+          "installation": "Монтаж",
+          "total": "Всего до вашей квартиры",
+          "unit": "дн.",
+          "range": "{{min}}–{{max}}",
+          "starts": "Начинается после подтверждения заказа — Роман позвонит в течение часа"
+        },
+        "cta": {
+          "send": "Отправить заказ →",
+          "nextStepHint": "На следующем шаге только номер телефона — больше ничего"
+        },
+        "scene": {
+          "open": "Открыть",
+          "close": "Закрыть",
+          "openAria": "Открыть анимацию окна",
+          "closeAria": "Закрыть анимацию окна",
+          "announceOpen": "Окно открыто",
+          "announceClose": "Окно закрыто"
+        }
+      },
       "accessories": {
         "title": "Аксессуары",
         "heading": "Фурнитура и отделка",
@@ -276,6 +375,10 @@
         "frostedTintedConflict": "Матовое и тонированное нельзя сочетать — выберите одно.",
         "extraInvalid": "У створки {{position}} неверная опция стекла.",
         "fallback": "Такой выбор стекла недопустим."
+      },
+      "installation": {
+        "regionInvalid": "Регион монтажа неверный.",
+        "fallback": "Такой выбор монтажа недопустим."
       },
       "accessory": {
         "handleRequired": "У двери ручка обязательна.",

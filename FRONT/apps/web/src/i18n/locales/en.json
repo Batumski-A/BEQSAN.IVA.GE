@@ -83,6 +83,105 @@
         "srWidth": "Width {{value}} {{unit}}",
         "srHeight": "Height {{value}} {{unit}}"
       },
+      "review": {
+        "title": "Review",
+        "heading": "Your configuration",
+        "intro": "Configuration, price, warranty — last look before we send it.",
+        "summary": {
+          "product": "Product",
+          "dimensions": "{{w}} × {{h}} cm · {{area}} m²",
+          "panes": "Panes",
+          "pane": "Pane {{n}}",
+          "openingFixed": "Fixed",
+          "openingTilt": "Tilt",
+          "openingTiltTurn": "Tilt-and-turn",
+          "openingSliding": "Sliding",
+          "openingCasementLeft": "Casement (left hinge)",
+          "openingCasementRight": "Casement (right hinge)",
+          "mosquitoYes": "Mosquito net: ✓",
+          "mosquitoNo": "Mosquito net: ✗",
+          "color": "Colour",
+          "colorOuter": "Outside",
+          "colorInner": "Inside",
+          "colorInnerSame": "same",
+          "accessories": "Accessories",
+          "handle": "Handle",
+          "lock": "Lock",
+          "sill": "Sill · {{position}}",
+          "sillBoth": "Sill · both sides",
+          "blind": "Blind",
+          "blindElectric": "Electric",
+          "blindManual": "Manual",
+          "blindRemote": "Remote",
+          "editLink": "Edit in step {{n}} →"
+        },
+        "installation": {
+          "title": "Where do we install it?",
+          "region": {
+            "batumi": "Batumi + 30 km radius",
+            "batumi.cities": "Batumi and surroundings",
+            "batumi.price": "Free",
+            "kobuletiCoast": "Kobuleti / Khelvachauri / Khulo",
+            "kobuletiCoast.price": "+100 ₾",
+            "guria": "Guria",
+            "guria.cities": "Ozurgeti, Lanchkhuti, Chokhatauri",
+            "guria.price": "+150 ₾",
+            "imereti": "Imereti",
+            "imereti.cities": "Kutaisi, Tskaltubo, Samtredia",
+            "imereti.price": "+220 ₾",
+            "samegrelo": "Samegrelo",
+            "samegrelo.cities": "Zugdidi, Senaki, Poti",
+            "samegrelo.price": "+280 ₾",
+            "eastGeorgia": "Eastern Georgia",
+            "eastGeorgia.cities": "Tbilisi, Rustavi, elsewhere",
+            "eastGeorgia.price": "+400 ₾",
+            "other": "Somewhere else — we'll call you",
+            "other.cities": "We'll quote the install separately",
+            "other.cityInput": "City / village"
+          }
+        },
+        "pricing": {
+          "group": {
+            "material": "Material",
+            "glass": "Glass",
+            "color": "Colour",
+            "accessories": "Accessories",
+            "installation": "Installation"
+          },
+          "vat": "VAT 18%",
+          "grandTotal": "Grand total:",
+          "fixedFor14Days": "Price including VAT · locked for 14 days",
+          "manualQuote": "We'll quote the install separately — Roman calls within an hour"
+        },
+        "warranty": {
+          "title": "Warranty",
+          "unit": "mo",
+          "description": "On the full assembly, from manufacture through installation",
+          "notesLabel": "Extra:",
+          "noteSmartLockVendor": "Smart-lock adds 24 months vendor warranty"
+        },
+        "leadTime": {
+          "title": "Lead time",
+          "production": "Production",
+          "installation": "Installation",
+          "total": "Total at your place",
+          "unit": "days",
+          "range": "{{min}}–{{max}}",
+          "starts": "Starts when the order is confirmed — Roman calls within an hour"
+        },
+        "cta": {
+          "send": "Send the order →",
+          "nextStepHint": "Next step is just a phone number — nothing else"
+        },
+        "scene": {
+          "open": "Open",
+          "close": "Close",
+          "openAria": "Open the window animation",
+          "closeAria": "Close the window animation",
+          "announceOpen": "Window opened",
+          "announceClose": "Window closed"
+        }
+      },
       "accessories": {
         "title": "Accessories",
         "heading": "Hardware and finishing",
@@ -276,6 +375,10 @@
         "frostedTintedConflict": "Frosted and tinted can't be applied to the same pane — pick one.",
         "extraInvalid": "Pane {{position}} has an invalid glass add-on.",
         "fallback": "This glass selection isn't valid."
+      },
+      "installation": {
+        "regionInvalid": "Installation region is invalid.",
+        "fallback": "This installation selection isn't valid."
       },
       "accessory": {
         "handleRequired": "A handle is required for doors.",
