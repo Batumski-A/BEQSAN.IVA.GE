@@ -76,6 +76,8 @@ export type ConfiguratorState = {
   defaultLockTypeId: string | null;
   /** Step 8 — installation choice. Null until the customer picks a region. */
   installation: InstallationOptionInput | null;
+  /** Step 8 showcase toggle — drives the 3D opening animation. */
+  windowOpen: boolean;
 };
 
 export type ConfiguratorActions = {
@@ -103,6 +105,7 @@ export type ConfiguratorActions = {
   resetAccessories: () => void;
   setDefaultHandleAndLock: (handleId: string | null, lockId: string | null) => void;
   setInstallation: (option: InstallationOptionInput | null) => void;
+  setWindowOpen: (open: boolean) => void;
   goToStep: (n: ConfiguratorStep) => void;
   reset: () => void;
 };
@@ -172,6 +175,7 @@ const INITIAL: ConfiguratorState = {
   defaultHandleStyleId: null,
   defaultLockTypeId: null,
   installation: null,
+  windowOpen: false,
 };
 
 function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
@@ -450,6 +454,8 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         }),
 
       setInstallation: (installation) => set({ installation }),
+
+      setWindowOpen: (windowOpen) => set({ windowOpen }),
 
       goToStep: (step) => set({ step }),
 

@@ -28,6 +28,16 @@ export function ConfiguratorScene() {
   const panes = useConfiguratorStore((s) => s.panes);
   const color = useConfiguratorStore((s) => s.color);
   const accessories = useConfiguratorStore((s) => s.accessories);
+  const windowOpen = useConfiguratorStore((s) => s.windowOpen);
+  const setWindowOpen = useConfiguratorStore((s) => s.setWindowOpen);
+
+  // Respect prefers-reduced-motion — instant swap instead of spring lerp.
+  const reducedMotion = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    [],
+  );
   // Same cache keys as StepGlass / StepColor — TanStack dedupes.
   const glassQuery = useGlassTypesByMaterial(material?.id);
   const colorsQuery = useColorsByMaterial(material?.id);
@@ -99,6 +109,7 @@ export function ConfiguratorScene() {
         ) : null}
 
         <Suspense fallback={null}>
+          <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
           <Window
             family={material?.family ?? 'aluminum'}
             widthCm={dimensions.widthCm}
@@ -109,6 +120,8 @@ export function ConfiguratorScene() {
             innerHex={innerHex}
             hasDualColor={hasDualColor}
             accessories={accessories}
+            open={windowOpen}
+            reducedMotion={reducedMotion}
             mobile={isMobile}
           />
           <Ground />
@@ -130,6 +143,31 @@ export function ConfiguratorScene() {
         {dimensions.widthCm}×{dimensions.heightCm} {t('common.units.cm')}
         {material ? <span className="ml-3">· {material.slug?.toUpperCase()}</span> : null}
       </div>
+
+      {/* Open/close toggle — only when at least one pane can move. Click
+          flips the store flag; the per-pane animation runs in useFrame
+          inside each AnimatedPane wrapper. */}
+      {panes.some((p) => p.openingType !== 'Fixed') && (
+        <button
+          type="button"
+          onClick={() => setWindowOpen(!windowOpen)}
+          aria-pressed={windowOpen}
+          aria-label={windowOpen
+            ? t('configurator.steps.review.scene.closeAria')
+            : t('configurator.steps.review.scene.openAria')}
+          className="absolute bottom-3 right-3 inline-flex h-10 items-center gap-2 rounded-sm border border-accent-amber bg-bg-base/85 px-3 font-mono text-mono-spec uppercase tracking-wider text-accent-amber backdrop-blur transition-colors hover:bg-accent-amber hover:text-bg-base"
+        >
+          {windowOpen
+            ? t('configurator.steps.review.scene.close')
+            : t('configurator.steps.review.scene.open')}
+        </button>
+      )}
+
+      <span aria-live="polite" className="sr-only">
+        {windowOpen
+          ? t('configurator.steps.review.scene.announceOpen')
+          : t('configurator.steps.review.scene.announceClose')}
+      </span>
     </div>
   );
 }
@@ -144,6 +182,8 @@ function Window({
   innerHex,
   hasDualColor,
   accessories,
+  open,
+  reducedMotion,
   mobile,
 }: {
   family: 'aluminum' | 'pvc';
@@ -155,6 +195,8 @@ function Window({
   innerHex: string;
   hasDualColor: boolean;
   accessories: AccessorySelectionInput | null;
+  open: boolean;
+  reducedMotion: boolean;
   mobile: boolean;
 }) {
   const ref = useRef<Group>(null);
@@ -262,18 +304,9 @@ function Window({
           && pane.openingType !== 'Fixed';
         return (
           <group key={pane.position} position={[cx, 0, 0]}>
-            <mesh receiveShadow={!mobile}>
-              <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
-              <meshPhysicalMaterial
-                color={visual.color}
-                transparent
-                opacity={visual.opacity}
-                transmission={visual.transmission}
-                ior={1.52}
-                thickness={0.01}
-                roughness={visual.roughness}
-              />
-            </mesh>
+            {/* Mullion sits at the frame-fixed boundary, so it's outside
+                the AnimatedPane wrapper — it shouldn't swing with the
+                glass. */}
             {i < paneRects.length - 1 && (
               <mesh
                 position={[pw / 2, 0, 0]}
@@ -283,19 +316,156 @@ function Window({
                 <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
               </mesh>
             )}
-            {hasHandle && (
-              <Handle
-                paneWidthM={pw}
-                paneHeightM={h - frameThickness * 2}
-                hingeSide={pane.hingeSide}
-                opening={pane.openingType}
-                mobile={mobile}
-              />
-            )}
+            <AnimatedPane
+              paneWidthM={pw}
+              paneHeightM={h - frameThickness * 2}
+              opening={pane.openingType}
+              hingeSide={pane.hingeSide}
+              open={open}
+              reducedMotion={reducedMotion}
+              glassInset={glassInset}
+              outerFrameHeightM={h}
+            >
+              <mesh receiveShadow={!mobile}>
+                <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
+                <meshPhysicalMaterial
+                  color={visual.color}
+                  transparent
+                  opacity={visual.opacity}
+                  transmission={visual.transmission}
+                  ior={1.52}
+                  thickness={0.01}
+                  roughness={visual.roughness}
+                />
+              </mesh>
+              {hasHandle && (
+                <Handle
+                  paneWidthM={pw}
+                  paneHeightM={h - frameThickness * 2}
+                  hingeSide={pane.hingeSide}
+                  opening={pane.openingType}
+                  mobile={mobile}
+                />
+              )}
+            </AnimatedPane>
           </group>
         );
       })}
     </group>
+  );
+}
+
+/**
+ * Wraps a pane's mesh in a transform group whose pivot + rotation/translation
+ * targets match the pane's opening type. Each frame, the current value lerps
+ * 12% toward target — a soft 240-300ms spring without pulling in
+ * @react-spring/three. Reduced-motion users get the target value applied
+ * immediately on prop change.
+ */
+function AnimatedPane({
+  paneWidthM,
+  paneHeightM,
+  opening,
+  hingeSide,
+  open,
+  reducedMotion,
+  glassInset,
+  outerFrameHeightM,
+  children,
+}: {
+  paneWidthM: number;
+  paneHeightM: number;
+  opening: PaneOpeningType;
+  hingeSide: HingeSide | null | undefined;
+  open: boolean;
+  reducedMotion: boolean;
+  glassInset: number;
+  outerFrameHeightM: number;
+  children: React.ReactNode;
+}) {
+  const pivotRef = useRef<Group>(null);
+
+  // Target rotation/translation for the OPEN state. Closed = identity.
+  // - Casement: rotate around hinge edge by ~75°.
+  // - Tilt: tip the top edge outward by 15° (rotate around bottom edge).
+  // - TiltAndTurn: Phase-1 falls back to Casement-like swing.
+  // - Sliding: translate X by 70% of pane width away from frame edge.
+  // - Fixed: identity (no animation).
+  const target = useMemo(() => {
+    if (!open || opening === 'Fixed') {
+      return { rotY: 0, rotX: 0, translateX: 0 };
+    }
+    if (opening === 'Casement' || opening === 'TiltAndTurn') {
+      const sign = hingeSide === 'Left' ? 1 : -1;
+      return { rotY: sign * (Math.PI / 180) * 75, rotX: 0, translateX: 0 };
+    }
+    if (opening === 'Tilt') {
+      return { rotY: 0, rotX: -(Math.PI / 180) * 15, translateX: 0 };
+    }
+    // Sliding
+    return { rotY: 0, rotX: 0, translateX: -0.7 * paneWidthM };
+  }, [open, opening, hingeSide, paneWidthM]);
+
+  // Pivot offsets per opening type (in local pane-centred coordinates):
+  // - Casement / TiltAndTurn: hinge edge (left = -paneWidth/2, right = +paneWidth/2).
+  // - Tilt: bottom edge (y = -paneHeight/2).
+  // - Sliding: pane centre (default).
+  const pivot = useMemo(() => {
+    if (opening === 'Casement' || opening === 'TiltAndTurn') {
+      const sign = hingeSide === 'Left' ? -1 : 1;
+      return { x: sign * paneWidthM / 2, y: 0 };
+    }
+    if (opening === 'Tilt') {
+      return { x: 0, y: -paneHeightM / 2 };
+    }
+    return { x: 0, y: 0 };
+  }, [opening, hingeSide, paneWidthM, paneHeightM]);
+
+  // Lerp the pivot transform every frame. Reduced-motion users skip the
+  // lerp entirely so the open/close swap is instant.
+  useFrame(() => {
+    const g = pivotRef.current;
+    if (!g) return;
+    if (reducedMotion) {
+      g.rotation.y = target.rotY;
+      g.rotation.x = target.rotX;
+      g.position.x = pivot.x + target.translateX;
+      return;
+    }
+    const t = 0.12;
+    g.rotation.y += (target.rotY - g.rotation.y) * t;
+    g.rotation.x += (target.rotX - g.rotation.x) * t;
+    g.position.x += ((pivot.x + target.translateX) - g.position.x) * t;
+  });
+
+  // Reference unused props for completeness (the planeGeometry inside
+  // children already uses these dimensions).
+  void glassInset;
+  void outerFrameHeightM;
+
+  return (
+    <group position={[pivot.x, pivot.y, 0]}>
+      <group ref={pivotRef} position={[-pivot.x, -pivot.y, 0]}>
+        {children}
+      </group>
+    </group>
+  );
+}
+
+/**
+ * Stub interior wall behind the window frame so the configurator preview
+ * reads as "installed in a wall," not "floating in space." Phase 1: a
+ * single warm-beige plane sized 1.5× the frame in each direction. Phase
+ * 1.5: real workshop / home backdrops per product type.
+ */
+function Wall({ widthCm, heightCm }: { widthCm: number; heightCm: number }) {
+  const w = (widthCm / 100) * 1.5;
+  const h = (heightCm / 100) * 1.5;
+  return (
+    <mesh position={[0, h / 2 - 0.1, -0.12]} receiveShadow>
+      <planeGeometry args={[Math.max(w, 3), Math.max(h, 2.5)]} />
+      <meshPhysicalMaterial color="#E8E5E0" metalness={0} roughness={0.85} />
+    </mesh>
   );
 }
 
