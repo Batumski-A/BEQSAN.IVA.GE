@@ -42,9 +42,25 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['"BPG Mrgvlovani Caps"', '"BPG Glaho Sans Caps"', 'system-ui', 'sans-serif'],
-        headline: ['"BPG Glaho Sans"', 'system-ui', 'sans-serif'],
-        sans: ['FiraGO', 'system-ui', 'sans-serif'],
+        // Stacks list the BPG/FiraGO names FIRST so they win once those .woff2
+        // files land in public/fonts/; until then, Noto Sans/Serif Georgian
+        // (Google Fonts) carry the Georgian glyphs in the browser. The chain
+        // never falls through to a Latin-only system font as long as one
+        // Georgian-aware family is installed.
+        display: [
+          '"BPG Mrgvlovani Caps"',
+          '"BPG Glaho Sans Caps"',
+          '"Noto Serif Georgian"',
+          'Georgia',
+          'serif',
+        ],
+        headline: [
+          '"BPG Glaho Sans"',
+          '"Noto Sans Georgian"',
+          'system-ui',
+          'sans-serif',
+        ],
+        sans: ['FiraGO', '"Noto Sans Georgian"', 'system-ui', 'sans-serif'],
         mono: [
           '"JetBrains Mono"',
           'ui-monospace',

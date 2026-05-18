@@ -1,53 +1,14 @@
+/* Google Fonts: Noto Sans/Serif Georgian + JetBrains Mono. These are the
+   working Georgian-aware fonts the site uses right now — the BPG / FiraGO
+   .woff2 files referenced in index.html aren't shipped yet (Phase 1.5
+   procurement, tracked in docs/questions.md). Tailwind font-* utilities
+   list Noto first, then the BPG/FiraGO family names as fallbacks so the
+   stack picks them up automatically once the .woff2s land in public/fonts/. */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Serif+Georgian:wght@400;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ---- @font-face — BPG (Georgian display + body), FiraGO, JetBrains Mono ---- */
-
-@font-face {
-  font-family: 'FiraGO';
-  src: url('/fonts/firago-vf.woff2') format('woff2-variations');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+10A0-10FF, U+2D00-2D2F, U+1C90-1CBF, U+0000-007F;
-}
-
-@font-face {
-  font-family: 'BPG Glaho Sans';
-  src: url('/fonts/bpg-glaho-sans.woff2') format('woff2');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+10A0-10FF, U+1C90-1CBF, U+0000-007F;
-}
-
-@font-face {
-  font-family: 'BPG Glaho Sans Caps';
-  src: url('/fonts/bpg-glaho-caps.woff2') format('woff2');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: optional;
-  unicode-range: U+10A0-10FF, U+1C90-1CBF;
-}
-
-@font-face {
-  font-family: 'BPG Mrgvlovani Caps';
-  src: url('/fonts/bpg-mrgvlovani-caps.woff2') format('woff2');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: optional;
-  unicode-range: U+10A0-10FF, U+1C90-1CBF;
-}
-
-@font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/fonts/jetbrains-mono-vf.woff2') format('woff2-variations');
-  font-weight: 100 800;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+0000-007F, U+10A0-10FF;
-}
 
 /* ---- Base resets + design defaults ---- */
 

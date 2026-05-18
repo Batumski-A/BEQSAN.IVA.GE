@@ -3,6 +3,10 @@
   <PropertyGroup>
     <RootNamespace>BEQSAN.Api</RootNamespace>
     <UserSecretsId>beqsan-api-2026</UserSecretsId>
+    <!-- SDK writes ASPNETCORE_ENVIRONMENT into the auto-generated web.config
+         on `dotnet publish` so the IIS-hosted runtime activates
+         appsettings.Production.json (CORS allowed origins, admin token). -->
+    <EnvironmentName>Production</EnvironmentName>
   </PropertyGroup>
 
   <ItemGroup>
