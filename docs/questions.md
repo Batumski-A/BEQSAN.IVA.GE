@@ -30,6 +30,22 @@ _(none currently — all blocking infra calls were delegated to Claude on 2026-0
 ### 8. Warranty terms (Markdown content)
 
 - 2026-05-17 (Claude → Roman): the kickoff says "minimum 2 years, configurable from admin". Need the actual legal text — written by Roman or his legal contact.
+- 2026-05-18 (Claude → Roman): `/warranty` page now ships with placeholder coverage durations (Al 10y / PVC 5y / IGU 5y / hardware 2y / install 2y) and a 3-step problem-handling flow. The durations are industry-typical for Batumi market but Roman must confirm before launch.
+
+### 8b. Marketing-page placeholder content — needs Roman validation
+
+The Step 9 informational pages (/about, /process, /materials, /warranty, /contact) ship with best-effort placeholder copy that should be reviewed and replaced before launch:
+
+- 2026-05-18 (Claude → Roman): **/about facts** — founding year 1998 (presumed from kickoff), ~620 sites/year, 1100 m² workshop floor, 12-person team. Confirm or supply real numbers.
+- 2026-05-18 (Claude → Roman): **/about suppliers** — currently listed as Alumil + Profilco (Al), Rehau (PVC), Hoppe + G-U (hardware), Gori glass facility. If different, supply the real names; they're shown publicly so should not be cost-bearing supplier names that compromise pricing.
+- 2026-05-18 (Claude → Roman): **/about founder bio** — Batumi technical college 1995, Roto Frank internship 1996-97, leading workshop since 1998. Pure placeholder — Roman should write 2-3 sentences in first person if preferred.
+- 2026-05-18 (Claude → Roman): **/contact phone** — currently placeholder `+995 5XX XX XX XX` everywhere. Real E.164 number needed before launch; affects tel: links, WhatsApp deep links (`wa.me/995XXXXXXXXX`), and Schema.org LocalBusiness JSON-LD.
+- 2026-05-18 (Claude → Roman): **/contact email** — `hello@beqsan.ge` placeholder. Confirm or supply alternative; needs MX record set up before launch.
+- 2026-05-18 (Claude → Roman): **/contact address** — `სალიბაურის გზა 42, ბათუმი 6000`. Confirm street number + postcode. Coordinates `41.6168 N · 41.6367 E` should also be validated.
+- 2026-05-18 (Claude → Roman): **/contact hours** — Mon-Fri 09:00-19:00, Sat 10:00-15:00 by appointment, Sun closed. Confirm.
+- 2026-05-18 (Claude → Roman): **/contact directions** — written as "8 km north of central Batumi, blue tin shed with logo". Replace with the way Roman actually gives directions to first-time visitors.
+- 2026-05-18 (Claude → Roman): **Real photos** — every page currently uses hand-drawn SVG illustrations because no workshop photos exist. When photos arrive: replace WorkshopIllustrations with `<img>` tags + AVIF/WebP, keep SVGs as fallback for screen readers.
+- 2026-05-18 (Lasha decision needed): **interactive map** — `/contact` uses a stylised SVG map with a Google Maps deep link, deliberately avoiding MapLibre/Mapbox (~150 KB JS bundle) to keep per-page budget. If a real embedded map is required, this is a Phase 1.5 decision.
 
 ### 9. Admin authentication identity source
 
