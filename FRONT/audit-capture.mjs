@@ -113,6 +113,32 @@ async function captureConfigurator(browser, viewport) {
     await page.goto(`${BASE}/configurator?step=${step}`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(1500);
     const labels = ['', '', '', '03-dimensions', '04-layout', '05-glass', '06-color', '07-accessories', '08-review'];
+
+    // On Step 4, also drive the pane into an openable state so the
+    // post-rework features (hinges, overlay labels, breathing animation)
+    // show up in the screenshot. Single fixed-pane default would hide them.
+    if (step === 4) {
+      try {
+        // Bump pane count to 2 — radiogroup of pane-count radios sits at the
+        // top of the StepLayout content. The first `role=radio` is "1", the
+        // second is "2", so we click the 2nd in the first radiogroup.
+        const paneCountRadios = page.locator('[role="radiogroup"]').first().locator('[role="radio"]');
+        if ((await paneCountRadios.count()) >= 2) {
+          await paneCountRadios.nth(1).click();
+          await page.waitForTimeout(700);
+        }
+        // Now click "Casement" (გასაღები) on pane-1 opening radios. The
+        // opening-type radiogroup is the 2nd radiogroup (the first is the
+        // pane-count). And "გასაღები" is the 2nd radio in there (1st is "ყრუ").
+        const openingRadios = page.locator('[role="radiogroup"]').nth(1).locator('[role="radio"]');
+        if ((await openingRadios.count()) >= 2) {
+          await openingRadios.nth(1).click();
+          await page.waitForTimeout(900);
+        }
+      } catch (e) {
+        console.error('  ! step-4 driving failed:', e.message);
+      }
+    }
     await snap(page, `cfg-${labels[step]}`, viewport);
   }
 

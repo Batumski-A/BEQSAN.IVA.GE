@@ -750,7 +750,17 @@
       "loading": "Calculating…",
       "needSelections": "Pick a product and material — the price will show immediately."
     },
-    "scene": { "loading": "Preparing 3D view…" },
+    "scene": {
+      "loading": "Preparing 3D view…",
+      "overlay": {
+        "casementLeft": "← Left hinge",
+        "casementRight": "Right hinge →",
+        "tiltAndTurnLeft": "← Turn + tilt",
+        "tiltAndTurnRight": "Turn + tilt →",
+        "tilt": "↥ Top-tilt",
+        "sliding": "↔ Slides"
+      }
+    },
     "stub": {
       "title": "Dimensions step is coming",
       "body": "Step 3 — width and height, then Step 4-9: layout, glass, colour, accessories, order. Part of Phase 1 MVP."

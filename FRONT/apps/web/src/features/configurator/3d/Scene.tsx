@@ -1,8 +1,9 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Suspense, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Group } from 'three';
+import type { TFunction } from 'i18next';
+import type { Group, PerspectiveCamera } from 'three';
 
 import type {
   AccessorySelectionInput,
@@ -80,10 +81,25 @@ export function ConfiguratorScene() {
     [],
   );
 
+  // Pane layout used by both the 3D Window and the HTML overlay labels above
+  // the canvas — kept here so both stay in sync as panes change.
+  const w = (dimensions.widthCm / 100) * 1.0;
+  const h = (dimensions.heightCm / 100) * 1.0;
+  const frameThickness = 0.06;
+  const innerW = w - frameThickness * 2;
+  const paneRects = useMemo(() => {
+    let cursor = -innerW / 2;
+    return panes.map((p) => {
+      const pw = innerW * p.widthRatio;
+      const cx = cursor + pw / 2;
+      cursor += pw;
+      return { pane: p, cx, pw };
+    });
+  }, [panes, innerW]);
+
   return (
     <div className="relative aspect-square overflow-hidden rounded-sm border border-hairline bg-bg-elevated">
       <Canvas
-        camera={{ position: [2.4, 1.6, 3.2], fov: 35, near: 0.1, far: 50 }}
         dpr={isMobile ? [1, 1.5] : [1, 2]}
         shadows={!isMobile}
         performance={{ min: 0.5 }}
@@ -92,19 +108,30 @@ export function ConfiguratorScene() {
       >
         <color attach="background" args={['#0A0E14']} />
 
-        <ambientLight intensity={0.15} />
+        {/* Auto-fit camera to the window bounding box so the frame fills ~65%
+            of viewport height regardless of dimensions. Updates whenever the
+            user changes Step 3 measurements. */}
+        <CameraRig widthM={w} heightM={h} />
+
+        {/* §9.7 three-point setup, raised intensity floor + hemisphere fill
+            so the aluminium frame's metalness reflections still read against
+            the dark-navy background. Previous setup left the frame face
+            in dim specular only — fix per audit 🔴. */}
+        <hemisphereLight args={['#FFE4B5', '#1B2030', 0.5]} />
+        <ambientLight intensity={0.35} />
         <directionalLight
           position={[5, 8, 4]}
-          intensity={1.2}
-          color="#FFE4B0"
+          intensity={1.7}
+          color="#FFEFC8"
           castShadow={!isMobile}
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
         />
         {!isMobile ? (
           <>
-            <directionalLight position={[-3, 4, -2]} intensity={0.35} color="#9EC4FF" />
-            <directionalLight position={[0, 2, -5]} intensity={0.5} color="#FFFFFF" />
+            <directionalLight position={[-4, 4, 2]} intensity={0.55} color="#A8C8FF" />
+            <directionalLight position={[0, 2, -5]} intensity={0.4} color="#FFFFFF" />
+            <directionalLight position={[0, 0, 6]} intensity={0.45} color="#FFE4B5" />
           </>
         ) : null}
 
@@ -130,14 +157,20 @@ export function ConfiguratorScene() {
         <OrbitControls
           enablePan={false}
           enableZoom
-          minDistance={1.8}
-          maxDistance={6}
+          minDistance={Math.max(1.5, Math.max(w, h) * 1.4)}
+          maxDistance={Math.max(6, Math.max(w, h) * 4)}
           minPolarAngle={Math.PI / 3}
           maxPolarAngle={Math.PI * 0.62}
           autoRotate={!material}
           autoRotateSpeed={0.6}
         />
       </Canvas>
+
+      {/* HTML overlay labels — one per openable pane. Mono caption, positioned
+          horizontally per pane's relative x within the frame so the label
+          aligns with the breathing-animated pane underneath. Pointer-events
+          off so they don't block orbit drag. */}
+      <PaneOverlayLabels paneRects={paneRects} widthM={w} t={t} />
 
       <div className="pointer-events-none absolute bottom-3 left-4 font-mono text-caption uppercase tracking-wider text-fg-tertiary">
         {dimensions.widthCm}×{dimensions.heightCm} {t('common.units.cm')}
@@ -316,6 +349,16 @@ function Window({
                 <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
               </mesh>
             )}
+            {/* Hinges live on the frame (static axis) — outside AnimatedPane
+                so they don't swing with the glass. Sits forward of the frame
+                so it reads against the dark window opening. */}
+            <Hinges
+              paneWidthM={pw}
+              paneHeightM={h - frameThickness * 2}
+              opening={pane.openingType}
+              hingeSide={pane.hingeSide}
+              mobile={mobile}
+            />
             <AnimatedPane
               paneWidthM={pw}
               paneHeightM={h - frameThickness * 2}
@@ -357,10 +400,13 @@ function Window({
 
 /**
  * Wraps a pane's mesh in a transform group whose pivot + rotation/translation
- * targets match the pane's opening type. Each frame, the current value lerps
- * 12% toward target — a soft 240-300ms spring without pulling in
- * @react-spring/three. Reduced-motion users get the target value applied
- * immediately on prop change.
+ * targets match the pane's opening type. Default state runs a constant
+ * "breathing" loop (12° amplitude, 3-second period) so the user sees at a
+ * glance which panes open and in which direction. Clicking the open toggle
+ * scales the target to ~75°/full-slide for the marketing read.
+ *
+ * Reduced-motion users get a static partial-open pose (8° offset) — enough
+ * to convey directionality, no animation.
  */
 function AnimatedPane({
   paneWidthM,
@@ -385,67 +431,87 @@ function AnimatedPane({
 }) {
   const pivotRef = useRef<Group>(null);
 
-  // Target rotation/translation for the OPEN state. Closed = identity.
-  // - Casement: rotate around hinge edge by ~75°.
-  // - Tilt: tip the top edge outward by 15° (rotate around bottom edge).
-  // - TiltAndTurn: Phase-1 falls back to Casement-like swing.
-  // - Sliding: translate X by 70% of pane width away from frame edge.
-  // - Fixed: identity (no animation).
-  const target = useMemo(() => {
-    if (!open || opening === 'Fixed') {
-      return { rotY: 0, rotX: 0, translateX: 0 };
-    }
+  // Direction signs per opening type. Stored once so the per-frame loop stays
+  // allocation-free.
+  const rig = useMemo(() => {
     if (opening === 'Casement' || opening === 'TiltAndTurn') {
-      const sign = hingeSide === 'Left' ? 1 : -1;
-      return { rotY: sign * (Math.PI / 180) * 75, rotX: 0, translateX: 0 };
+      const swingSign = hingeSide === 'Left' ? 1 : -1;
+      const pivotSign = hingeSide === 'Left' ? -1 : 1;
+      return {
+        type: 'rotY' as const,
+        swingSign,
+        pivot: { x: (pivotSign * paneWidthM) / 2, y: 0 },
+      };
     }
     if (opening === 'Tilt') {
-      return { rotY: 0, rotX: -(Math.PI / 180) * 15, translateX: 0 };
+      return {
+        type: 'rotX' as const,
+        swingSign: -1,
+        pivot: { x: 0, y: -paneHeightM / 2 },
+      };
     }
-    // Sliding
-    return { rotY: 0, rotX: 0, translateX: -0.7 * paneWidthM };
-  }, [open, opening, hingeSide, paneWidthM]);
-
-  // Pivot offsets per opening type (in local pane-centred coordinates):
-  // - Casement / TiltAndTurn: hinge edge (left = -paneWidth/2, right = +paneWidth/2).
-  // - Tilt: bottom edge (y = -paneHeight/2).
-  // - Sliding: pane centre (default).
-  const pivot = useMemo(() => {
-    if (opening === 'Casement' || opening === 'TiltAndTurn') {
-      const sign = hingeSide === 'Left' ? -1 : 1;
-      return { x: sign * paneWidthM / 2, y: 0 };
+    if (opening === 'Sliding') {
+      return {
+        type: 'slide' as const,
+        swingSign: -1,
+        pivot: { x: 0, y: 0 },
+      };
     }
-    if (opening === 'Tilt') {
-      return { x: 0, y: -paneHeightM / 2 };
-    }
-    return { x: 0, y: 0 };
+    return { type: 'fixed' as const, swingSign: 1, pivot: { x: 0, y: 0 } };
   }, [opening, hingeSide, paneWidthM, paneHeightM]);
 
-  // Lerp the pivot transform every frame. Reduced-motion users skip the
-  // lerp entirely so the open/close swap is instant.
-  useFrame(() => {
+  // Compute the current target each frame. Two regimes:
+  //   - open=false   →   constant breathing at ±12° (or 8% slide-out),
+  //                      |sin(πt/3)| envelope so the pane returns through 0.
+  //   - open=true    →   full pose: 75° swing, 15° tilt, 70% slide.
+  useFrame((state) => {
     const g = pivotRef.current;
-    if (!g) return;
+    if (!g || rig.type === 'fixed') return;
+
+    const time = state.clock.elapsedTime;
+    // |sin| over a half-period of 3s gives 0 → 1 → 0 every 3 seconds.
+    const breath = Math.abs(Math.sin((time * Math.PI) / 3));
+
+    let targetRotY = 0;
+    let targetRotX = 0;
+    let targetTx = 0;
+
+    if (rig.type === 'rotY') {
+      const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
+      const openAngle = (Math.PI / 180) * 75 * rig.swingSign;
+      targetRotY = open ? openAngle : breathAngle;
+    } else if (rig.type === 'rotX') {
+      const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
+      const openAngle = (Math.PI / 180) * 15 * rig.swingSign;
+      targetRotX = open ? openAngle : breathAngle;
+    } else {
+      // slide
+      const breathTx = 0.08 * paneWidthM * breath * rig.swingSign;
+      const openTx = 0.7 * paneWidthM * rig.swingSign;
+      targetTx = open ? openTx : breathTx;
+    }
+
     if (reducedMotion) {
-      g.rotation.y = target.rotY;
-      g.rotation.x = target.rotX;
-      g.position.x = pivot.x + target.translateX;
+      // Static partial-open pose — no animation, but still conveys direction.
+      const staticPose = open ? 1.0 : 0.25;
+      g.rotation.y = targetRotY * staticPose;
+      g.rotation.x = targetRotX * staticPose;
+      g.position.x = rig.pivot.x + targetTx * staticPose;
       return;
     }
-    const t = 0.12;
-    g.rotation.y += (target.rotY - g.rotation.y) * t;
-    g.rotation.x += (target.rotX - g.rotation.x) * t;
-    g.position.x += ((pivot.x + target.translateX) - g.position.x) * t;
+
+    const t = 0.14;
+    g.rotation.y += (targetRotY - g.rotation.y) * t;
+    g.rotation.x += (targetRotX - g.rotation.x) * t;
+    g.position.x += (rig.pivot.x + targetTx - g.position.x) * t;
   });
 
-  // Reference unused props for completeness (the planeGeometry inside
-  // children already uses these dimensions).
   void glassInset;
   void outerFrameHeightM;
 
   return (
-    <group position={[pivot.x, pivot.y, 0]}>
-      <group ref={pivotRef} position={[-pivot.x, -pivot.y, 0]}>
+    <group position={[rig.pivot.x, rig.pivot.y, 0]}>
+      <group ref={pivotRef} position={[-rig.pivot.x, -rig.pivot.y, 0]}>
         {children}
       </group>
     </group>
@@ -453,18 +519,234 @@ function AnimatedPane({
 }
 
 /**
+ * Two/three cylindrical hinges per openable pane, mounted on the hinge edge
+ * at the swing axis. Casement/TiltAndTurn get two (top + bottom of the hinge
+ * stile); Tilt gets two at the bottom edge; Sliding gets none. Geometry is
+ * the same brushed-aluminium across all four hardware families — real GLTF
+ * models land in Phase 1.5.
+ */
+function Hinges({
+  paneWidthM,
+  paneHeightM,
+  opening,
+  hingeSide,
+  mobile,
+}: {
+  paneWidthM: number;
+  paneHeightM: number;
+  opening: PaneOpeningType;
+  hingeSide: HingeSide | null | undefined;
+  mobile: boolean;
+}) {
+  if (opening === 'Fixed' || opening === 'Sliding') return null;
+  // Skip on extremely narrow panes — keeps mini schematic-style renders clean.
+  if (paneWidthM < 0.18 || paneHeightM < 0.3) return null;
+
+  const radiusM = 0.015; // 1.5cm
+  const lengthM = 0.08; // 8cm
+  const inset = 0.08; // pull hinges away from the very corner so they read as discrete pivots
+
+  if (opening === 'Casement' || opening === 'TiltAndTurn') {
+    const sign = hingeSide === 'Left' ? -1 : 1;
+    const x = (sign * paneWidthM) / 2;
+    const z = 0.025; // forward of the frame so it's visible against the glass
+    // 2 hinges for Casement, 3 for TiltAndTurn (top, middle, bottom).
+    const positions: Array<[number, number, number]> =
+      opening === 'TiltAndTurn'
+        ? [
+            [x, paneHeightM / 2 - inset, z],
+            [x, 0, z],
+            [x, -paneHeightM / 2 + inset, z],
+          ]
+        : [
+            [x, paneHeightM / 2 - inset, z],
+            [x, -paneHeightM / 2 + inset, z],
+          ];
+    return (
+      <>
+        {positions.map((p, i) => (
+          <mesh
+            key={i}
+            position={p}
+            rotation={[0, 0, Math.PI / 2]}
+            castShadow={!mobile}
+          >
+            <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
+            <meshPhysicalMaterial color="#9A9A9A" metalness={1} roughness={0.2} />
+          </mesh>
+        ))}
+      </>
+    );
+  }
+
+  // Tilt — 2 hinges at the bottom edge, rotated to lie horizontally along x.
+  const y = -paneHeightM / 2;
+  const z = 0.025;
+  return (
+    <>
+      <mesh position={[-paneWidthM / 2 + inset, y, z]} castShadow={!mobile}>
+        <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
+        <meshPhysicalMaterial color="#9A9A9A" metalness={1} roughness={0.2} />
+      </mesh>
+      <mesh position={[paneWidthM / 2 - inset, y, z]} castShadow={!mobile}>
+        <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
+        <meshPhysicalMaterial color="#9A9A9A" metalness={1} roughness={0.2} />
+      </mesh>
+    </>
+  );
+}
+
+/**
+ * Positions the camera so the window bounding box fills ~65% of viewport
+ * height (or whichever axis demands the more conservative distance). With
+ * Canvas in aspect-square, this lands the frame visually centred regardless
+ * of the user's dimension choices in Step 3.
+ *
+ * Only sets initial position — OrbitControls handles user-initiated orbit
+ * from there. When dimensions change (Step 3 slider), the rig re-fits with
+ * a quick lerp instead of snapping.
+ */
+function CameraRig({ widthM, heightM }: { widthM: number; heightM: number }) {
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+
+  // Distance that makes the frame fill ~65% of viewport height. With a 1:1
+  // canvas aspect this also satisfies the horizontal axis as long as width
+  // <= height; for wider-than-tall windows we re-derive against the larger
+  // axis (FOV is vertical on three.js, so horizontal fit uses width / aspect).
+  const target = useMemo(() => {
+    const fov = 35;
+    const fovRad = (fov * Math.PI) / 180;
+    const fillFactor = 0.65;
+    const distForHeight = heightM / (2 * Math.tan(fovRad / 2) * fillFactor);
+    // Canvas aspect is square → horizontal half-FOV equals vertical
+    const distForWidth = widthM / (2 * Math.tan(fovRad / 2) * fillFactor);
+    const dist = Math.max(distForHeight, distForWidth, 1.8);
+    // Slight elevation + side angle so the frame reads as 3D, not orthographic.
+    return {
+      x: dist * 0.55,
+      y: heightM / 2 + dist * 0.18,
+      z: dist * 0.95,
+    };
+  }, [widthM, heightM]);
+
+  // On dimension change, lerp the camera toward the new auto-fit pose.
+  // First mount snaps for a clean entry; subsequent updates ease in.
+  const settled = useRef(false);
+  useEffect(() => {
+    if (!settled.current) {
+      camera.position.set(target.x, target.y, target.z);
+      camera.lookAt(0, heightM / 2, 0);
+      camera.updateProjectionMatrix();
+      settled.current = true;
+    }
+  }, [camera, target, heightM]);
+
+  useFrame(() => {
+    if (!settled.current) return;
+    const t = 0.06;
+    camera.position.x += (target.x - camera.position.x) * t;
+    camera.position.y += (target.y - camera.position.y) * t;
+    camera.position.z += (target.z - camera.position.z) * t;
+    camera.updateProjectionMatrix();
+  });
+
+  return null;
+}
+
+/**
+ * HTML overlay positioned above the Canvas. Renders one mono caption per
+ * openable pane describing direction (← / → / ↥ / ↔). Horizontal position
+ * tracks each pane's cx within the frame — so the label sits over the pane
+ * it describes, even after a Step-4 layout change.
+ *
+ * Pointer-events off so OrbitControls drag passes through.
+ */
+function PaneOverlayLabels({
+  paneRects,
+  widthM,
+  t,
+}: {
+  paneRects: Array<{ pane: ConfigurationPaneInput; cx: number; pw: number }>;
+  widthM: number;
+  t: TFunction;
+}) {
+  if (widthM <= 0 || paneRects.length === 0) return null;
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-between px-3 md:top-4 md:px-4"
+    >
+      {paneRects.map(({ pane, cx, pw }, i) => {
+        const text = labelTextFor(pane.openingType, pane.hingeSide, t);
+        if (!text) return <span key={pane.position ?? i} className="flex-1" />;
+        // Map the pane's centre x (in meters, range ~[-widthM/2, widthM/2]) to
+        // a percentage across the canvas — the visible camera window matches
+        // the frame at ~65% fill, so we re-scale into the visible 0-100% range.
+        const visibleHalfWidth = (widthM / 0.65) / 2;
+        const xPct = 50 + (cx / visibleHalfWidth) * 50;
+        const widthPct = Math.max(18, (pw / visibleHalfWidth) * 50);
+        return (
+          <span
+            key={pane.position ?? i}
+            style={{
+              position: 'absolute',
+              left: `${xPct}%`,
+              transform: 'translateX(-50%)',
+              maxWidth: `${widthPct}%`,
+            }}
+            className="rounded-sm border border-hairline bg-bg-base/75 px-2 py-1 text-center font-mono text-[10px] uppercase leading-tight tracking-wider text-fg-secondary backdrop-blur-sm md:text-caption"
+          >
+            {text}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function labelTextFor(
+  opening: PaneOpeningType,
+  hingeSide: HingeSide | null | undefined,
+  t: TFunction,
+): string | null {
+  switch (opening) {
+    case 'Casement':
+      return hingeSide === 'Left'
+        ? t('configurator.scene.overlay.casementLeft')
+        : t('configurator.scene.overlay.casementRight');
+    case 'TiltAndTurn':
+      return hingeSide === 'Left'
+        ? t('configurator.scene.overlay.tiltAndTurnLeft')
+        : t('configurator.scene.overlay.tiltAndTurnRight');
+    case 'Tilt':
+      return t('configurator.scene.overlay.tilt');
+    case 'Sliding':
+      return t('configurator.scene.overlay.sliding');
+    case 'Fixed':
+    default:
+      return null;
+  }
+}
+
+/**
  * Stub interior wall behind the window frame so the configurator preview
- * reads as "installed in a wall," not "floating in space." Phase 1: a
- * single warm-beige plane sized 1.5× the frame in each direction. Phase
- * 1.5: real workshop / home backdrops per product type.
+ * reads as "installed in a wall," not "floating in space." Sized generously
+ * (8× the larger dimension, min 6m square) so it always fills the visible
+ * background on any camera distance the auto-fit picks. Slightly cool-warm
+ * neutral so it doesn't compete with the amber accents in the frame.
+ *
+ * Phase 1.5: real workshop / home backdrops per product type.
  */
 function Wall({ widthCm, heightCm }: { widthCm: number; heightCm: number }) {
-  const w = (widthCm / 100) * 1.5;
-  const h = (heightCm / 100) * 1.5;
+  const w = (widthCm / 100);
+  const h = (heightCm / 100);
+  const span = Math.max(w, h) * 8;
   return (
-    <mesh position={[0, h / 2 - 0.1, -0.12]} receiveShadow>
-      <planeGeometry args={[Math.max(w, 3), Math.max(h, 2.5)]} />
-      <meshPhysicalMaterial color="#E8E5E0" metalness={0} roughness={0.85} />
+    <mesh position={[0, h / 2, -0.18]} receiveShadow>
+      <planeGeometry args={[Math.max(span, 6), Math.max(span, 6)]} />
+      {/* Light warm-neutral plaster — picks up the amber key light without
+          competing with the amber accents in the frame edge. */}
+      <meshPhysicalMaterial color="#C9C3B8" metalness={0} roughness={0.92} />
     </mesh>
   );
 }
