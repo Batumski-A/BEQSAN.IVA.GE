@@ -23,10 +23,11 @@ import { PricePreview } from './PricePreview';
 
 type Props = {
   onBack: () => void;
-  onGoToStep: (step: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) => void;
+  onGoToStep: (step: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9) => void;
+  onAdvance: () => void;
 };
 
-export function StepAccessories({ onBack, onGoToStep }: Props) {
+export function StepAccessories({ onBack, onGoToStep, onAdvance }: Props) {
   const { t, i18n } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
@@ -182,13 +183,20 @@ export function StepAccessories({ onBack, onGoToStep }: Props) {
           </button>
           <button
             type="button"
-            disabled
-            // Step 8 (review) lands in the next slice. Continue is a
-            // disabled stub for now.
-            className="inline-flex h-12 items-center gap-3 rounded-sm bg-bg-elevated px-6 font-mono text-mono-spec uppercase tracking-wider text-fg-disabled"
+            onClick={onAdvance}
+            disabled={Boolean(layoutErrorText)}
+            className={cn(
+              'group inline-flex h-12 items-center gap-3 rounded-sm px-6 font-mono text-mono-spec uppercase tracking-wider transition-all duration-120 ease-standard',
+              layoutErrorText
+                ? 'cursor-not-allowed bg-bg-elevated text-fg-disabled'
+                : 'bg-accent-amber text-bg-base hover:bg-accent-amber-h active:scale-[0.98]',
+            )}
           >
             <span>{t('common.actions.continue')}</span>
-            <ArrowRight className="h-4 w-4" aria-hidden />
+            <ArrowRight
+              className="h-4 w-4 transition-transform group-enabled:group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </button>
         </div>
       </div>

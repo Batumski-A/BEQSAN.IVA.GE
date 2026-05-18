@@ -18,6 +18,7 @@ const STEPS: StepDef[] = [
   { num: 5, key: 'glass' },
   { num: 6, key: 'color' },
   { num: 7, key: 'accessories' },
+  { num: 8, key: 'review' },
 ];
 
 type StepIndicatorProps = {
