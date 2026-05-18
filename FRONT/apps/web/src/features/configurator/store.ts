@@ -7,11 +7,12 @@ import type {
   ConfigurationPaneInput,
   GlassExtra,
   HingeSide,
+  InstallationOptionInput,
   PaneOpeningType,
   SillSelectionInput,
 } from '@beqsan/api-types';
 
-export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type ConfiguratorStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type DimensionConstraints = {
   minWidthCm: number;
@@ -73,6 +74,8 @@ export type ConfiguratorState = {
   defaultHandleStyleId: string | null;
   /** Default lock id resolved from product-type compat set on first load. */
   defaultLockTypeId: string | null;
+  /** Step 8 — installation choice. Null until the customer picks a region. */
+  installation: InstallationOptionInput | null;
 };
 
 export type ConfiguratorActions = {
@@ -99,6 +102,7 @@ export type ConfiguratorActions = {
   setBlind: (blind: BlindSelectionInput | null) => void;
   resetAccessories: () => void;
   setDefaultHandleAndLock: (handleId: string | null, lockId: string | null) => void;
+  setInstallation: (option: InstallationOptionInput | null) => void;
   goToStep: (n: ConfiguratorStep) => void;
   reset: () => void;
 };
@@ -167,6 +171,7 @@ const INITIAL: ConfiguratorState = {
   accessories: null,
   defaultHandleStyleId: null,
   defaultLockTypeId: null,
+  installation: null,
 };
 
 function midpoint(constraints: DimensionConstraints): ConfiguratorDimensions {
@@ -444,6 +449,8 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           };
         }),
 
+      setInstallation: (installation) => set({ installation }),
+
       goToStep: (step) => set({ step }),
 
       reset: () => set(INITIAL),
@@ -463,8 +470,9 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         accessories: s.accessories,
         defaultHandleStyleId: s.defaultHandleStyleId,
         defaultLockTypeId: s.defaultLockTypeId,
+        installation: s.installation,
       }),
-      version: 6, // bumped — accessory selection added
+      version: 7, // bumped — installation choice added
       migrate: (persisted, fromVersion) => {
         if (fromVersion < 2) {
           return INITIAL;
@@ -516,12 +524,23 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           // v5 → v6: accessory state added. User picks fresh in Step 7;
           // defaults reload via hook.
           const prior = persisted as Omit<ConfiguratorState,
-            'accessories' | 'defaultHandleStyleId' | 'defaultLockTypeId'>;
+            'accessories' | 'defaultHandleStyleId' | 'defaultLockTypeId' | 'installation'>;
           return {
             ...prior,
             accessories: null,
             defaultHandleStyleId: null,
             defaultLockTypeId: null,
+            installation: null,
+          } as ConfiguratorState;
+        }
+        if (fromVersion < 7) {
+          // v6 → v7: installation choice added. Customer picks fresh in
+          // Step 8; the /review endpoint defaults to Batumi server-side
+          // when null.
+          const prior = persisted as Omit<ConfiguratorState, 'installation'>;
+          return {
+            ...prior,
+            installation: null,
           } as ConfiguratorState;
         }
         return persisted as ConfiguratorState;

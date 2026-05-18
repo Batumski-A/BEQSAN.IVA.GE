@@ -5,6 +5,7 @@ import type {
   AccessorySelectionInput,
   ColorSelectionInput,
   ConfigurationPaneInput,
+  InstallationOptionInput,
 } from '@beqsan/api-types';
 import type { components } from '@beqsan/api-types/generated';
 
@@ -15,6 +16,7 @@ export type ColorOption = components['schemas']['ColorOptionDto'];
 export type HandleStyle = components['schemas']['HandleStyleDto'];
 export type LockType = components['schemas']['LockTypeDto'];
 export type BlindType = components['schemas']['BlindTypeDto'];
+export type ReviewResponse = components['schemas']['ReviewResponseDto'];
 
 export type PriceRequest = {
   productTypeId: string;
@@ -32,6 +34,11 @@ export type PriceRequest = {
   // the full selection; door product types must populate
   // accessories.handleStyleId + lockTypeId or the BACK validator 422s.
   accessories?: AccessorySelectionInput;
+  // Optional — when omitted the BACK skips the installation line
+  // (canaries #1-#6 hold). Step 8 sends the picked region; Batumi adds
+  // no surcharge and emits no line, Other emits a manual-quote zero-
+  // amount line, all other zones emit a flat surcharge line.
+  installation?: InstallationOptionInput;
 };
 
 export const configuratorKeys = {
@@ -49,6 +56,7 @@ export const configuratorKeys = {
   blindTypes: (productTypeId: string | null | undefined) =>
     ['catalog', 'blind-types', productTypeId ?? null] as const,
   price: (req: PriceRequest | null) => ['configurator', 'price', req] as const,
+  review: (req: PriceRequest | null) => ['configurator', 'review', req] as const,
 };
 
 async function fetchMaterials(productTypeId: string): Promise<Material[]> {
@@ -150,6 +158,28 @@ export function useBlindTypesByProductType(productTypeId: string | null | undefi
     enabled: Boolean(productTypeId),
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+  });
+}
+
+async function fetchReview(req: PriceRequest): Promise<ReviewResponse> {
+  const response = await api.post<ApiResponse<ReviewResponse>>('/configurator/review', req);
+  return unwrap(response);
+}
+
+export function useConfiguratorReview(req: PriceRequest | null) {
+  return useQuery({
+    queryKey: configuratorKeys.review(req),
+    queryFn: () => fetchReview(req!),
+    enabled: Boolean(req?.productTypeId && req?.materialId),
+    staleTime: 30_000,
+    gcTime: 60_000,
+    retry: (failureCount, error) => {
+      const status = (error as { status?: number })?.status ?? 0;
+      if (status === 400 || status === 404 || status === 422) {
+        return false;
+      }
+      return failureCount < 1;
+    },
   });
 }
 
