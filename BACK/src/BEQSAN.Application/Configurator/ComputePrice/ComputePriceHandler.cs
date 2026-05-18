@@ -208,6 +208,23 @@ internal sealed class ComputePriceHandler(
                 Blind: blind);
         }
 
+        // Translate the installation option — defensive Enum.TryParse.
+        InstallationOption? installation = null;
+        if (request.Installation is not null)
+        {
+            if (!Enum.TryParse<InstallationRegion>(
+                    request.Installation.Region, ignoreCase: false, out var region))
+            {
+                return Result.Failure<PriceBreakdownDto>(
+                    Error.Validation(
+                        "configurator.installation.regionInvalid",
+                        "მონტაჟის რეგიონი არასწორია.",
+                        field: "installation")
+                        .WithMetadata("got", request.Installation.Region));
+            }
+            installation = new InstallationOption(region, request.Installation.CityHint);
+        }
+
         // Cross-field, constraints, layout, math — all in the calculator.
         var breakdownResult = PriceCalculator.Compute(
             productType, material, request.WidthCm, request.HeightCm, panes,
@@ -215,7 +232,8 @@ internal sealed class ComputePriceHandler(
             colorSelection,
             availableColorsById.Count > 0 ? availableColorsById : null,
             accessorySelection,
-            accessoryCatalog);
+            accessoryCatalog,
+            installation);
         if (breakdownResult.IsFailure)
         {
             return Result.Failure<PriceBreakdownDto>(breakdownResult.Errors);

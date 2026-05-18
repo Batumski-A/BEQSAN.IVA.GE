@@ -20,4 +20,5 @@ public sealed record ComputePriceCommand(
     int HeightCm,
     IReadOnlyList<ConfigurationPaneInput>? Panes = null,
     ColorSelectionInput? Color = null,
-    AccessorySelectionInput? Accessories = null) : IRequest<Result<PriceBreakdownDto>>;
+    AccessorySelectionInput? Accessories = null,
+    InstallationOptionInput? Installation = null) : IRequest<Result<PriceBreakdownDto>>;

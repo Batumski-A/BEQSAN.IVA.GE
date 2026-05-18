@@ -1,5 +1,6 @@
 using BEQSAN.Api.Common;
 using BEQSAN.Application.Configurator.ComputePrice;
+using BEQSAN.Application.Configurator.Review;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,6 +26,20 @@ public static class ConfiguratorEndpoints
             .Produces<ApiResponse<object>>(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapPost("review", async (
+                ReviewCommand command, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender.Send(command, ct).ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("ReviewConfiguration")
+            .WithSummary("Rich review response — grouped pricing breakdown + warranty + lead time")
+            .Produces<ApiResponse<ReviewResponseDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status404NotFound)
+            .Produces<ApiResponse<object>>(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return app;
     }
 }
@@ -34,4 +49,5 @@ public static class ConfiguratorEndpoints
 internal sealed class ConfiguratorSchemaAnchor
 {
     public ApiResponse<PriceBreakdownDto>? PriceResponse { get; init; }
+    public ApiResponse<ReviewResponseDto>? ReviewResponse { get; init; }
 }
