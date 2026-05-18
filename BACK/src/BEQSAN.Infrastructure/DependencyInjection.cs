@@ -7,10 +7,12 @@ using BEQSAN.Application.Catalog.GetMaterialsByProductType;
 using BEQSAN.Application.Catalog.GetProductTypes;
 using BEQSAN.Application.Common.Abstractions;
 using BEQSAN.Application.Common.Persistence;
+using BEQSAN.Application.Social.Contracts;
 using BEQSAN.Infrastructure.Caching;
 using BEQSAN.Infrastructure.Catalog;
 using BEQSAN.Infrastructure.Persistence;
 using BEQSAN.Infrastructure.Persistence.Seed;
+using BEQSAN.Infrastructure.Social;
 using BEQSAN.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -60,7 +62,34 @@ public static class DependencyInjection
         services.AddScoped<ILockTypeReader, LockTypeDapperReader>();
         services.AddScoped<IBlindTypeReader, BlindTypeDapperReader>();
 
+        AddSocial(services, configuration);
+
         return services;
+    }
+
+    private static void AddSocial(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<SocialOptions>(configuration.GetSection(SocialOptions.SectionName));
+
+        services.AddSingleton<ITokenCipher, AesGcmTokenCipher>();
+
+        services.AddScoped<ISocialAccountRepository, SocialAccountRepository>();
+        services.AddScoped<ISocialPageRepository, SocialPageRepository>();
+        services.AddScoped<ISocialPostRepository, SocialPostRepository>();
+        services.AddScoped<IInboxRepository, InboxRepository>();
+
+        services.AddHttpClient<IMetaOAuthClient, MetaOAuthClient>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddHttpClient<IMetaGraphClient, MetaGraphClient>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddHttpClient<IAiAssistService, KieAiAssistService>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(30);
+        });
     }
 
     /// <summary>

@@ -51,6 +51,20 @@ The Step 9 informational pages (/about, /process, /materials, /warranty, /contac
 
 - 2026-05-17 (Claude → Roman/Lasha): JWT decided. Question is **who issues the credentials** for Phase 1.
 - **Default (decided):** self-contained `Users` table with bcrypt-hashed passwords, seeded with two admins (Lasha + Roman) on first migration. SSO evaluated in Phase 2 if IVA has one.
+- 2026-05-18 (Claude → Lasha): the **Social module** (ADR-0003) ships with a `X-Admin-Token` header gate as a Phase-0 interim — needed because the proper JWT flow isn't designed yet. Replace before exposing `admin.beqsan.iva.ge` outside the IVA network.
+
+### 14. Meta App credentials + App Review
+
+- 2026-05-18 (Claude → Roman/Lasha): the Social module needs a registered Meta App on `developers.facebook.com` with `beqsan.iva.ge` as the domain. App Review for `pages_manage_posts`, `pages_messaging`, `instagram_content_publish`, `instagram_manage_messages` is a 1-3 week process and is the **blocker** for everything in ADR-0003 Phase 1.
+- Who owns the Meta App identity — BEQSAN LTD (Roman's BIN) or IVA? Probably BEQSAN since the page belongs to BEQSAN; tokens issued under Roman's Business Manager.
+
+### 15. KIE.ai billing account for AI assist
+
+- 2026-05-18 (Claude → Lasha): KIE.ai chat completions endpoint configured at `https://api.kie.ai/v1/chat/completions`, routing to `claude-sonnet-4-6` per ADR-0003. Need a KIE API key (`Social:Ai:ApiKey`). Use the existing IVA-org account, or stand up a BEQSAN-specific one for clean billing?
+
+### 16. Social module: AES-GCM key custody
+
+- 2026-05-18 (Claude → Lasha): `Social:Encryption:Key` (base64 32-byte AES-256) protects all Meta tokens at rest. In dev it'll live in `dotnet user-secrets`; in prod, where? Azure Key Vault, BATUMSKI env var, a file on the host? Lasha to pick before Phase 1 ships outside dev.
 
 ---
 

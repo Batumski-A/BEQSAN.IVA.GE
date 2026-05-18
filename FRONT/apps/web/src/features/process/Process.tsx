@@ -16,8 +16,12 @@ import {
   InstallationIllustration,
 } from '@/shared/illustrations/WorkshopIllustrations';
 
+// Initial opacity sits at 0.55 (not 0) so if IntersectionObserver fails to
+// fire — slow JS on mid-tier mobile, screen-reader fast-scroll, Playwright's
+// beyond-viewport capture — the section remains legible instead of going
+// completely blank. The 0.55→1 settle still reads as a soft entrance.
 const enter = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0.55, y: 8 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: '-80px' },
   transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },

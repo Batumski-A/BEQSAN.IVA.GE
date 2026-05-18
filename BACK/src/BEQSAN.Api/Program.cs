@@ -47,7 +47,7 @@ builder.Services.AddCors(options =>
                 "http://localhost:5174",   // Vite alt (when 5173 is taken)
                 "http://localhost:4173")   // Vite preview (pnpm preview)
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id")
+            .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id", "X-Admin-Token")
             .WithExposedHeaders("X-Correlation-Id")
             .AllowCredentials());
     }
@@ -66,7 +66,7 @@ builder.Services.AddCors(options =>
             policy
                 .WithOrigins(allowedOrigins)
                 .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id")
+                .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id", "X-Admin-Token")
                 .WithExposedHeaders("X-Correlation-Id")
                 .AllowCredentials();
         }
@@ -79,6 +79,7 @@ app.UseExceptionHandler();
 app.UseCorrelationId();
 app.UseSerilogRequestLogging();
 app.UseCors(app.Environment.IsDevelopment() ? ViteDevCorsPolicy : ProductionCorsPolicy);
+app.UseMiddleware<AdminTokenAuthMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -94,6 +95,8 @@ if (app.Environment.IsDevelopment())
 app.MapHealthEndpoints();
 app.MapCatalogEndpoints();
 app.MapConfiguratorEndpoints();
+app.MapSocialEndpoints();
+app.MapMetaWebhookEndpoints();
 
 app.MapGet("/", () => Results.Redirect(app.Environment.IsDevelopment() ? "/scalar/v1" : "/api/v1/health"))
     .ExcludeFromDescription();

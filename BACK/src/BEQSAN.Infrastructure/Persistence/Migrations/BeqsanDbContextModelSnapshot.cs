@@ -17,6 +17,370 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
 
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.BlindType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BaseMountingMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("base_mounting_minor");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Placement")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("placement");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<bool>("SupportsElectric")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("supports_electric");
+
+                    b.Property<int>("SurchargePerSqmMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("surcharge_per_sqm_minor");
+
+                    b.HasKey("Id")
+                        .HasName("pk_blind_types");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_blind_types_slug");
+
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("ix_blind_types_is_active_sort_order");
+
+                    b.ToTable("blind_types", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.ColorOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<int>("Family")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("family");
+
+                    b.Property<string>("HexCode")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("hex_code");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("RalCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ral_code");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("SurchargeMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("surcharge_minor");
+
+                    b.Property<string>("WoodTextureUrl")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("wood_texture_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_color_options");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_color_options_slug");
+
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("ix_color_options_is_active_sort_order");
+
+                    b.ToTable("color_options", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.GlassType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int>("PaneCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pane_count");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("SurchargePerSqmMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("surcharge_per_sqm_minor");
+
+                    b.Property<decimal>("UValue")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("u_value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_glass_types");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_glass_types_slug");
+
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("ix_glass_types_is_active_sort_order");
+
+                    b.ToTable("glass_types", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.HandleStyle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("Family")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("family");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("SurchargePerPaneMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("surcharge_per_pane_minor");
+
+                    b.HasKey("Id")
+                        .HasName("pk_handle_styles");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_handle_styles_slug");
+
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("ix_handle_styles_is_active_sort_order");
+
+                    b.ToTable("handle_styles", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Catalog.LockType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("currency");
+
+                    b.Property<int>("Grade")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("grade");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("RequiresCasementOrTurn")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("requires_casement_or_turn");
+
+                    b.Property<int>("SecurityRating")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("security_rating");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("short_description");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("SurchargePerPaneMinor")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("surcharge_per_pane_minor");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lock_types");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lock_types_slug");
+
+                    b.HasIndex("IsActive", "SortOrder")
+                        .HasDatabaseName("ix_lock_types_is_active_sort_order");
+
+                    b.ToTable("lock_types", (string)null);
+                });
+
             modelBuilder.Entity("BEQSAN.Domain.Catalog.Material", b =>
                 {
                     b.Property<Guid>("Id")
@@ -106,6 +470,18 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_active");
 
+                    b.Property<int>("LeadTimeDaysMax")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(14)
+                        .HasColumnName("lead_time_days_max");
+
+                    b.Property<int>("LeadTimeDaysMin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(10)
+                        .HasColumnName("lead_time_days_min");
+
                     b.Property<int>("MaxHeightCm")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -150,6 +526,12 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("sort_order");
 
+                    b.Property<int>("WarrantyMonths")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(36)
+                        .HasColumnName("warranty_months");
+
                     b.HasKey("Id")
                         .HasName("pk_product_types");
 
@@ -163,6 +545,313 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                     b.ToTable("product_types", (string)null);
                 });
 
+            modelBuilder.Entity("BEQSAN.Domain.Social.InboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("at_utc");
+
+                    b.Property<string>("AttachmentUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("attachment_url");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("author_name");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("direction");
+
+                    b.Property<string>("ExternalMessageId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("external_message_id");
+
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("page_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text");
+
+                    b.Property<Guid>("ThreadId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("thread_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inbox_messages");
+
+                    b.HasIndex("ExternalMessageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inbox_messages_external_message_id");
+
+                    b.HasIndex("ThreadId", "AtUtc")
+                        .HasDatabaseName("ix_inbox_messages_thread_id_at_utc");
+
+                    b.ToTable("inbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.InboxThread", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ExternalThreadId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("external_thread_id");
+
+                    b.Property<bool>("HasUnread")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("has_unread");
+
+                    b.Property<DateTime>("LastMessageAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_message_at_utc");
+
+                    b.Property<string>("LastMessagePreview")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_message_preview");
+
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("page_id");
+
+                    b.Property<string>("ParticipantId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("participant_id");
+
+                    b.Property<string>("ParticipantName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("participant_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_inbox_threads");
+
+                    b.HasIndex("PageId", "ExternalThreadId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inbox_threads_page_id_external_thread_id");
+
+                    b.HasIndex("PageId", "LastMessageAtUtc")
+                        .HasDatabaseName("ix_inbox_threads_page_id_last_message_at_utc");
+
+                    b.ToTable("inbox_threads", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.SocialAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ConnectedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("connected_at_utc");
+
+                    b.Property<DateTime?>("DisconnectedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("disconnected_at_utc");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("display_name");
+
+                    b.Property<DateTime>("LastRefreshedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_refreshed_at_utc");
+
+                    b.Property<string>("MetaUserId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("meta_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_accounts");
+
+                    b.HasIndex("MetaUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_social_accounts_meta_user_id");
+
+                    b.ToTable("social_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.SocialPage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTime>("ConnectedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("connected_at_utc");
+
+                    b.Property<string>("IgUserId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ig_user_id");
+
+                    b.Property<string>("IgUsername")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ig_username");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("LastSyncedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_synced_at_utc");
+
+                    b.Property<string>("MetaPageId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("meta_page_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_pages");
+
+                    b.HasIndex("AccountId")
+                        .HasDatabaseName("ix_social_pages_account_id");
+
+                    b.HasIndex("MetaPageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_social_pages_meta_page_id");
+
+                    b.ToTable("social_pages", (string)null);
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.SocialPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Caption")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("caption");
+
+                    b.Property<Guid>("ComposerId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("composer_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ExternalPermalink")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("external_permalink");
+
+                    b.Property<string>("ExternalPostId")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("external_post_id");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<string>("ImageUrls")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("image_urls");
+
+                    b.Property<Guid>("PageId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("page_id");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("platform");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("published_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_posts");
+
+                    b.HasIndex("ComposerId")
+                        .HasDatabaseName("ix_social_posts_composer_id");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("ix_social_posts_created_at_utc");
+
+                    b.HasIndex("PageId")
+                        .HasDatabaseName("ix_social_posts_page_id");
+
+                    b.ToTable("social_posts", (string)null);
+                });
+
             modelBuilder.Entity("BEQSAN.Domain.Catalog.Material", b =>
                 {
                     b.HasOne("BEQSAN.Domain.Catalog.ProductType", null)
@@ -171,6 +860,76 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_materials_product_types_product_type_id");
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.SocialAccount", b =>
+                {
+                    b.OwnsOne("BEQSAN.Domain.Social.EncryptedToken", "UserToken", b1 =>
+                        {
+                            b1.Property<Guid>("SocialAccountId")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("id");
+
+                            b1.Property<byte[]>("Cipher")
+                                .IsRequired()
+                                .HasColumnType("BLOB")
+                                .HasColumnName("user_token_cipher");
+
+                            b1.Property<DateTime>("ExpiresAtUtc")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("user_token_expires_at_utc");
+
+                            b1.Property<byte[]>("Iv")
+                                .IsRequired()
+                                .HasColumnType("BLOB")
+                                .HasColumnName("user_token_iv");
+
+                            b1.HasKey("SocialAccountId");
+
+                            b1.ToTable("social_accounts");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SocialAccountId")
+                                .HasConstraintName("fk_social_accounts_social_accounts_id");
+                        });
+
+                    b.Navigation("UserToken")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BEQSAN.Domain.Social.SocialPage", b =>
+                {
+                    b.OwnsOne("BEQSAN.Domain.Social.EncryptedToken", "PageToken", b1 =>
+                        {
+                            b1.Property<Guid>("SocialPageId")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("id");
+
+                            b1.Property<byte[]>("Cipher")
+                                .IsRequired()
+                                .HasColumnType("BLOB")
+                                .HasColumnName("page_token_cipher");
+
+                            b1.Property<DateTime>("ExpiresAtUtc")
+                                .HasColumnType("TEXT")
+                                .HasColumnName("page_token_expires_at_utc");
+
+                            b1.Property<byte[]>("Iv")
+                                .IsRequired()
+                                .HasColumnType("BLOB")
+                                .HasColumnName("page_token_iv");
+
+                            b1.HasKey("SocialPageId");
+
+                            b1.ToTable("social_pages");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SocialPageId")
+                                .HasConstraintName("fk_social_pages_social_pages_id");
+                        });
+
+                    b.Navigation("PageToken")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
