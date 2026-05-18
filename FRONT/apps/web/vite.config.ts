@@ -22,13 +22,16 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          // Vector icon works for both regular + maskable purposes on all
+          // current Chromium / Safari versions. Once a high-fidelity PNG
+          // set arrives in Phase 1.5 we'll re-add 192/512 raster variants;
+          // referencing missing PNGs here causes manifest install to fail
+          // and Lighthouse to ding PWA score.
           {
-            src: '/icons/icon-512-maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
+            src: '/favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
           },
         ],
       },

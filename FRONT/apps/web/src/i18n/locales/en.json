@@ -759,6 +759,11 @@
         "tiltAndTurnRight": "Turn + tilt →",
         "tilt": "↥ Top-tilt",
         "sliding": "↔ Slides"
+      },
+      "placeholder": {
+        "title": "Live model of your window",
+        "bodyStep1": "Pick a product — window, door or more — and the live 3D view appears here. You can spin, zoom and inspect it at any step from this point on.",
+        "bodyStep2": "Once you pick a material, the live window preview loads here. Step 3 nails the exact dimensions next."
       }
     },
     "stub": {

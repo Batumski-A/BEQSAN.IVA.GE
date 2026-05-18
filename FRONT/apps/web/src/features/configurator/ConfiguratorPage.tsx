@@ -137,14 +137,62 @@ export default function ConfiguratorPage() {
 
           <div className="md:col-span-4">
             <div className="sticky top-24">
-              <Suspense fallback={<SceneFallback label={t('configurator.scene.loading')} />}>
-                <ConfiguratorScene />
-              </Suspense>
+              {activeStep >= 3 ? (
+                <Suspense fallback={<SceneFallback label={t('configurator.scene.loading')} />}>
+                  <ConfiguratorScene />
+                </Suspense>
+              ) : (
+                <ScenePlaceholder
+                  step={activeStep}
+                  title={t('configurator.scene.placeholder.title')}
+                  body={t(
+                    activeStep === 1
+                      ? 'configurator.scene.placeholder.bodyStep1'
+                      : 'configurator.scene.placeholder.bodyStep2',
+                  )}
+                />
+              )}
             </div>
           </div>
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Right-column placeholder shown on Steps 1-2 — before the user has picked
+ * a product type + material, the 3D scene has nothing to draw and was
+ * rendering as an empty frame floating in the dark. Editorial copy with
+ * the same aspect-square footprint as the Canvas keeps the layout stable
+ * when the scene swaps in on Step 3.
+ */
+function ScenePlaceholder({
+  step,
+  title,
+  body,
+}: {
+  step: ConfiguratorStep;
+  title: string;
+  body: string;
+}) {
+  const padded = step.toString().padStart(2, '0');
+  return (
+    <div className="relative flex aspect-square flex-col justify-end overflow-hidden rounded-sm border border-hairline bg-bg-elevated p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_60%_30%,rgba(245,179,66,0.10),transparent_55%)]"
+      />
+      <div className="relative z-10 font-mono text-mono-spec uppercase tracking-wider text-accent-amber">
+        № {padded} · ხედი
+      </div>
+      <div className="relative z-10 mt-3 font-headline text-h3 text-balance text-fg-primary">
+        {title}
+      </div>
+      <p className="relative z-10 mt-3 max-w-xs text-body-sm text-pretty text-fg-secondary">
+        {body}
+      </p>
+    </div>
   );
 }
 
