@@ -20,6 +20,21 @@ public sealed class ProductType
     public int MaxHeightCm { get; init; }
 
     /// <summary>
+    /// Frame warranty in months — surfaced at Step 8 and on the post-order
+    /// confirmation. Roman-locked per product family (window 36, door 60,
+    /// sliding 36, panoramic 36, balcony 24). Phase 1 admin tooling will
+    /// move this to a per-row editable value.
+    /// </summary>
+    public int WarrantyMonths { get; init; }
+
+    /// <summary>Base production lead time (low end). Modified by the configuration via
+    /// <see cref="Configurator.LeadTimeEstimator"/>.</summary>
+    public int LeadTimeDaysMin { get; init; }
+
+    /// <summary>Base production lead time (high end).</summary>
+    public int LeadTimeDaysMax { get; init; }
+
+    /// <summary>
     /// Resolves the dimension constraints from the entity's own columns.
     /// Falls back to the slug-keyed defaults when columns are zeroed (e.g.
     /// rows that pre-dated the AddDimensionConstraints migration and somehow

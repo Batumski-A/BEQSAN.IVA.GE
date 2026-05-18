@@ -87,7 +87,8 @@ public static class PriceCalculator
         ColorSelection? colorSelection = null,
         IReadOnlyDictionary<Guid, ColorOption>? availableColorOptions = null,
         AccessorySelection? accessories = null,
-        AccessoryCatalog? accessoryCatalog = null)
+        AccessoryCatalog? accessoryCatalog = null,
+        InstallationOption? installation = null)
     {
         if (productType is null)
         {
@@ -431,9 +432,35 @@ public static class PriceCalculator
             }
         }
 
+        // Step-8 installation line. Batumi → no line at all (free). Other
+        // → zero-amount line with metadata so the FRONT renders the
+        // manual-quote affordance. Everything else → flat zone surcharge.
+        var installationMinor = 0L;
+        if (installation is not null)
+        {
+            var zoneMinor = (long)InstallationPricing.SurchargeMinor(installation.Region);
+            if (zoneMinor > 0)
+            {
+                installationMinor = zoneMinor;
+                var regionToken = installation.Region.ToString().ToLowerInvariant();
+                lines.Add(new PriceLine(
+                    Code: $"installation.{regionToken}",
+                    Label: string.Create(CultureInfo.InvariantCulture, $"მონტაჟი · {RegionLabelKa(installation.Region)}"),
+                    AmountMinor: installationMinor));
+            }
+            else if (InstallationPricing.RequiresManualQuote(installation.Region))
+            {
+                lines.Add(new PriceLine(
+                    Code: "installation.manual-quote",
+                    Label: "მონტაჟი · ცალკე გავთვლით",
+                    AmountMinor: 0L));
+            }
+            // Batumi → no line, no surcharge.
+        }
+
         var subtotalMinor = materialMinor + surchargeTotalMinor + glassTotalMinor
             + extrasTotalMinor + mosquitoMinor + colorOuterMinor + colorInnerMinor
-            + accessoryTotalMinor;
+            + accessoryTotalMinor + installationMinor;
         var vatMinor = (long)decimal.Round(
             subtotalMinor * VatRate,
             0,
@@ -523,6 +550,18 @@ public static class PriceCalculator
         SillPosition.Inner => "შიდა",
         SillPosition.Outer => "გარეთა",
         SillPosition.Both => "ორივე",
+        _ => "?",
+    };
+
+    private static string RegionLabelKa(InstallationRegion region) => region switch
+    {
+        InstallationRegion.Batumi => "ბათუმი",
+        InstallationRegion.KobuletiCoast => "ქობულეთი / ხელვაჩაური",
+        InstallationRegion.Guria => "გურია",
+        InstallationRegion.Imereti => "იმერეთი",
+        InstallationRegion.Samegrelo => "სამეგრელო",
+        InstallationRegion.EastGeorgia => "აღმოსავლეთი",
+        InstallationRegion.Other => "სხვა რეგიონი",
         _ => "?",
     };
 }
