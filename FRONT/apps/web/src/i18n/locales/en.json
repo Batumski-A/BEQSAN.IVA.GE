@@ -250,6 +250,79 @@
     "ctaBody": "Step 2 of the configurator shows aluminium vs PVC with thermal coefficients and per-m² price.",
     "ctaButton": "Open the configurator"
   },
+  "warranty": {
+    "metaTitle": "Warranty",
+    "metaDescription": "BEQSAN warranty — what's covered, what isn't, how we respond to problems. Aluminium 10 years, PVC 5, hardware 2.",
+    "eyebrow": "Warranty and service",
+    "heading": "A good window is a long promise. Here's what we hold ourselves to.",
+    "lead": "A warranty sheet shouldn't be a legal trick. We write it plainly — what's covered, what isn't, what timelines we work to. You can download the full PDF tailored to your window after the order.",
+    "coversTitle": "What the warranty covers",
+    "coversTable": {
+      "elementHeader": "Element",
+      "durationHeader": "Term",
+      "rows": {
+        "alum": {
+          "element": "Aluminium profile",
+          "duration": "10 years",
+          "note": "Colour fastness, corrosion, structural integrity"
+        },
+        "pvc": {
+          "element": "PVC profile",
+          "duration": "5 years",
+          "note": "Colour (UV-stable), structural integrity"
+        },
+        "glass": {
+          "element": "IGU (glass unit)",
+          "duration": "5 years",
+          "note": "Condensation, argon leak, seal failure"
+        },
+        "fittings": {
+          "element": "Hardware",
+          "duration": "2 years",
+          "note": "Handle, lock, hinge mechanism"
+        },
+        "install": {
+          "element": "Installation",
+          "duration": "2 years",
+          "note": "Thermal silicone seal, weather-tightness"
+        }
+      }
+    },
+    "notCoveredTitle": "What isn't covered",
+    "notCovered": [
+      "Mechanical damage (impact, accidental strike)",
+      "Improper cleaning (abrasives damage the finish)",
+      "DIY adjustment or work by a non-BEQSAN crew",
+      "Natural disasters (100+ km/h storm, flood)"
+    ],
+    "processTitle": "If something happens — three steps",
+    "processSteps": {
+      "1": {
+        "title": "Tell us",
+        "body": "Call or WhatsApp. Share the order number if you have it — we'll find it in the spec if not."
+      },
+      "2": {
+        "title": "We come to check",
+        "body": "A craftsman is on site within 48 hours in Batumi, 5 days regionally. A photo report is prepared."
+      },
+      "3": {
+        "title": "We fix it",
+        "body": "If it's within warranty — free. If not — we tell you the price up front, then proceed."
+      }
+    },
+    "climateTitle": "Batumi climate — a specific requirement",
+    "climateBody": "Black Sea humidity, 1,200+ mm of annual rainfall, salt breeze — these are a window's enemies. So we use weathered hardware versions and UV-stable, salt-resistant thermal silicone. This isn't an opt-in — it's our standard.",
+    "careTitle": "A short care guide",
+    "careTips": [
+      "Frame — clean with mild soap water and a soft cloth. Never abrasives or acetone.",
+      "Hardware — once a year, one drop of machine oil into the cylindrical hinge.",
+      "Glass — regular glass cleaner. The Low-E coating is on the inside — outside cleaning doesn't affect it.",
+      "Thermal silicone seal — visual check every 5–7 years. If it's deteriorating, call us."
+    ],
+    "ctaTitle": "Questions about your window?",
+    "ctaBody": "At the Batumi workshop or by phone — we're available every business day.",
+    "ctaButton": "Contact"
+  },
   "footer": {
     "company": "BEQSAN LTD",
     "tagline": "Hand-built windows and doors. Batumi, since 1998.",
