@@ -38,7 +38,14 @@
     "gallery": "გალერეა",
     "warranty": "გარანტია",
     "about": "ჩვენს შესახებ",
-    "contact": "კონტაქტი"
+    "process": "როგორ ვაკეთებთ",
+    "materials": "მასალები",
+    "contact": "კონტაქტი",
+    "studioGroup": "სახელოსნო",
+    "studioGroupAria": "BEQSAN სახელოსნოს გვერდები",
+    "openMenu": "მენიუს გახსნა",
+    "closeMenu": "მენიუს დახურვა",
+    "skipToContent": "გადახტი მთავარ შინაარსზე"
   },
   "home": {
     "heroTitle": "ხელით აწყობილი ფანჯრები ბათუმის ფაბრიკაში.",
@@ -72,9 +79,17 @@
     "phone": "ტელეფონი",
     "phoneValue": "+995 5XX XX XX XX",
     "email": "ელფოსტა",
+    "emailValue": "hello@beqsan.ge",
     "hours": "სამუშაო საათები",
     "hoursValue": "ორშ–პარ · 09:00–19:00",
-    "rights": "ყველა უფლება დაცულია"
+    "hoursSat": "შაბ · 10:00–15:00 (ზარით)",
+    "rights": "ყველა უფლება დაცულია",
+    "explore": "სად დაიწყო",
+    "studio": "სახელოსნო",
+    "reach": "კავშირი",
+    "languageLabel": "ენა",
+    "credit": "შენებულია IVA-ში · lasha sharashidze",
+    "iso": "ISO 8601 · UTC დროით"
   },
   "configurator": {
     "metaTitle": "კონფიგურატორი",

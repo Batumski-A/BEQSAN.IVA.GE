@@ -38,13 +38,40 @@
     "gallery": "Gallery",
     "warranty": "Warranty",
     "about": "About",
-    "contact": "Contact"
+    "process": "How we build",
+    "materials": "Materials",
+    "contact": "Contact",
+    "studioGroup": "Studio",
+    "studioGroupAria": "BEQSAN studio pages",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "skipToContent": "Skip to main content"
   },
   "home": {
     "heroTitle": "Windows handmade in a Batumi workshop.",
     "heroSub": "Aluminium and PVC. Roman Sharashidze's workshop in Salibauri — since 1998.",
     "heroCta": "Configure yours",
     "heroCtaSub": "1 minute · no phone call needed"
+  },
+  "footer": {
+    "company": "BEQSAN LTD",
+    "tagline": "Hand-built windows and doors. Batumi, since 1998.",
+    "address": "Salibauri, Batumi",
+    "addressCoords": "41.6168° N · 41.6367° E",
+    "phone": "Phone",
+    "phoneValue": "+995 5XX XX XX XX",
+    "email": "Email",
+    "emailValue": "hello@beqsan.ge",
+    "hours": "Working hours",
+    "hoursValue": "Mon–Fri · 09:00–19:00",
+    "hoursSat": "Sat · 10:00–15:00 (by appointment)",
+    "rights": "All rights reserved",
+    "explore": "Start here",
+    "studio": "Studio",
+    "reach": "Reach us",
+    "languageLabel": "Language",
+    "credit": "Built at IVA · lasha sharashidze",
+    "iso": "ISO 8601 · UTC times"
   },
   "configurator": {
     "metaTitle": "Configurator",

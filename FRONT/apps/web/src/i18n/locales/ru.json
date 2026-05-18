@@ -38,13 +38,40 @@
     "gallery": "Галерея",
     "warranty": "Гарантия",
     "about": "О нас",
-    "contact": "Контакты"
+    "process": "Как мы делаем",
+    "materials": "Материалы",
+    "contact": "Контакты",
+    "studioGroup": "Мастерская",
+    "studioGroupAria": "Страницы мастерской BEQSAN",
+    "openMenu": "Открыть меню",
+    "closeMenu": "Закрыть меню",
+    "skipToContent": "Перейти к основному содержимому"
   },
   "home": {
     "heroTitle": "Окна ручной работы из батумской мастерской.",
     "heroSub": "Алюминий и ПВХ. Мастерская Романа Шарашидзе в Салибаури — с 1998 года.",
     "heroCta": "Создать своё",
     "heroCtaSub": "1 минута · без звонка оператору"
+  },
+  "footer": {
+    "company": "BEQSAN LTD",
+    "tagline": "Окна и двери ручной работы. Батуми, с 1998 года.",
+    "address": "Салибаури, Батуми",
+    "addressCoords": "41,6168° N · 41,6367° E",
+    "phone": "Телефон",
+    "phoneValue": "+995 5XX XX XX XX",
+    "email": "Эл. почта",
+    "emailValue": "hello@beqsan.ge",
+    "hours": "Часы работы",
+    "hoursValue": "Пн–Пт · 09:00–19:00",
+    "hoursSat": "Сб · 10:00–15:00 (по записи)",
+    "rights": "Все права защищены",
+    "explore": "Начать здесь",
+    "studio": "Мастерская",
+    "reach": "Связаться",
+    "languageLabel": "Язык",
+    "credit": "Сделано в IVA · Лаша Шарашидзе",
+    "iso": "ISO 8601 · время UTC"
   },
   "configurator": {
     "metaTitle": "Конфигуратор",
