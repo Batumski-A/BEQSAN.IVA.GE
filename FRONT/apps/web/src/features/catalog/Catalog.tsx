@@ -5,6 +5,7 @@ import { ArrowRight, RefreshCw } from 'lucide-react';
 
 import { useProductTypes, type ProductType } from './api';
 import { resolveLocalized } from './localized';
+import { ProductIllustrationFor } from '@/shared/illustrations/ProductIllustrations';
 
 export default function Catalog() {
   const { t, i18n } = useTranslation();
@@ -91,6 +92,14 @@ function ProductCard({
               "repeating-linear-gradient(45deg, transparent, transparent 12px, rgba(255,255,255,0.4) 12px, rgba(255,255,255,0.4) 13px)",
           }}
         />
+        {/* Per-product hairline schematic — Phase 1 stand-in for Roman's
+            real workshop photography. Inherits text-fg-tertiary for the
+            base stroke so it reads softly against the tinted background. */}
+        <div className="absolute inset-0 flex items-center justify-center p-4 text-fg-secondary transition-colors duration-240 group-hover:text-fg-primary">
+          {ProductIllustrationFor(product.slug, {
+            className: 'h-full w-full max-w-[80%]',
+          })}
+        </div>
         <span className="absolute bottom-3 left-4 font-mono text-caption uppercase tracking-wider text-fg-primary/80">
           {product.slug?.toUpperCase()}
         </span>
