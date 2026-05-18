@@ -90,6 +90,75 @@
     "ctaBody": "The gallery shows Batumi-centre hotels, Kobuleti cottages, Kutaisi apartment complexes.",
     "ctaButton": "See the gallery"
   },
+  "process": {
+    "metaTitle": "How we build",
+    "metaDescription": "A window's journey from order to installation — seven stages in BEQSAN's Salibauri workshop. Hand-assembled, one team end to end.",
+    "eyebrow": "The window's journey",
+    "heading": "Seven stages. One team. One person who answers.",
+    "lead": "Window production doesn't happen in a day. It's measured, drawn, cut, assembled, installed — and at every stage you know who's responsible. Here's the real flow, not a marketing slideshow.",
+    "stagesLabel": "Stages",
+    "stages": {
+      "1": {
+        "title": "Site visit and measurement",
+        "body1": "A craftsman comes to you within 24–48 hours. The opening is checked with a laser measure. We look at wall deflection, water-drain angles, opening flatness — all of it matters at install.",
+        "body2": "After measurement, a photo report is prepared. You receive a PDF spec — width, height, depth — in the same format the configurator uses.",
+        "specLabel": "Accuracy",
+        "specValue": "0.5",
+        "specUnit": "mm"
+      },
+      "2": {
+        "title": "Design and drafting",
+        "body1": "Your configurator choices + the craftsman's measurements go into CAD. We verify the thermal break, hardware compatibility, opening correction — before any production starts.",
+        "body2": "Usually 1–2 days. Complex projects (4m+ panoramic, bay windows) take 3–4 days.",
+        "specLabel": "Verification",
+        "specValue": "CAD",
+        "specUnit": "+ by hand"
+      },
+      "3": {
+        "title": "Profile delivery",
+        "body1": "Aluminium ships from Alumil's Tbilisi warehouse. PVC from the Rehau branch. Lead time — 5–8 business days from order confirmation.",
+        "body2": "Delivered profile is indexed separately for your site. It doesn't get mixed with anyone else's order.",
+        "specLabel": "Lead time",
+        "specValue": "5–8",
+        "specUnit": "days"
+      },
+      "4": {
+        "title": "Cutting and machining",
+        "body1": "Numerically controlled cuts at 45° or 90°, then hand-finishing. Water-drain channels are routed; hardware holes drilled by hand from a template.",
+        "body2": "Every piece is marked with your order number — hardware holes never get mixed across windows.",
+        "specLabel": "Saw tolerance",
+        "specValue": "± 0.1",
+        "specUnit": "mm"
+      },
+      "5": {
+        "title": "Window assembly",
+        "body1": "Frame is bolted together; corners are heat-welded. Hardware follows — handle, latch, lock, thermal silicone seal around the perimeter.",
+        "body2": "One craftsman works on one window at a time — not a conveyor. It's slower, but there's no alternative to hardware precision.",
+        "specLabel": "Throughput",
+        "specValue": "1",
+        "specUnit": "/craftsman"
+      },
+      "6": {
+        "title": "Glazing and QA",
+        "body1": "Low-E or triplex glass arrives from the Gori facility as a pre-assembled IGU. It's set into the frame; seal tightness is verified.",
+        "body2": "Every assembled window goes through QA: warp test, lock test, thermal-seal visual inspection. Sign-off on the inspection sheet by the craftsman.",
+        "specLabel": "QA pass",
+        "specValue": "100",
+        "specUnit": "%"
+      },
+      "7": {
+        "title": "Installation at your site",
+        "body1": "Our installer — never an outside crew. Arrives in the workshop van. Old window removed, new one fitted, thermal silicone perimeter, water-drain check.",
+        "body2": "Installation in Batumi is free. Kobuleti/Ozurgeti/Kutaisi — only the delivery cost the configurator computes from your address.",
+        "specLabel": "Batumi",
+        "specValue": "Free",
+        "specUnit": "install"
+      }
+    },
+    "ctaTitle": "The configurator shows you a price in one minute",
+    "ctaBody": "Stage one of the window's journey is your choice. The rest is on us.",
+    "ctaButton": "Configure yours"
+  },
   "footer": {
     "company": "BEQSAN LTD",
     "tagline": "Hand-built windows and doors. Batumi, since 1998.",
