@@ -124,6 +124,7 @@ Multiple errors are common from validation (one per failed field). Other failure
 | `configurator.accessory.blindNotCompatibleProduct` | `productTypeSlug` (string), `blindSlug` (string) |
 | `configurator.accessory.blindControlNotSupported` | `blindSlug` (string), `requestedControl` (string) |
 | `configurator.accessory.blindControlInvalid` | `got` (string) |
+| `configurator.installation.regionInvalid` | `got` (string) |
 
 ### Pattern: metadata as contract carrier
 

@@ -485,6 +485,85 @@ Accessory surcharge table (Roman-locked Phase 1):
 Roman to validate per-supplier costs against actual procurement
 before public launch.
 
+### 2026-05-20 — Installation + delivery terms (Step 8 slice)
+
+`PriceCalculator.Compute` signature extends one final time (for the
+Phase-1 configurator) to accept an optional `InstallationOption?`
+parameter. Reasons:
+
+1. Step 8 surfaces a "where do we install?" decision — zone-based,
+   not km-based (per-km dynamic pricing is Phase-2 work if real
+   demand justifies it). The customer picks one of seven regions.
+2. **Pricing is flat per zone** (Roman-locked Phase-1 rates):
+     Batumi               0 ₾ (free within ~30 km — no line at all)
+     KobuletiCoast      100 ₾
+     Guria              150 ₾
+     Imereti            220 ₾
+     Samegrelo          280 ₾
+     EastGeorgia        400 ₾
+     Other                0 ₾ (manual quote — Roman calls within 1h)
+3. **"Other" region emits a zero-amount line**
+   (`installation.manual-quote`) with no surcharge so the FRONT
+   can render the "we'll call you" affordance without a separate
+   `isManualQuote` boolean on the wire — the line code itself is
+   the signal. The grouped /review response surfaces an explicit
+   `installationIsManualQuote` flag for UX convenience.
+4. Two new <em>delivery-terms</em> outputs flow through a separate
+   `/v1/configurator/review` endpoint that wraps `/price` via
+   MediatR:
+   - **LeadTimeEstimator** — pane-count scaling (1→0, 2→+1, 3→+3,
+     4+→+5), blind adds +2/+3, smart-lock adds +3/+5, regional
+     install days (Batumi 1 / coastal 2 / mid 3 / east 4 / Other 2).
+   - **WarrantyEstimator** — base months from `ProductType.WarrantyMonths`
+     (window 36, door 60, sliding 36, panoramic 36, balcony 24) with
+     an optional `smart-lock.vendor.24mo` note when the lock grade is
+     Smart.
+5. **Backwards compatibility**: when `installation` is null on `/price`
+   no line is emitted and canaries #1-#6 hold byte-for-byte; when
+   non-null but Batumi, same outcome (free with no line). `/review`
+   accepts the same shape and defaults to Batumi when the field is
+   omitted, which gives the FRONT a sensible "no commitment yet"
+   render on first Step 8 entry.
+
+**Seventh regression canary locked** (Imereti): canary #6 config +
+`InstallationRegion.Imereti`:
+- canary #6 pre-VAT subtotal = 197 726 tetri
+- + Imereti surcharge        =  22 000 tetri
+- new subtotal               = 219 726 tetri
+- vat = round(219 726 × 0.18) = **39 551 tetri** (banker's 39 550.68 → 39 551)
+- total = **259 277 tetri = 2592.77 ₾**
+
+**Canary #7b** (Batumi defense canary): canary #6 config +
+`InstallationRegion.Batumi` → totalDisplay = **2333.17 ₾**, byte-
+for-byte canary #6. No installation line in the breakdown. Locked
+as `Canary7b_Window_Full_Plus_Batumi_Install_Equals_Canary6_ByteForByte`
+to defend the "Batumi is free, not just $0" semantic against future
+refactors that might over-eagerly emit zero-amount lines.
+
+Asserted at unit
+(`Canary7_Window_Full_Plus_Imereti_Install_Equals_2592_77` in
+`PriceCalculatorInstallationTests`) and HTTP
+(`PostReview_Canary7_Imereti_GrandTotal_2592_77_WithGroupedBreakdown`
+in `ReviewEndpointTests`).
+
+New domain types: `InstallationOption` record + `InstallationRegion`
+enum, `InstallationPricing` static table, `LeadTimeEstimator` +
+`LeadTimeEstimate` record, `WarrantyEstimator` + `WarrantyTerms`
+record. `ProductType` gains 3 columns
+(`WarrantyMonths`/`LeadTimeDaysMin`/`LeadTimeDaysMax`) via the
+`AddDeliveryTerms` migration with safe defaults + idempotent
+backfill in `ProductTypeSeeder`.
+
+New endpoint: `POST /v1/configurator/review` returning a grouped
+breakdown bucketed into Material / Glass / Color / Accessories /
+Installation + flat list + warranty + lead-time. The grouping is
+done at the application layer by line-code prefix matching so the
+FRONT can render the Step-8 receipt without re-parsing codes.
+
+One new error code:
+`configurator.installation.regionInvalid` (Validation → 400) with
+`got` metadata for invalid region tokens on the wire.
+
 ## Future considerations
 
 - **Domain events for price changes.** If a saved configuration needs to react to a price change (e.g. admin updates `BasePricePerSqmMinor` for `aluminum-thermal`), we'd raise a `MaterialPriceChanged` event and let interested aggregates resubscribe. Not needed for Phase 1.
