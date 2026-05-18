@@ -24,7 +24,7 @@ export type ApiResponseFailure = {
 
 export type ApiResponse<T> = ApiResponseSuccess<T> | ApiResponseFailure;
 
-const API_BASE = '/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api/v1').toString();
 
 export const api = axios.create({
   baseURL: API_BASE,

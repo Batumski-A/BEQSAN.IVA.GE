@@ -52,11 +52,24 @@ builder.Services.AddCors(options =>
             .AllowCredentials());
     }
 
-    // Production policy stays empty until beqsan.iva.ge CNAME + admin.beqsan.iva.ge
-    // are confirmed. Filled in a separate commit when deploy lands.
+    // Production origins are read from configuration (Cors:AllowedOrigins) so
+    // host/port can change between staging (iva.ge:4433) and the final domain
+    // (beqsan.iva.ge) without a rebuild.
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? [];
+
     options.AddPolicy(ProductionCorsPolicy, policy =>
     {
-        // placeholder — no origins, denies all
+        if (allowedOrigins.Length > 0)
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .WithHeaders("Content-Type", "Authorization", "X-Correlation-Id")
+                .WithExposedHeaders("X-Correlation-Id")
+                .AllowCredentials();
+        }
     });
 });
 
