@@ -51,6 +51,12 @@ internal sealed class ProductTypeConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(x => x.MinHeightCm).IsRequired().HasDefaultValue(30);
         builder.Property(x => x.MaxHeightCm).IsRequired().HasDefaultValue(400);
 
+        // Step-8 fields with safe defaults so older rows don't violate
+        // NOT NULL on the migration apply. Backfill happens in the seeder.
+        builder.Property(x => x.WarrantyMonths).IsRequired().HasDefaultValue(36);
+        builder.Property(x => x.LeadTimeDaysMin).IsRequired().HasDefaultValue(10);
+        builder.Property(x => x.LeadTimeDaysMax).IsRequired().HasDefaultValue(14);
+
         builder.HasIndex(x => new { x.IsActive, x.SortOrder });
     }
 }

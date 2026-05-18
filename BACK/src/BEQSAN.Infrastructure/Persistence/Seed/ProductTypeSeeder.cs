@@ -44,6 +44,19 @@ internal static class ProductTypeSeeder
                 db.Entry(current).Property(p => p.MaxHeightCm).CurrentValue = seed.MaxHeightCm;
                 mutatedAny = true;
             }
+
+            // Backfill delivery-terms columns on rows that came in via the
+            // AddDeliveryTerms migration's default value (36/10/14) but
+            // should carry the per-slug specifics from SeedData.
+            if (current.WarrantyMonths != seed.WarrantyMonths
+                || current.LeadTimeDaysMin != seed.LeadTimeDaysMin
+                || current.LeadTimeDaysMax != seed.LeadTimeDaysMax)
+            {
+                db.Entry(current).Property(p => p.WarrantyMonths).CurrentValue = seed.WarrantyMonths;
+                db.Entry(current).Property(p => p.LeadTimeDaysMin).CurrentValue = seed.LeadTimeDaysMin;
+                db.Entry(current).Property(p => p.LeadTimeDaysMax).CurrentValue = seed.LeadTimeDaysMax;
+                mutatedAny = true;
+            }
         }
 
         if (toInsert.Count > 0)
@@ -64,23 +77,36 @@ internal static class ProductTypeSeeder
         // manufacturing, no marketing fluff. Order is the order users see.
         // Constraints are market-realistic 2026 baselines; Roman locks final
         // numbers before public preview (see docs/questions.md).
+        // Delivery terms per slug — Roman-locked Phase 1.
+        //   window:    36 mo warranty, 10-14 day lead
+        //   door:      60 mo warranty, 14-21 day lead (secure + longer install)
+        //   sliding:   36 mo warranty, 14-18 day lead
+        //   panoramic: 36 mo warranty, 18-25 day lead (larger system)
+        //   balcony:   24 mo warranty, 7-12 day lead (simpler)
         yield return Build("window", "ფანჯარა",
-            "ბათუმის ფაბრიკაში აწყობილი ალუმინის და PVC ფანჯრები.", 1);
+            "ბათუმის ფაბრიკაში აწყობილი ალუმინის და PVC ფანჯრები.", 1,
+            warrantyMonths: 36, leadMin: 10, leadMax: 14);
 
         yield return Build("door", "კარი",
-            "შესასვლელი და შიდა კარები — თერმო და უსაფრთხო.", 2);
+            "შესასვლელი და შიდა კარები — თერმო და უსაფრთხო.", 2,
+            warrantyMonths: 60, leadMin: 14, leadMax: 21);
 
         yield return Build("sliding", "სლაიდინგ სისტემა",
-            "ფართო გახსნა, მცირე ფარდობა — დიდი სივრცეებისთვის.", 3);
+            "ფართო გახსნა, მცირე ფარდობა — დიდი სივრცეებისთვის.", 3,
+            warrantyMonths: 36, leadMin: 14, leadMax: 18);
 
         yield return Build("panoramic", "პანორამული შემინვა",
-            "მინიმალური ჩარჩო, მაქსიმუმი ხედვა.", 4);
+            "მინიმალური ჩარჩო, მაქსიმუმი ხედვა.", 4,
+            warrantyMonths: 36, leadMin: 18, leadMax: 25);
 
         yield return Build("balcony", "აივნის შემინვა",
-            "უტიხრო ან ჩარჩოიანი, ბათუმის ქარისთვის ნაგები.", 5);
+            "უტიხრო ან ჩარჩოიანი, ბათუმის ქარისთვის ნაგები.", 5,
+            warrantyMonths: 24, leadMin: 7, leadMax: 12);
     }
 
-    private static ProductType Build(string slug, string ka, string shortKa, int sortOrder)
+    private static ProductType Build(
+        string slug, string ka, string shortKa, int sortOrder,
+        int warrantyMonths, int leadMin, int leadMax)
     {
         var id = DeterministicGuid(slug);
         var nameResult = LocalizedText.Create(ka);
@@ -109,6 +135,9 @@ internal static class ProductTypeSeeder
             MaxWidthCm = constraints.MaxWidthCm,
             MinHeightCm = constraints.MinHeightCm,
             MaxHeightCm = constraints.MaxHeightCm,
+            WarrantyMonths = warrantyMonths,
+            LeadTimeDaysMin = leadMin,
+            LeadTimeDaysMax = leadMax,
         };
     }
 

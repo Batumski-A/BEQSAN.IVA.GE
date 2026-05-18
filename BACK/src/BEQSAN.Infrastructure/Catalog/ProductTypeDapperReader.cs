@@ -37,7 +37,10 @@ internal sealed class ProductTypeDapperReader(IDbConnectionFactory factory) : IP
         min_width_cm            AS MinWidthCm,
         max_width_cm            AS MaxWidthCm,
         min_height_cm           AS MinHeightCm,
-        max_height_cm           AS MaxHeightCm
+        max_height_cm           AS MaxHeightCm,
+        warranty_months         AS WarrantyMonths,
+        lead_time_days_min      AS LeadTimeDaysMin,
+        lead_time_days_max      AS LeadTimeDaysMax
         """;
 
     private static readonly string GetByIdSql = $"SELECT {EntityColumns} FROM product_types WHERE id = @Id LIMIT 1;";
@@ -109,6 +112,9 @@ internal sealed class ProductTypeDapperReader(IDbConnectionFactory factory) : IP
             MaxWidthCm = row.MaxWidthCm,
             MinHeightCm = row.MinHeightCm,
             MaxHeightCm = row.MaxHeightCm,
+            WarrantyMonths = row.WarrantyMonths,
+            LeadTimeDaysMin = row.LeadTimeDaysMin,
+            LeadTimeDaysMax = row.LeadTimeDaysMax,
         };
     }
 
@@ -139,5 +145,8 @@ internal sealed class ProductTypeDapperReader(IDbConnectionFactory factory) : IP
         public int MaxWidthCm { get; set; }
         public int MinHeightCm { get; set; }
         public int MaxHeightCm { get; set; }
+        public int WarrantyMonths { get; set; }
+        public int LeadTimeDaysMin { get; set; }
+        public int LeadTimeDaysMax { get; set; }
     }
 }
