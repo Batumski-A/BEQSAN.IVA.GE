@@ -19,7 +19,7 @@ const LOCALE_FULL: Record<Locale, string> = {
 };
 
 export function Layout() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
@@ -64,13 +64,16 @@ export function Layout() {
 
       <header className="sticky top-0 z-40 border-b border-hairline bg-bg-base/80 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-content items-center justify-between px-4 md:px-8">
-          <Link
-            to="/"
-            className="font-display text-h4 tracking-tight text-fg-primary"
-            aria-label="BEQSAN"
-          >
-            BEQSAN
-          </Link>
+          <div className="flex items-center gap-6 md:gap-8">
+            <Link
+              to="/"
+              className="font-display text-h4 tracking-tight text-fg-primary"
+              aria-label="BEQSAN"
+            >
+              BEQSAN
+            </Link>
+            <LanguageSwitcher variant="header" />
+          </div>
 
           <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
             <div ref={studioRef} className="relative">
@@ -147,6 +150,9 @@ export function Layout() {
               aria-label="Mobile primary"
               className="mx-auto flex max-w-content flex-col gap-1 px-4 py-4"
             >
+              <div className="mb-4 border-b border-hairline pb-4">
+                <LanguageSwitcher variant="drawer" />
+              </div>
               <MobileLink to="/about" label={t('nav.about')} />
               <MobileLink to="/process" label={t('nav.process')} />
               <MobileLink to="/materials" label={t('nav.materials')} />
@@ -228,38 +234,6 @@ export function Layout() {
             </p>
             <p className="mt-3 text-body-sm text-fg-secondary">{t('footer.hoursValue')}</p>
             <p className="text-body-sm text-fg-secondary">{t('footer.hoursSat')}</p>
-
-            <div className="mt-8">
-              <p className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-                {t('footer.languageLabel')}
-              </p>
-              <div
-                role="group"
-                aria-label={t('footer.languageLabel')}
-                className="mt-3 inline-flex overflow-hidden rounded-sm border border-hairline"
-              >
-                {SUPPORTED_LOCALES.map((loc) => {
-                  const active = i18n.resolvedLanguage === loc || i18n.language === loc;
-                  return (
-                    <button
-                      key={loc}
-                      type="button"
-                      onClick={() => void i18n.changeLanguage(loc)}
-                      aria-pressed={active}
-                      aria-label={LOCALE_FULL[loc]}
-                      className={cn(
-                        'border-r border-hairline px-3 py-1.5 font-mono text-caption uppercase tracking-wider transition-colors duration-120 last:border-r-0',
-                        active
-                          ? 'bg-accent-amber/15 text-accent-amber'
-                          : 'text-fg-tertiary hover:text-fg-primary',
-                      )}
-                    >
-                      {LOCALE_LABEL[loc]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -334,5 +308,55 @@ function FooterLink({ to, children }: { to: string; children: React.ReactNode })
         {children}
       </Link>
     </li>
+  );
+}
+
+/**
+ * 3-chip language switcher. Active locale gets a 2px amber underline
+ * (subtle, not a chip background — Lasha's spec) so the control reads
+ * as an editorial inline element next to the logo, not a CTA. The drawer
+ * variant adds vertical padding for thumb-friendly touch targets at the
+ * top of the mobile drawer.
+ */
+function LanguageSwitcher({ variant }: { variant: 'header' | 'drawer' }) {
+  const { t, i18n } = useTranslation();
+  const active = (i18n.resolvedLanguage ?? i18n.language) as Locale;
+  return (
+    <div
+      role="group"
+      aria-label={t('footer.languageLabel')}
+      className={cn(
+        'inline-flex items-center font-mono uppercase tracking-wider',
+        variant === 'header' ? 'gap-3 text-caption' : 'gap-5 text-mono-spec',
+      )}
+    >
+      {SUPPORTED_LOCALES.map((loc) => {
+        const isActive = active === loc;
+        return (
+          <button
+            key={loc}
+            type="button"
+            onClick={() => void i18n.changeLanguage(loc)}
+            aria-pressed={isActive}
+            aria-label={LOCALE_FULL[loc]}
+            className={cn(
+              'relative transition-colors duration-120',
+              variant === 'header' ? 'py-1' : 'py-2',
+              isActive
+                ? 'text-accent-amber'
+                : 'text-fg-tertiary hover:text-fg-primary',
+            )}
+          >
+            {LOCALE_LABEL[loc]}
+            {isActive ? (
+              <span
+                aria-hidden
+                className="absolute -bottom-px left-0 right-0 h-px bg-accent-amber"
+              />
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
