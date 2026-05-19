@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Html, OrbitControls } from '@react-three/drei';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Group, PerspectiveCamera } from 'three';
@@ -15,6 +15,36 @@ import { useColorsByMaterial, useGlassTypesByMaterial, type GlassType } from '..
 import { useConfiguratorStore } from '../store';
 
 /**
+ * LiveStudio-only interactivity hooks: in-scene W/H number inputs and the
+ * per-pane opening-type dropdown that floats over each pane in 3D space.
+ * The legacy 8-step wizard at `/configurator/wizard` keeps the read-only
+ * caption labels — only LiveStudio passes this prop.
+ */
+export type SceneInteractiveControls = {
+  panes: {
+    options: ReadonlyArray<{ value: string; label: string }>;
+    /** Read the current dropdown value from a pane. */
+    valueFor: (pane: ConfigurationPaneInput) => string;
+    /** Fires when the user picks a new opening type for a pane. */
+    onChange: (paneIndex: number, value: string) => void;
+  };
+  dimensions: {
+    widthCm: number;
+    heightCm: number;
+    minWidthCm: number;
+    maxWidthCm: number;
+    minHeightCm: number;
+    maxHeightCm: number;
+    onWidthChange: (cm: number) => void;
+    onHeightChange: (cm: number) => void;
+  };
+};
+
+type ConfiguratorSceneProps = {
+  interactive?: SceneInteractiveControls;
+};
+
+/**
  * Phase 1 placeholder scene. A box scaled to the configurator dimensions,
  * a glass plane in front of it, and limited orbit controls. Real GLTF
  * models from Roman's workshop photos land in Phase 1.5.
@@ -22,7 +52,7 @@ import { useConfiguratorStore } from '../store';
  * Mobile detection turns shadows off and clamps dpr to keep iPhone 12-class
  * devices at 60fps per .claude/skills/3d-scene-design.
  */
-export function ConfiguratorScene() {
+export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) {
   const { t } = useTranslation();
   const material = useConfiguratorStore((s) => s.material);
   const dimensions = useConfiguratorStore((s) => s.dimensions);
@@ -31,6 +61,43 @@ export function ConfiguratorScene() {
   const accessories = useConfiguratorStore((s) => s.accessories);
   const windowOpen = useConfiguratorStore((s) => s.windowOpen);
   const setWindowOpen = useConfiguratorStore((s) => s.setWindowOpen);
+
+  /**
+   * Per-pane ephemeral click state — keyed by pane.position (1-based).
+   * Lasha's mockup cycles tilt-and-turn through 3 states (closed/turn/tilt+turn);
+   * everything else toggles 2 states (closed/open). When the opening type or
+   * hinge side changes via the right panel, we reset the relevant entry so the
+   * pane doesn't visually "carry over" an obsolete state.
+   */
+  const [paneClickStates, setPaneClickStates] = useState<Record<number, number>>({});
+
+  // Track previous opening signature per pane and reset clickState on change.
+  const prevOpeningSig = useRef<Map<number, string>>(new Map());
+  useEffect(() => {
+    const next: Record<number, number> = { ...paneClickStates };
+    let mutated = false;
+    panes.forEach((p) => {
+      if (p.position == null) return;
+      const sig = `${p.openingType}|${p.hingeSide ?? ''}`;
+      const prev = prevOpeningSig.current.get(p.position);
+      if (prev !== undefined && prev !== sig && next[p.position] !== 0) {
+        next[p.position] = 0;
+        mutated = true;
+      }
+      prevOpeningSig.current.set(p.position, sig);
+    });
+    if (mutated) setPaneClickStates(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panes]);
+
+  const onPaneClick = (paneIndex: number, opening: PaneOpeningType) => {
+    if (opening === 'Fixed') return;
+    const cycleLen = opening === 'TiltAndTurn' ? 3 : 2;
+    setPaneClickStates((prev) => ({
+      ...prev,
+      [paneIndex]: ((prev[paneIndex] ?? 0) + 1) % cycleLen,
+    }));
+  };
 
   // Respect prefers-reduced-motion — instant swap instead of spring lerp.
   const reducedMotion = useMemo(
@@ -150,6 +217,9 @@ export function ConfiguratorScene() {
             open={windowOpen}
             reducedMotion={reducedMotion}
             mobile={isMobile}
+            interactive={interactive}
+            paneClickStates={paneClickStates}
+            onPaneClick={onPaneClick}
           />
           <Ground />
         </Suspense>
@@ -166,11 +236,9 @@ export function ConfiguratorScene() {
         />
       </Canvas>
 
-      {/* HTML overlay labels — one per openable pane. Mono caption, positioned
-          horizontally per pane's relative x within the frame so the label
-          aligns with the breathing-animated pane underneath. Pointer-events
-          off so they don't block orbit drag. */}
-      <PaneOverlayLabels paneRects={paneRects} widthM={w} t={t} />
+      {/* HTML overlay labels (legacy wizard only — LiveStudio renders interactive
+          dropdowns inside the Canvas via <Html> instead). */}
+      {!interactive ? <PaneOverlayLabels paneRects={paneRects} widthM={w} t={t} /> : null}
 
       <div className="pointer-events-none absolute bottom-3 left-4 font-mono text-caption uppercase tracking-wider text-fg-tertiary">
         {dimensions.widthCm}×{dimensions.heightCm} {t('common.units.cm')}
@@ -218,6 +286,9 @@ function Window({
   open,
   reducedMotion,
   mobile,
+  interactive,
+  paneClickStates,
+  onPaneClick,
 }: {
   family: 'aluminum' | 'pvc';
   widthCm: number;
@@ -231,6 +302,9 @@ function Window({
   open: boolean;
   reducedMotion: boolean;
   mobile: boolean;
+  interactive?: SceneInteractiveControls;
+  paneClickStates: Record<number, number>;
+  onPaneClick: (paneIndex: number, opening: PaneOpeningType) => void;
 }) {
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
@@ -335,6 +409,10 @@ function Window({
         // enforced by the validator; here we just need the geometry.
         const hasHandle = accessories?.handleStyleId != null
           && pane.openingType !== 'Fixed';
+        const paneIndex = pane.position ?? i + 1;
+        const clickState = paneClickStates[paneIndex] ?? 0;
+        const isOpenable = pane.openingType !== 'Fixed';
+        const handleClick = () => onPaneClick(paneIndex, pane.openingType);
         return (
           <group key={pane.position} position={[cx, 0, 0]}>
             {/* Mullion sits at the frame-fixed boundary, so it's outside
@@ -365,11 +443,15 @@ function Window({
               opening={pane.openingType}
               hingeSide={pane.hingeSide}
               open={open}
+              clickState={clickState}
               reducedMotion={reducedMotion}
               glassInset={glassInset}
               outerFrameHeightM={h}
             >
-              <mesh receiveShadow={!mobile}>
+              <mesh
+                receiveShadow={!mobile}
+                onClick={isOpenable ? (e) => { e.stopPropagation(); handleClick(); } : undefined}
+              >
                 <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
                 <meshPhysicalMaterial
                   color={visual.color}
@@ -391,9 +473,102 @@ function Window({
                 />
               )}
             </AnimatedPane>
+
+            {/* Per-pane opening-type dropdown — only in interactive (LiveStudio)
+                mode. Anchored at the pane's centre, projected to screen so it
+                tracks the pane on orbit. <Html center> keeps the DOM size in
+                pixels (doesn't scale with zoom). */}
+            {interactive ? (
+              <Html
+                position={[0, 0, frameThickness * 0.7]}
+                center
+                zIndexRange={[100, 0]}
+                style={{ pointerEvents: 'auto' }}
+              >
+                <select
+                  value={interactive.panes.valueFor(pane)}
+                  onChange={(e) => interactive.panes.onChange(paneIndex, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="cursor-pointer rounded-lg border-2 border-transparent bg-white/95 px-2 py-1.5 text-[10px] font-bold text-slate-800 shadow-2xl outline-none backdrop-blur-sm hover:border-studio-brand"
+                >
+                  {interactive.panes.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </Html>
+            ) : null}
           </group>
         );
       })}
+
+      {/* In-scene W/H number inputs — anchored above the top edge and to the
+          right of the frame, projected to screen so they orbit with the model.
+          Only rendered in interactive mode (LiveStudio); the legacy wizard's
+          right panel carries the same fields. */}
+      {interactive ? (
+        <>
+          <Html
+            position={[0, h / 2 + 0.18, 0]}
+            center
+            zIndexRange={[100, 0]}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
+              <span className="text-[10px] font-bold">W:</span>
+              <input
+                type="number"
+                value={interactive.dimensions.widthCm}
+                min={interactive.dimensions.minWidthCm}
+                max={interactive.dimensions.maxWidthCm}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(v)) {
+                    interactive.dimensions.onWidthChange(
+                      Math.min(
+                        interactive.dimensions.maxWidthCm,
+                        Math.max(interactive.dimensions.minWidthCm, v),
+                      ),
+                    );
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+              />
+              <span className="text-[10px]">სმ</span>
+            </div>
+          </Html>
+          <Html
+            position={[w / 2 + 0.18, 0, 0]}
+            center
+            zIndexRange={[100, 0]}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
+              <span className="text-[10px] font-bold">H:</span>
+              <input
+                type="number"
+                value={interactive.dimensions.heightCm}
+                min={interactive.dimensions.minHeightCm}
+                max={interactive.dimensions.maxHeightCm}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(v)) {
+                    interactive.dimensions.onHeightChange(
+                      Math.min(
+                        interactive.dimensions.maxHeightCm,
+                        Math.max(interactive.dimensions.minHeightCm, v),
+                      ),
+                    );
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+              />
+              <span className="text-[10px]">სმ</span>
+            </div>
+          </Html>
+        </>
+      ) : null}
     </group>
   );
 }
@@ -414,6 +589,7 @@ function AnimatedPane({
   opening,
   hingeSide,
   open,
+  clickState,
   reducedMotion,
   glassInset,
   outerFrameHeightM,
@@ -424,6 +600,15 @@ function AnimatedPane({
   opening: PaneOpeningType;
   hingeSide: HingeSide | null | undefined;
   open: boolean;
+  /**
+   * Per-pane click cycle index (Lasha's mockup interaction):
+   *   - Casement/Door/Tilt/Sliding: 0 = closed, 1 = open
+   *   - TiltAndTurn: 0 = closed, 1 = turn, 2 = tilt
+   * Defaults to 0 in both legacy wizard and LiveStudio — but in LiveStudio
+   * clicking a pane increments it. When > 0, this state takes precedence
+   * over the global `open` toggle + the breathing animation.
+   */
+  clickState?: number;
   reducedMotion: boolean;
   glassInset: number;
   outerFrameHeightM: number;
@@ -460,10 +645,12 @@ function AnimatedPane({
     return { type: 'fixed' as const, swingSign: 1, pivot: { x: 0, y: 0 } };
   }, [opening, hingeSide, paneWidthM, paneHeightM]);
 
-  // Compute the current target each frame. Two regimes:
-  //   - open=false   →   constant breathing at ±12° (or 8% slide-out),
-  //                      |sin(πt/3)| envelope so the pane returns through 0.
-  //   - open=true    →   full pose: 75° swing, 15° tilt, 70% slide.
+  // Compute the current target each frame. Three regimes:
+  //   - clickState > 0  →  click-locked pose (LiveStudio only):
+  //                        TiltAndTurn cycles 1=turn, 2=tilt; others 1=open.
+  //                        No breathing while held open.
+  //   - open=true       →  global "open all" toggle: full pose (75° / 15° / 70% slide).
+  //   - open=false      →  breathing ±12° (or 8% slide-out) with |sin(πt/3)|.
   useFrame((state) => {
     const g = pivotRef.current;
     if (!g || rig.type === 'fixed') return;
@@ -471,29 +658,43 @@ function AnimatedPane({
     const time = state.clock.elapsedTime;
     // |sin| over a half-period of 3s gives 0 → 1 → 0 every 3 seconds.
     const breath = Math.abs(Math.sin((time * Math.PI) / 3));
+    const clicked = (clickState ?? 0) > 0;
 
     let targetRotY = 0;
     let targetRotX = 0;
     let targetTx = 0;
 
     if (rig.type === 'rotY') {
+      // Casement / TiltAndTurn use Y-rotation pivot.
       const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
       const openAngle = (Math.PI / 180) * 75 * rig.swingSign;
-      targetRotY = open ? openAngle : breathAngle;
+      if (clicked) {
+        if (opening === 'TiltAndTurn' && clickState === 2) {
+          // Lasha's mockup cycle slot 2 = tilt (top edge tips outward).
+          targetRotX = -(Math.PI / 180) * 15;
+          targetRotY = 0;
+        } else {
+          targetRotY = openAngle;
+        }
+      } else {
+        targetRotY = open ? openAngle : breathAngle;
+      }
     } else if (rig.type === 'rotX') {
       const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
       const openAngle = (Math.PI / 180) * 15 * rig.swingSign;
-      targetRotX = open ? openAngle : breathAngle;
+      if (clicked) targetRotX = openAngle;
+      else targetRotX = open ? openAngle : breathAngle;
     } else {
       // slide
       const breathTx = 0.08 * paneWidthM * breath * rig.swingSign;
       const openTx = 0.7 * paneWidthM * rig.swingSign;
-      targetTx = open ? openTx : breathTx;
+      if (clicked) targetTx = openTx;
+      else targetTx = open ? openTx : breathTx;
     }
 
     if (reducedMotion) {
       // Static partial-open pose — no animation, but still conveys direction.
-      const staticPose = open ? 1.0 : 0.25;
+      const staticPose = clicked || open ? 1.0 : 0.25;
       g.rotation.y = targetRotY * staticPose;
       g.rotation.x = targetRotX * staticPose;
       g.position.x = rig.pivot.x + targetTx * staticPose;
