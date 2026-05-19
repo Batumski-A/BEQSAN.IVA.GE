@@ -48,10 +48,53 @@
     "skipToContent": "Skip to main content"
   },
   "home": {
-    "heroTitle": "Windows handmade in a Batumi workshop.",
-    "heroSub": "Aluminium and PVC. Roman Sharashidze's workshop in Salibauri — since 1998.",
-    "heroCta": "Configure yours",
-    "heroCtaSub": "1 minute · no phone call needed"
+    "heroKicker": "Premium quality • Direct from the workshop",
+    "heroTitleLine1": "Design your project",
+    "heroTitleLine2": "straight in 3D",
+    "heroLead": "Compose mixed systems — windows, sliders, doors and verandas — in one workspace. See the exact price and place the order.",
+    "heroCta": "Open the 3D studio",
+    "materialsTitle": "Only the highest-grade materials",
+    "materialsSubtitle": "10-year warranty on aluminium systems",
+    "materials": {
+      "aluminum": {
+        "title": "Warm aluminium",
+        "body": "Alumil's premium profiles with a thermal break — for maximum thermal insulation in any season.",
+        "badge": "10-year warranty"
+      },
+      "glass": {
+        "title": "Low-E IGU",
+        "body": "Double- and triple-pane tempered glass. Holds the indoor temperature across all four seasons.",
+        "badge": "Energy-efficient"
+      },
+      "hardware": {
+        "title": "G-U hardware",
+        "body": "German mechanisms rated for 50,000+ open-and-close cycles — the highest tilt-and-turn standard.",
+        "badge": "Top-tier quality"
+      }
+    },
+    "trust": {
+      "label": "Material sources",
+      "brands": "Alumil · Profilco · Rehau · Hoppe · G-U"
+    },
+    "stats": {
+      "eyebrow": "The workshop in numbers",
+      "title": "Twenty-five years under one roof",
+      "lead": "Every window in the Salibauri workshop is hand-built. Measurement, cutting, assembly, installation — one team, one person who answers.",
+      "fact1Label": "Founded",
+      "fact1Value": "1998",
+      "fact2Label": "Sites per year",
+      "fact2Value": "~620",
+      "fact3Label": "Workshop floor",
+      "fact3Value": "1,100 m²",
+      "fact4Label": "Team",
+      "fact4Value": "12"
+    },
+    "closer": {
+      "eyebrow": "Next step",
+      "title": "See your window's price in a minute",
+      "lead": "The configurator shows you the design in 3D, then locks the price. After that — one phone number and a craftsman is on the way.",
+      "cta": "Open the 3D studio"
+    }
   },
   "about": {
     "metaTitle": "About",
@@ -769,6 +812,102 @@
     "stub": {
       "title": "Dimensions step is coming",
       "body": "Step 3 — width and height, then Step 4-9: layout, glass, colour, accessories, order. Part of Phase 1 MVP."
+    },
+    "shell": {
+      "back": "Return to home",
+      "stepPanelAria": "Configurator — current step",
+      "priceEyebrow": "Live price",
+      "cta": "Order",
+      "previewHint": "Preview mode — switch to 3D or 2D to continue",
+      "viewMode": {
+        "aria": "View mode",
+        "threeD": "3D",
+        "twoD": "2D",
+        "preview": "Preview"
+      }
+    },
+    "blueprint": {
+      "aria": "Window 2D blueprint — {{width}} × {{height}} cm",
+      "width": "Width",
+      "height": "Height",
+      "section": "Section"
+    }
+  },
+  "studio": {
+    "metaTitle": "3D Studio",
+    "metaDescription": "Build your window in a live 3D scene — see the price update in real time.",
+    "nav": {
+      "ctaLaunch": "3D Studio",
+      "back": "Back"
+    },
+    "viewMode": {
+      "threeD": "3D",
+      "twoD": "2D plan",
+      "preview": "Clean",
+      "exitPreview": "Show panels"
+    },
+    "panel": {
+      "product": "Product",
+      "templates": "Quick templates",
+      "profile": "Profile",
+      "parameters": "Parameters",
+      "distribution": "Layout"
+    },
+    "products": {
+      "window": "Window",
+      "door": "Door",
+      "sliding": "Sliding",
+      "panoramic": "Panoramic",
+      "balcony": "Balcony"
+    },
+    "templates": {
+      "standard2": "Standard · 2 sashes",
+      "balcony": "Balcony block",
+      "wide3": "Wide middle · 3 sashes",
+      "panoramic": "Panoramic · 4 sashes"
+    },
+    "profile": {
+      "alumil": {
+        "title": "Alumil · aluminum",
+        "sub": "Thermal break · 10-year warranty"
+      },
+      "rehau": {
+        "title": "Rehau · PVC",
+        "sub": "Warm · cost-effective"
+      }
+    },
+    "params": {
+      "width": "Width (cm)",
+      "height": "Height (cm)",
+      "sections": "Vertical sections",
+      "left": "Left",
+      "right": "Right",
+      "proportions": "Proportions",
+      "equal3": "Equal (33-33-33)",
+      "wideMiddle": "Wide middle (25-50-25)",
+      "openings": "Opening direction",
+      "paneN": "Section {{n}}"
+    },
+    "opening": {
+      "fixed": "Fixed",
+      "tilt": "Tilt (top)",
+      "turnLeft": "Turn left",
+      "turnRight": "Turn right",
+      "tiltTurnLeft": "Tilt-and-turn left",
+      "tiltTurnRight": "Tilt-and-turn right",
+      "slideLeft": "Slide left",
+      "slideRight": "Slide right",
+      "doorLeft": "Door left",
+      "doorRight": "Door right"
+    },
+    "price": {
+      "eyebrow": "Estimated price",
+      "cta": "Order"
+    },
+    "order": {
+      "thanksTitle": "Order received",
+      "thanksBody": "Our project manager will reach out to take exact measurements and confirm details.",
+      "close": "Close"
     }
   },
   "catalog": {
