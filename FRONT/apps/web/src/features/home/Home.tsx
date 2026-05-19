@@ -1,218 +1,138 @@
-import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { Box, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-const heroEnter = {
-  initial: { opacity: 0, y: 24 },
-  animate: { opacity: 1, y: 0 },
-  transition: {
-    duration: 0.96,
-    ease: [0.16, 1, 0.3, 1] as const,
-  },
-};
-
-const staggered = (delay: number) => ({
-  ...heroEnter,
-  transition: { ...heroEnter.transition, delay },
-});
-
+/**
+ * Home page — Modern Studio direction (2026-05-19 pivot).
+ * Mirrors the Gemini prototype layout: 85vh dark hero with looping video +
+ * three-card materials section (white / dark / white rhythm). All copy
+ * routes through i18n; tokens come from the `studio.*` Tailwind scale.
+ */
 export default function Home() {
   const { t } = useTranslation();
-
   return (
-    <>
+    <div className="bg-studio-paper">
       <Hero t={t} />
-      <Specs t={t} />
-      <Values t={t} />
-      <CtaBlock t={t} />
-    </>
+      <Materials t={t} />
+    </div>
   );
 }
 
 function Hero({ t }: { t: TFunction }) {
   return (
-    <section className="relative isolate overflow-hidden">
-      {/* Vertical hairline rule on the right — technical-drawing decoration */}
-      <div
+    <section className="relative flex h-[85vh] min-h-[600px] items-center justify-center overflow-hidden">
+      {/* Hero plate. Phase 1.5 will swap this <img> for a <video autoPlay loop
+          muted> of installed Batumi windows. Until that footage exists, the
+          Pexels architectural still keeps the surface from rendering as a
+          flat dark void. */}
+      <img
+        src="/video/hero-poster.jpg"
+        alt=""
+        className="absolute inset-0 h-full w-full scale-105 object-cover"
+        loading="eager"
+        decoding="async"
         aria-hidden
-        className="pointer-events-none absolute right-8 top-0 hidden h-full w-px bg-hairline md:block"
       />
 
-      <div className="mx-auto grid max-w-content gap-12 px-4 pb-22 pt-30 md:grid-cols-12 md:px-8 md:pb-30 md:pt-46">
-        <div className="md:col-span-8 md:col-start-1">
-          <motion.div
-            {...staggered(0)}
-            className="font-mono text-mono-spec uppercase tracking-[0.2em] text-accent-amber"
-            aria-hidden
-          >
-            № 01 · ფაბრიკული ფანჯრები
-          </motion.div>
+      <div aria-hidden className="absolute inset-0 bg-studio-ink/60 backdrop-blur-[2px]" />
 
-          <motion.h1
-            {...staggered(0.08)}
-            className="mt-8 font-display text-display-2 leading-[0.95] tracking-tight text-balance text-fg-primary md:text-display-1"
-          >
-            {t('home.heroTitle')}
-          </motion.h1>
+      <div className="relative z-10 mx-auto max-w-5xl px-4 text-center font-studio text-white">
+        <span className="mb-8 inline-block rounded-full border border-studio-brand/30 bg-studio-brand/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-studio-brand-soft backdrop-blur-md">
+          {t('home.heroKicker')}
+        </span>
 
-          <motion.p
-            {...staggered(0.18)}
-            className="mt-10 max-w-xl text-body-lg text-pretty text-fg-secondary"
-          >
-            {t('home.heroSub')}
-          </motion.p>
+        <h1 className="mb-8 text-5xl font-extrabold leading-[1.1] tracking-tight text-white drop-shadow-2xl md:text-7xl">
+          {t('home.heroTitleLine1')}
+          {' '}
+          <br className="hidden md:block" />
+          <span className="bg-gradient-to-r from-studio-brand-soft to-indigo-400 bg-clip-text text-transparent">
+            {t('home.heroTitleLine2')}
+          </span>
+        </h1>
 
-          <motion.div {...staggered(0.28)} className="mt-12 flex flex-wrap items-center gap-6">
-            <Link
-              to="/configurator"
-              className="group inline-flex h-14 items-center gap-3 rounded-sm bg-accent-amber px-7 font-mono text-mono-spec uppercase tracking-wider text-bg-base transition-all duration-120 ease-standard hover:bg-accent-amber-h active:scale-[0.98]"
-            >
-              <span>{t('home.heroCta')}</span>
-              <ArrowRight
-                className="h-4 w-4 transition-transform duration-240 ease-standard group-hover:translate-x-0.5"
-                aria-hidden
-              />
-            </Link>
-            <span className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-              {t('home.heroCtaSub')}
-            </span>
-          </motion.div>
-        </div>
+        <p className="mx-auto mb-10 max-w-2xl text-xl font-light leading-relaxed text-slate-300">
+          {t('home.heroLead')}
+        </p>
 
-        {/* Right-side decoration column — technical drawing markers */}
-        <div className="hidden md:col-span-3 md:col-start-10 md:flex md:flex-col md:justify-end">
-          <DrawingMarker label="W" value="120" unit="სმ" />
-          <DrawingMarker label="H" value="145" unit="სმ" className="mt-3" />
-          <DrawingMarker label="U" value="1.2" unit="W/მ²K" className="mt-3" />
-          <div className="mt-6 border-t border-hairline pt-4 font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-            სალიბაური, ბათუმი
-            <br />
-            41,6168° N · 41,6367° E
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DrawingMarker({
-  label,
-  value,
-  unit,
-  className,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`flex items-baseline justify-between gap-4 border-b border-hairline pb-2 font-mono ${className ?? ''}`}
-    >
-      <span className="text-mono-spec uppercase tracking-wider text-fg-tertiary">{label}</span>
-      <span className="text-mono-spec tabular-nums text-fg-primary">
-        {value}
-        <span className="ml-1 text-fg-tertiary">{unit}</span>
-      </span>
-    </div>
-  );
-}
-
-function Specs({ t }: { t: TFunction }) {
-  const items: Array<[string, string]> = [
-    [t('home.spec1Label'), t('home.spec1Value')],
-    [t('home.spec2Label'), t('home.spec2Value')],
-    [t('home.spec3Label'), t('home.spec3Value')],
-    [t('home.spec4Label'), t('home.spec4Value')],
-  ];
-
-  return (
-    <section className="border-y border-hairline bg-bg-elevated">
-      <div className="mx-auto max-w-content px-4 py-12 md:px-8 md:py-16">
-        <div className="mb-8 font-mono text-caption uppercase tracking-[0.2em] text-fg-tertiary">
-          {t('home.specsLabel')}
-        </div>
-        <dl className="grid grid-cols-1 gap-y-6 md:grid-cols-4 md:gap-x-8 md:gap-y-0">
-          {items.map(([label, value]) => (
-            <div key={label} className="md:border-r md:border-hairline md:pr-8 md:last:border-r-0">
-              <dt className="font-mono text-mono-spec uppercase tracking-wider text-fg-tertiary">
-                {label}
-              </dt>
-              <dd className="mt-2 font-mono text-body-lg tabular-nums text-fg-primary">{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
-}
-
-function Values({ t }: { t: TFunction }) {
-  const items: Array<{ n: string; title: string; body: string }> = [
-    { n: '01', title: t('home.value1Title'), body: t('home.value1Body') },
-    { n: '02', title: t('home.value2Title'), body: t('home.value2Body') },
-    { n: '03', title: t('home.value3Title'), body: t('home.value3Body') },
-  ];
-
-  return (
-    <section className="mx-auto max-w-content px-4 py-22 md:px-8 md:py-30">
-      <div className="mb-12 max-w-2xl">
-        <div className="font-mono text-caption uppercase tracking-[0.2em] text-accent-amber">
-          № 02 · სამუშაო პროცესი
-        </div>
-        <h2 className="mt-4 font-headline text-h1 text-balance text-fg-primary md:text-h1">
-          {t('home.valuesTitle')}
-        </h2>
-      </div>
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
-        {items.map((item) => (
-          <article
-            key={item.n}
-            className="group flex flex-col gap-4 border-t border-hairline pt-6 transition-colors duration-240 ease-standard hover:border-hairline-strong"
-          >
-            <span className="font-mono text-mono-spec uppercase tracking-wider text-accent-amber">
-              {item.n}
-            </span>
-            <h3 className="font-headline text-h3 text-fg-primary">{item.title}</h3>
-            <p className="text-body text-pretty text-fg-secondary">{item.body}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CtaBlock({ t }: { t: TFunction }) {
-  return (
-    <section className="relative isolate overflow-hidden border-t border-hairline bg-bg-elevated">
-      <div className="mx-auto grid max-w-content gap-12 px-4 py-22 md:grid-cols-12 md:px-8 md:py-30">
-        <div className="md:col-span-7">
-          <div className="font-mono text-caption uppercase tracking-[0.2em] text-accent-amber">
-            № 03 · შემდეგი ნაბიჯი
-          </div>
-          <h2 className="mt-4 font-headline text-h1 text-balance text-fg-primary">
-            {t('home.ctaTitle')}
-          </h2>
-          <p className="mt-6 max-w-xl text-body-lg text-pretty text-fg-secondary">
-            {t('home.ctaBody')}
-          </p>
-        </div>
-        <div className="flex items-end md:col-span-5 md:justify-end">
+        <div className="flex items-center justify-center">
           <Link
             to="/configurator"
-            className="group inline-flex h-14 items-center gap-3 rounded-sm bg-accent-amber px-7 font-mono text-mono-spec uppercase tracking-wider text-bg-base transition-all duration-120 ease-standard hover:bg-accent-amber-h active:scale-[0.98]"
+            className="flex items-center justify-center gap-3 rounded-full bg-studio-brand px-10 py-4 text-lg font-bold text-white shadow-[0_0_40px_rgba(37,99,235,0.4)] transition-all hover:scale-105 hover:bg-studio-brand-h"
           >
             <span>{t('home.heroCta')}</span>
-            <ArrowRight
-              className="h-4 w-4 transition-transform duration-240 ease-standard group-hover:translate-x-0.5"
-              aria-hidden
-            />
+            <Box className="h-5 w-5" aria-hidden />
           </Link>
         </div>
       </div>
     </section>
+  );
+}
+
+function Materials({ t }: { t: TFunction }) {
+  return (
+    <section className="relative overflow-hidden bg-slate-50 py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center font-studio">
+          <h2 className="mb-4 text-3xl font-bold text-studio-fg md:text-4xl">
+            {t('home.materialsTitle')}
+          </h2>
+          <p className="mx-auto max-w-2xl text-lg text-gray-500">
+            {t('home.materialsSubtitle')}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 font-studio md:grid-cols-3">
+          <Card
+            title={t('home.materials.aluminum.title')}
+            body={t('home.materials.aluminum.body')}
+            badge={t('home.materials.aluminum.badge')}
+          />
+          <Card
+            inverse
+            title={t('home.materials.glass.title')}
+            body={t('home.materials.glass.body')}
+            badge={t('home.materials.glass.badge')}
+          />
+          <Card
+            title={t('home.materials.hardware.title')}
+            body={t('home.materials.hardware.body')}
+            badge={t('home.materials.hardware.badge')}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type CardProps = {
+  title: string;
+  body: string;
+  badge: string;
+  inverse?: boolean;
+};
+
+function Card({ title, body, badge, inverse }: CardProps) {
+  if (inverse) {
+    return (
+      <article className="rounded-3xl border border-studio-ink-3 bg-studio-fg p-8 shadow-2xl transition-transform hover:-translate-y-2">
+        <h3 className="mb-3 text-2xl font-bold text-white">{title}</h3>
+        <p className="mb-6 text-slate-400">{body}</p>
+        <div className="flex items-center gap-2 font-bold text-studio-brand-soft">
+          <Check className="h-5 w-5" aria-hidden />
+          <span>{badge}</span>
+        </div>
+      </article>
+    );
+  }
+  return (
+    <article className="rounded-3xl border border-gray-100 bg-white p-8 shadow-xl transition-transform hover:-translate-y-2">
+      <h3 className="mb-3 text-2xl font-bold text-studio-fg">{title}</h3>
+      <p className="mb-6 text-studio-fg-mute">{body}</p>
+      <div className="flex items-center gap-2 font-bold text-studio-brand">
+        <Check className="h-5 w-5" aria-hidden />
+        <span>{badge}</span>
+      </div>
+    </article>
   );
 }
