@@ -7,6 +7,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { AccountsPage } from './features/social/AccountsPage';
 import { ComposePage } from './features/social/ComposePage';
 import { InboxPage } from './features/social/InboxPage';
+import { PricingPage } from './features/pricing/PricingPage';
 import { AdminTokenGate } from './components/shell/AdminTokenGate';
 import './styles/globals.css';
 
@@ -30,6 +31,7 @@ createRoot(rootEl).render(
             <Route path="/social/callback" element={<AccountsPage />} />
             <Route path="/social/compose" element={<ComposePage />} />
             <Route path="/social/inbox" element={<InboxPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="*" element={<Dashboard />} />
           </Routes>
         </AdminTokenGate>

@@ -123,7 +123,12 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
   // - When ral-custom is active, the hex arrives directly on the store color.
   // - Otherwise fall back to the family-keyed neutral so the scene still
   //   renders sensibly before the colors query resolves.
-  const fallbackHex = material?.family === 'aluminum' ? '#A8B3C4' : '#F4F2EE';
+  //
+  // Defaults reflect what Roman actually installs most in Batumi:
+  //   - aluminium → RAL 7016 anthracite (≈ #2D3438) — the dominant choice
+  //     on hotel and apartment façades along the coast
+  //   - PVC → RAL 9016 traffic white (≈ #F1F0EA) — the residential default
+  const fallbackHex = material?.family === 'aluminum' ? '#2D3438' : '#F1F0EA';
   const outerHex = (() => {
     if (color?.customRalHex) return color.customRalHex;
     if (color?.outerColorOptionId) {
@@ -323,8 +328,17 @@ function Window({
   // roughness (PVC matte, aluminum brushed-metal) regardless of the chosen
   // hex — paint sits on the surface, profile material stays the same.
   const frameColor = outerHex;
-  const metalness = family === 'aluminum' ? 1.0 : 0.05;
-  const roughness = family === 'aluminum' ? 0.25 : 0.55;
+  // PBR values calibrated to Alumil S-77 anodised (aluminum) and Rehau Synego
+  // (PVC) reference photos. Aluminum reads as brushed-finish powder coat —
+  // metalness pulled back from 1.0 → 0.9 (full-metal at 1.0 over-mirrors the
+  // background) with slightly higher roughness 0.35 so the surface scatters
+  // rather than acts like a chrome ball. PVC stays matte-plaster with a touch
+  // of clearcoat (clearcoatRoughness 0.4) to evoke the factory-finish sheen
+  // without going plastic-toy glossy.
+  const metalness = family === 'aluminum' ? 0.9 : 0.05;
+  const roughness = family === 'aluminum' ? 0.35 : 0.7;
+  const clearcoat = family === 'aluminum' ? 0.15 : 0.4;
+  const clearcoatRoughness = family === 'aluminum' ? 0.5 : 0.4;
 
   // Build cumulative pane x-offsets (in metres, centred around 0).
   const innerW = w - frameThickness * 2;
@@ -346,19 +360,19 @@ function Window({
       {/* Outer frame: top + bottom + left + right slabs */}
       <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
         <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
       </mesh>
       <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
         <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
       </mesh>
       <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
         <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
       </mesh>
       <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
         <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
       </mesh>
 
       {/* Dual-color inner skin — thin slabs sitting just behind the outer
@@ -368,19 +382,19 @@ function Window({
         <group position={[0, 0, innerOffsetZ]}>
           <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
             <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
           </mesh>
           <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
             <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
           </mesh>
           <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
             <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
           </mesh>
           <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
             <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
           </mesh>
         </group>
       )}
@@ -424,7 +438,7 @@ function Window({
                 castShadow={!mobile}
               >
                 <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameThickness * 1.4]} />
-                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} />
+                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
               </mesh>
             )}
             {/* Hinges live on the frame (static axis) — outside AnimatedPane
