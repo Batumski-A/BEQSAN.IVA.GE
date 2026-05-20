@@ -1,5 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { Html } from '@react-three/drei';
+import { MathUtils } from 'three';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -90,14 +91,28 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panes]);
 
+  /**
+   * Shared cumulative pointer-move delta across the drag handler + pane
+   * click handler. When the user drags more than 5px between pointer-down
+   * and pointer-up, pane onClicks are suppressed so the model rotation
+   * doesn't accidentally toggle a sash open.
+   */
+  const dragDeltaRef = useRef(0);
+
   const onPaneClick = (paneIndex: number, opening: PaneOpeningType) => {
     if (opening === 'Fixed') return;
+    if (dragDeltaRef.current > 5) return; // user was rotating the model
     const cycleLen = opening === 'TiltAndTurn' ? 3 : 2;
     setPaneClickStates((prev) => ({
       ...prev,
       [paneIndex]: ((prev[paneIndex] ?? 0) + 1) % cycleLen,
     }));
   };
+
+  // Refs threaded into the Canvas — DragRotator (inside the Canvas) updates
+  // the worldRef rotation each pointer-move event; the cumulative delta
+  // shared with onPaneClick lives in dragDeltaRef.
+  const worldRef = useRef<Group>(null);
 
   // Respect prefers-reduced-motion — instant swap instead of spring lerp.
   const reducedMotion = useMemo(
@@ -208,37 +223,37 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
         ) : null}
 
         <Suspense fallback={null}>
-          <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
-          <Window
-            family={material?.family ?? 'aluminum'}
-            widthCm={dimensions.widthCm}
-            heightCm={dimensions.heightCm}
-            panes={panes}
-            glassById={glassById}
-            outerHex={outerHex}
-            innerHex={innerHex}
-            hasDualColor={hasDualColor}
-            accessories={accessories}
-            open={windowOpen}
-            reducedMotion={reducedMotion}
-            mobile={isMobile}
-            interactive={interactive}
-            paneClickStates={paneClickStates}
-            onPaneClick={onPaneClick}
-          />
-          <Ground />
+          {/* World group — rotated by DragRotator on pointer-move. Everything
+              inside spins together while the camera stays still, matching
+              Lasha's mockup interaction (model spins, not the camera). */}
+          <group ref={worldRef}>
+            <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
+            <Window
+              family={material?.family ?? 'aluminum'}
+              widthCm={dimensions.widthCm}
+              heightCm={dimensions.heightCm}
+              panes={panes}
+              glassById={glassById}
+              outerHex={outerHex}
+              innerHex={innerHex}
+              hasDualColor={hasDualColor}
+              accessories={accessories}
+              open={windowOpen}
+              reducedMotion={reducedMotion}
+              mobile={isMobile}
+              interactive={interactive}
+              paneClickStates={paneClickStates}
+              onPaneClick={onPaneClick}
+            />
+            <Ground />
+          </group>
         </Suspense>
 
-        <OrbitControls
-          enablePan={false}
-          enableZoom
-          minDistance={Math.max(1.5, Math.max(w, h) * 1.4)}
-          maxDistance={Math.max(6, Math.max(w, h) * 4)}
-          minPolarAngle={Math.PI / 3}
-          maxPolarAngle={Math.PI * 0.62}
-          autoRotate={!material}
-          autoRotateSpeed={0.6}
-        />
+        {/* Drag-to-rotate the world group (replaces OrbitControls). Listens
+            on the canvas DOM element directly — Y-axis (yaw) from dx, X-axis
+            (pitch) from dy, clamped to ±45°. Cumulative drag delta is shared
+            with onPaneClick so a long drag doesn't fire pane open/close. */}
+        <DragRotator targetRef={worldRef} dragDeltaRef={dragDeltaRef} />
       </Canvas>
 
       {/* HTML overlay labels (legacy wizard only — LiveStudio renders interactive
@@ -665,7 +680,7 @@ function AnimatedPane({
   //                        No breathing while held open.
   //   - open=true       →  global "open all" toggle: full pose (75° / 15° / 70% slide).
   //   - open=false      →  breathing ±12° (or 8% slide-out) with |sin(πt/3)|.
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const g = pivotRef.current;
     if (!g || rig.type === 'fixed') return;
 
@@ -715,10 +730,15 @@ function AnimatedPane({
       return;
     }
 
-    const t = 0.14;
-    g.rotation.y += (targetRotY - g.rotation.y) * t;
-    g.rotation.x += (targetRotX - g.rotation.x) * t;
-    g.position.x += (rig.pivot.x + targetTx - g.position.x) * t;
+    // Framerate-independent damping. Equivalent to Lasha's mockup formula
+    // `pivot.rotation.x += (target - pivot.rotation.x) * 10 * delta` — at 60fps
+    // that's ~0.17/frame, at 120fps half that (so the perceived duration stays
+    // the same regardless of monitor refresh rate). Clamp to 1 in case of a
+    // long frame drop so a single tick doesn't overshoot.
+    const tau = Math.min(1, 10 * delta);
+    g.rotation.y += (targetRotY - g.rotation.y) * tau;
+    g.rotation.x += (targetRotX - g.rotation.x) * tau;
+    g.position.x += (rig.pivot.x + targetTx - g.position.x) * tau;
   });
 
   void glassInset;
@@ -856,12 +876,15 @@ function CameraRig({ widthM, heightM }: { widthM: number; heightM: number }) {
     }
   }, [camera, target, heightM]);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!settled.current) return;
-    const t = 0.06;
-    camera.position.x += (target.x - camera.position.x) * t;
-    camera.position.y += (target.y - camera.position.y) * t;
-    camera.position.z += (target.z - camera.position.z) * t;
+    // Framerate-independent damping — 4*delta gives a slower ease than the
+    // sash animation (10*delta) so the camera glides rather than snaps when
+    // Step-3 dimensions change.
+    const tau = Math.min(1, 4 * delta);
+    camera.position.x += (target.x - camera.position.x) * tau;
+    camera.position.y += (target.y - camera.position.y) * tau;
+    camera.position.z += (target.z - camera.position.z) * tau;
     camera.updateProjectionMatrix();
   });
 
@@ -1199,4 +1222,82 @@ function Ground() {
       <meshPhysicalMaterial color="#131925" roughness={0.6} metalness={0.05} />
     </mesh>
   );
+}
+
+/**
+ * Drag-to-rotate handler matching Lasha's mockup interaction: the user
+ * grabs anywhere on the canvas and the world group spins under their
+ * cursor. Yaw (Y-axis) is unbounded, pitch (X-axis) clamps to ±45° so
+ * the user can't flip upside-down.
+ *
+ * Drag delta is accumulated into `dragDeltaRef` so the parent's pane
+ * onClick handler can ignore taps where the user actually meant to
+ * rotate — see ConfiguratorScene.onPaneClick.
+ *
+ * Wheel/pinch zoom is intentionally NOT implemented — CameraRig auto-fits
+ * the frame to 65% of viewport, and zooming would conflict with that on
+ * dimension change. If users ask for zoom later, attach onWheel here and
+ * adjust camera.position.z directly.
+ */
+function DragRotator({
+  targetRef,
+  dragDeltaRef,
+}: {
+  targetRef: React.RefObject<Group>;
+  dragDeltaRef: React.MutableRefObject<number>;
+}) {
+  const { gl } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const onDown = (e: PointerEvent) => {
+      isDragging = true;
+      dragDeltaRef.current = 0;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      // Capture so we still get pointermove when the cursor leaves the
+      // canvas while held down (rare but the user CAN flick beyond the
+      // edge on small mobile screens).
+      try { canvas.setPointerCapture(e.pointerId); } catch { /* not supported */ }
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      dragDeltaRef.current += Math.abs(dx) + Math.abs(dy);
+      const g = targetRef.current;
+      if (g) {
+        g.rotation.y += dx * 0.01;
+        // Pitch on X — gentler than yaw + clamped to ±π/4 (45°).
+        g.rotation.x += dy * 0.006;
+        g.rotation.x = MathUtils.clamp(g.rotation.x, -Math.PI / 4, Math.PI / 4);
+      }
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+    const onUp = (e: PointerEvent) => {
+      isDragging = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch { /* not supported */ }
+    };
+
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', onUp);
+    canvas.style.touchAction = 'none'; // disable native pan/zoom on touch
+    canvas.style.cursor = 'grab';
+
+    return () => {
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
+      canvas.style.touchAction = '';
+      canvas.style.cursor = '';
+    };
+  }, [gl, targetRef, dragDeltaRef]);
+  return null;
 }
