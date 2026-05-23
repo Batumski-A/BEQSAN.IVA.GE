@@ -243,7 +243,7 @@ function DimensionInput({
           aria-valuemax={max}
           aria-valuenow={value}
           aria-valuetext={`${value} ${unitLabel}`}
-          className="dimension-slider h-2 flex-1 cursor-ew-resize appearance-none rounded-full bg-bg-elevated"
+          className="slider-touch flex-1"
         />
         <span className="font-mono text-mono-spec uppercase tracking-wider text-fg-tertiary">
           {unitLabel}

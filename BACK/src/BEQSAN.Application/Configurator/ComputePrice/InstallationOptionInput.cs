@@ -9,4 +9,8 @@ namespace BEQSAN.Application.Configurator.ComputePrice;
 /// </summary>
 public sealed record InstallationOptionInput(
     string Region,
-    string? CityHint = null);
+    string? CityHint = null,
+    bool Dismantling = false,
+    string? DwellingType = null,
+    int Floor = 1,
+    bool HasElevator = false);

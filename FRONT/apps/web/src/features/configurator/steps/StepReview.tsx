@@ -11,6 +11,7 @@ import {
 
 import type {
   HingeSide,
+  InstallationOptionInput,
   InstallationRegion,
   PaneOpeningType,
 } from '@beqsan/api-types';
@@ -151,19 +152,17 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
         />
 
         <InstallationPicker
-          selected={installation?.region ?? null}
-          cityHint={installation?.cityHint ?? null}
-          onPick={(region) => {
-            if (region === 'Other') {
-              setInstallation({ region, cityHint: installation?.cityHint ?? null });
-            } else {
-              setInstallation({ region, cityHint: null });
-            }
-          }}
-          onCityHintChange={(hint) => {
-            if (installation?.region === 'Other') {
-              setInstallation({ region: 'Other', cityHint: hint });
-            }
+          installation={installation}
+          onChange={(patch) => {
+            const base = installation ?? {
+              region: 'Batumi',
+              cityHint: null,
+              dismantling: false,
+              dwellingType: 'apartment',
+              floor: 1,
+              hasElevator: false,
+            };
+            setInstallation({ ...base, ...patch });
           }}
         />
 
@@ -407,76 +406,227 @@ function SummarySection({
 
 // ── Installation region picker ──────────────────────────────────────────
 type InstallationPickerProps = {
-  selected: InstallationRegion | null;
-  cityHint: string | null;
-  onPick: (region: InstallationRegion) => void;
-  onCityHintChange: (hint: string) => void;
+  installation: InstallationOptionInput | null;
+  onChange: (patch: Partial<InstallationOptionInput>) => void;
 };
 
-function InstallationPicker({ selected, cityHint, onPick, onCityHintChange }: InstallationPickerProps) {
+function InstallationPicker({ installation, onChange }: InstallationPickerProps) {
   const { t } = useTranslation();
   const groupLabel = useId();
+
+  const selected = installation?.region ?? null;
+  const cityHint = installation?.cityHint ?? null;
+  const dismantling = installation?.dismantling ?? false;
+  const dwellingType = installation?.dwellingType ?? 'apartment';
+  const floor = installation?.floor ?? 1;
+  const hasElevator = installation?.hasElevator ?? false;
+
   return (
-    <section>
-      <h2 id={groupLabel} className="font-display text-h3 text-fg-primary">
-        {t('configurator.steps.review.installation.title')}
-      </h2>
-      <div
-        role="radiogroup"
-        aria-labelledby={groupLabel}
-        className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
-      >
-        {REGIONS.map((region) => {
-          const slug = region === 'KobuletiCoast' ? 'kobuletiCoast'
-            : region === 'EastGeorgia' ? 'eastGeorgia'
-            : region.charAt(0).toLowerCase() + region.slice(1);
-          const isSelected = selected === region;
-          return (
-            <button
-              key={region}
-              type="button"
-              role="radio"
-              aria-checked={isSelected}
-              onClick={() => onPick(region)}
-              className={cn(
-                'flex flex-col gap-1 rounded-sm border bg-bg-raised p-4 text-left transition-colors',
-                isSelected
-                  ? 'border-accent-amber ring-1 ring-accent-amber/30'
-                  : 'border-hairline hover:border-hairline-strong',
-              )}
-            >
-              <div className="flex items-baseline justify-between">
-                <span className="font-display text-body text-fg-primary">
-                  {t(`configurator.steps.review.installation.region.${slug}`)}
-                </span>
-                <span className={cn(
-                  'font-mono text-mono-spec uppercase tracking-wider tabular-nums',
-                  isSelected ? 'text-accent-amber' : 'text-fg-secondary',
-                )}>
-                  {t(`configurator.steps.review.installation.region.${slug}.price`,
+    <section className="space-y-6">
+      {/* Premium Info Callout */}
+      <div className="rounded-sm border border-accent-amber/20 bg-accent-amber/5 p-4">
+        <div className="flex items-center gap-2 text-accent-amber">
+          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-display text-body-sm font-semibold uppercase tracking-wider">
+            {t('configurator.steps.review.installation.banner.title')}
+          </span>
+        </div>
+        <p className="mt-2 font-mono text-caption leading-relaxed text-fg-secondary">
+          {t('configurator.steps.review.installation.banner.text')}
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <h2 id={groupLabel} className="font-display text-h3 text-fg-primary">
+          {t('configurator.steps.review.installation.title')}
+        </h2>
+        <div
+          role="radiogroup"
+          aria-labelledby={groupLabel}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        >
+          {REGIONS.map((region) => {
+            const slug = region === 'KobuletiCoast' ? 'kobuletiCoast'
+              : region === 'EastGeorgia' ? 'eastGeorgia'
+              : region.charAt(0).toLowerCase() + region.slice(1);
+            const isSelected = selected === region;
+            return (
+              <button
+                key={region}
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => onChange({ region })}
+                className={cn(
+                  'flex flex-col gap-1 rounded-sm border bg-bg-raised p-4 text-left transition-colors',
+                  isSelected
+                    ? 'border-accent-amber ring-1 ring-accent-amber/30'
+                    : 'border-hairline hover:border-hairline-strong',
+                )}
+              >
+                <div className="flex items-baseline justify-between">
+                  <span className="font-display text-body text-fg-primary">
+                    {t(`configurator.steps.review.installation.region.${slug}`)}
+                  </span>
+                  <span className={cn(
+                    'font-mono text-mono-spec uppercase tracking-wider tabular-nums',
+                    isSelected ? 'text-accent-amber' : 'text-fg-secondary',
+                  )}>
+                    {t(`configurator.steps.review.installation.region.${slug}.price`,
+                      { defaultValue: '' })}
+                  </span>
+                </div>
+                <span className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
+                  {t(`configurator.steps.review.installation.region.${slug}.cities`,
                     { defaultValue: '' })}
                 </span>
-              </div>
-              <span className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-                {t(`configurator.steps.review.installation.region.${slug}.cities`,
-                  { defaultValue: '' })}
-              </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
       {selected === 'Other' && (
-        <label className="mt-3 flex flex-col gap-2">
+        <label className="flex flex-col gap-2">
           <span className="font-mono text-mono-spec uppercase tracking-wider text-fg-secondary">
             {t('configurator.steps.review.installation.region.other.cityInput')}
           </span>
           <input
             type="text"
             value={cityHint ?? ''}
-            onChange={(e) => onCityHintChange(e.target.value)}
-            className="h-11 rounded-sm border border-hairline bg-bg-elevated px-3 font-mono text-body text-fg-primary"
+            onChange={(e) => onChange({ cityHint: e.target.value })}
+            className="h-11 rounded-sm border border-hairline bg-bg-elevated px-3 font-mono text-body text-fg-primary focus:border-accent-amber focus:outline-none"
           />
         </label>
+      )}
+
+      {selected && (
+        <div className="rounded-sm border border-hairline bg-bg-raised p-5 space-y-6">
+          {/* Work Scope Toggle */}
+          <div className="space-y-2">
+            <span className="block font-mono text-mono-spec uppercase tracking-wider text-fg-secondary">
+              {t('configurator.steps.review.installation.workScope.title')}
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onChange({ dismantling: false })}
+                className={cn(
+                  'py-3 px-4 text-center rounded-sm border font-display text-body-sm transition-all',
+                  !dismantling
+                    ? 'border-accent-amber bg-accent-amber/5 text-accent-amber'
+                    : 'border-hairline hover:border-hairline-strong text-fg-secondary',
+                )}
+              >
+                {t('configurator.steps.review.installation.workScope.installOnly')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ dismantling: true })}
+                className={cn(
+                  'py-3 px-4 text-center rounded-sm border font-display text-body-sm transition-all',
+                  dismantling
+                    ? 'border-accent-amber bg-accent-amber/5 text-accent-amber'
+                    : 'border-hairline hover:border-hairline-strong text-fg-secondary',
+                )}
+              >
+                {t('configurator.steps.review.installation.workScope.dismantlingAndInstall')}
+              </button>
+            </div>
+            <p className="font-mono text-caption text-fg-tertiary">
+              {dismantling
+                ? t('configurator.steps.review.installation.workScope.dismantlingHint')
+                : t('configurator.steps.review.installation.workScope.installOnlyHint')}
+            </p>
+          </div>
+
+          {/* Dwelling Type Selection */}
+          <div className="space-y-2">
+            <span className="block font-mono text-mono-spec uppercase tracking-wider text-fg-secondary">
+              {t('configurator.steps.review.installation.dwellingType.title')}
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onChange({ dwellingType: 'apartment' })}
+                className={cn(
+                  'py-3 px-4 text-center rounded-sm border font-display text-body-sm transition-all',
+                  dwellingType === 'apartment'
+                    ? 'border-accent-amber bg-accent-amber/5 text-accent-amber'
+                    : 'border-hairline hover:border-hairline-strong text-fg-secondary',
+                )}
+              >
+                {t('configurator.steps.review.installation.dwellingType.apartment')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ dwellingType: 'house' })}
+                className={cn(
+                  'py-3 px-4 text-center rounded-sm border font-display text-body-sm transition-all',
+                  dwellingType === 'house'
+                    ? 'border-accent-amber bg-accent-amber/5 text-accent-amber'
+                    : 'border-hairline hover:border-hairline-strong text-fg-secondary',
+                )}
+              >
+                {t('configurator.steps.review.installation.dwellingType.house')}
+              </button>
+            </div>
+          </div>
+
+          {/* Floor & Elevator Controls (only shown for apartments) */}
+          {dwellingType === 'apartment' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-hairline/50 pt-4">
+              <div className="space-y-2">
+                <label className="block font-mono text-mono-spec uppercase tracking-wider text-fg-secondary">
+                  {t('configurator.steps.review.installation.floor.title')}
+                </label>
+                <div className="relative">
+                  <select
+                    value={floor}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      onChange({ floor: val, hasElevator: val > 1 ? hasElevator : false });
+                    }}
+                    className="w-full h-11 rounded-sm border border-hairline bg-bg-elevated px-3 font-mono text-body text-fg-primary appearance-none focus:border-accent-amber focus:outline-none"
+                  >
+                    {Array.from({ length: 30 }, (_, i) => i + 1).map((f) => (
+                      <option key={f} value={f}>
+                        {t('configurator.steps.review.installation.floor.option', { n: f })}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-fg-tertiary pointer-events-none" />
+                </div>
+              </div>
+
+              {floor > 1 && (
+                <div className="flex items-end pb-2">
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={hasElevator}
+                      onChange={(e) => onChange({ hasElevator: e.target.checked })}
+                      className="h-5 w-5 rounded-sm border-hairline bg-bg-elevated text-accent-amber focus:ring-accent-amber focus:ring-opacity-25"
+                    />
+                    <span className="font-mono text-body-sm text-fg-secondary">
+                      {t('configurator.steps.review.installation.elevator.label')}
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          {dwellingType === 'apartment' && floor > 1 && (
+            <p className="font-mono text-caption text-fg-tertiary border-t border-hairline/50 pt-3">
+              {hasElevator
+                ? t('configurator.steps.review.installation.carrying.elevatorHint')
+                : t('configurator.steps.review.installation.carrying.stairsHint')}
+            </p>
+          )}
+        </div>
       )}
     </section>
   );

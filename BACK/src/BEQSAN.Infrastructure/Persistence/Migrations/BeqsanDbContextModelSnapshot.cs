@@ -17,6 +17,53 @@ namespace BEQSAN.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
 
+            modelBuilder.Entity("BEQSAN.Domain.Admin.AdminUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_owner");
+
+                    b.Property<DateTime?>("LastLoginAtUtc")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_login_at_utc");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("password_hash");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("username")
+                        .UseCollation("NOCASE");
+
+                    b.HasKey("Id")
+                        .HasName("pk_admin_users");
+
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasDatabaseName("ix_admin_users_username");
+
+                    b.ToTable("admin_users", (string)null);
+                });
+
             modelBuilder.Entity("BEQSAN.Domain.Catalog.BlindType", b =>
                 {
                     b.Property<Guid>("Id")

@@ -27,7 +27,7 @@ export function useProductTypes() {
   });
 }
 
-async function fetchProductTypeDetail(idOrSlug: string): Promise<ProductTypeDetail> {
+export async function fetchProductTypeDetail(idOrSlug: string): Promise<ProductTypeDetail> {
   const response = await api.get<ApiResponse<ProductTypeDetail>>(
     `/catalog/product-types/${encodeURIComponent(idOrSlug)}`,
   );

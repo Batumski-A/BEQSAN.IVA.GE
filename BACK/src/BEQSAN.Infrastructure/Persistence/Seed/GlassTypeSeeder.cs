@@ -9,6 +9,12 @@ namespace BEQSAN.Infrastructure.Persistence.Seed;
 /// skips inserts when a glass row with the matching slug or a compat row with
 /// the matching (material, glass) pair already exists.
 /// <para>
+/// Surcharges are tetri/m² over the material baseline. The 2026-05-19
+/// baseline (ADR-0004 + docs/research/2026-pricing-baseline.md) sits within
+/// −11% to +0% of the Georgian glass-fabricator mid (glassline.ge /
+/// glassco.ge / Şişecam Trakya dealer), per-canary-pinned to keep ADR-0002
+/// Step-5 / Step-6 / Step-7 / Step-8 canaries (₾1336.18 / ₾1424.68 /
+/// ₾2333.17 / ₾2592.77) intact.
 /// Pricing is Roman-locked at code level for Phase 1; Phase 2 promotes the
 /// surcharge rates to admin-editable rows in a PricingRule table.
 /// </para>
@@ -142,24 +148,31 @@ internal static class GlassTypeSeeder
         // Surcharge in tetri/m² above material baseline.
         // U-values are market figures for typical Black-Sea climate glazing
         // (Roman to verify against actual ALUPROF / ASAŞ datasheet).
+        // 2026-05-19 baseline: included in material/m² (Georgian default).
         yield return new("double-standard", 1, 2, 0, 2.8m, IsDefault: true,
             "ორმაგი მინა",
             "ენერგო-ეფექტური სტანდარტი, საქართველოს კლიმატისთვის სრულიად საკმარისი.");
+        // 2026-05-19 baseline: glassline.ge soft-coat Low-E mid ₾26/m², BEQSAN −4% = ₾25/m²
         yield return new("double-low-e", 2, 2, 2500, 1.6m, IsDefault: false,
             "ორმაგი Low-E",
             "თბური საფარი — ცხელი ზაფხული გარეთ, თბილი ზამთარი შიგნით.");
+        // 2026-05-19 baseline: glassline.ge triple Low-E mid ₾65/m², BEQSAN −8% = ₾60/m² (canary-pinned ₾1336.18)
         yield return new("triple-low-e", 3, 3, 6000, 1.0m, IsDefault: false,
             "სამმაგი Low-E",
             "მაქს ენერგო-ეფექტურობა — ცენტრალური გათბობის ხარჯი ნახევრდება.");
+        // 2026-05-19 baseline: regional quad Low-E dealer mid ₾125/m², BEQSAN −4% = ₾120/m²
         yield return new("quadruple-low-e", 4, 4, 12000, 0.7m, IsDefault: false,
             "ოთხმაგი Low-E",
             "ექსტრემალური თბო-იზოლაცია, მაღალმთიანი რეგიონებისთვის.");
+        // 2026-05-19 baseline: glassco.ge tempered uplift mid ₾62/m², BEQSAN −11% = ₾55/m² (canary-coupled via tempered extra)
         yield return new("tempered-double", 5, 2, 5500, 2.7m, IsDefault: false,
             "დაკაჟებული მინა",
             "გადატეხის შემთხვევაში წვრილ ნაწილებად — უსაფრთხო ბავშვებთან.");
+        // 2026-05-19 baseline: glassco.ge frosted uplift mid ₾32/m², BEQSAN −6% = ₾30/m²
         yield return new("frosted-double", 6, 2, 3000, 2.7m, IsDefault: false,
             "მქრქალი მინა",
             "კონფიდენციალურობა აბაზანებისთვის, საძინებლებისთვის.");
+        // 2026-05-19 baseline: glassco.ge tinted (sun-control) uplift mid ₾37/m², BEQSAN −5% = ₾35/m²
         yield return new("tinted-double", 7, 2, 3500, 2.5m, IsDefault: false,
             "ტონირებული მინა",
             "მზის სხივების შემცირება, სანაპირო ბინებისთვის.");

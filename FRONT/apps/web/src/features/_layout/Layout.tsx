@@ -23,6 +23,8 @@ export function Layout() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [headerHovered, setHeaderHovered] = useState(false);
   const studioRef = useRef<HTMLDivElement | null>(null);
 
   // Close on route change.
@@ -30,6 +32,20 @@ export function Layout() {
     setMobileOpen(false);
     setStudioOpen(false);
   }, [location.pathname]);
+
+  // Capture global scroll events (including container scrolls inside sub-pages)
+  useEffect(() => {
+    const handleScroll = () => {
+      const snapContainer = document.querySelector('.snap-y');
+      const scrollTop = snapContainer
+        ? snapContainer.scrollTop
+        : (window.scrollY || document.documentElement.scrollTop);
+      setScrolled(scrollTop > 20);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   // Close dropdown on outside-click / Escape.
   useEffect(() => {
@@ -53,6 +69,8 @@ export function Layout() {
     location.pathname.startsWith('/process') ||
     location.pathname.startsWith('/materials');
 
+  const isCollapsed = scrolled && !headerHovered;
+
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -62,20 +80,32 @@ export function Layout() {
         {t('nav.skipToContent')}
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-hairline bg-bg-base/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-content items-center justify-between px-4 md:px-8">
-          <div className="flex items-center gap-6 md:gap-8">
+      <header
+        onMouseEnter={() => setHeaderHovered(true)}
+        onMouseLeave={() => setHeaderHovered(false)}
+        className="sticky top-0 z-40 border-b border-hairline bg-bg-base/80 backdrop-blur-sm transition-all duration-300"
+      >
+        <div className={cn("mx-auto flex max-w-content items-center justify-between px-4 md:px-8 transition-all duration-300", isCollapsed ? "h-11" : "h-16")}>
+          <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
             <Link
               to="/"
-              className="font-display text-h4 tracking-tight text-fg-primary"
+              className={cn("font-display tracking-tight text-fg-primary transition-all duration-300", isCollapsed ? "text-lg font-bold" : "text-h4")}
               aria-label="BEQSAN"
             >
               BEQSAN
             </Link>
-            <LanguageSwitcher variant="header" />
+            <div className={cn("transition-all duration-300 origin-left", isCollapsed ? "opacity-0 pointer-events-none w-0 overflow-hidden scale-90" : "opacity-100 scale-100")}>
+              <LanguageSwitcher variant="header" />
+            </div>
           </div>
 
-          <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
+          <nav
+            className={cn(
+              "hidden items-center gap-8 md:flex transition-all duration-300 origin-center",
+              isCollapsed ? "opacity-0 pointer-events-none scale-95 w-0 overflow-hidden" : "opacity-100 scale-100"
+            )}
+            aria-label="Primary"
+          >
             <div ref={studioRef} className="relative">
               <button
                 type="button"
@@ -121,7 +151,10 @@ export function Layout() {
           <div className="flex items-center gap-3">
             <Link
               to="/configurator"
-              className="hidden h-11 items-center justify-center rounded-sm bg-accent-amber px-5 font-mono text-mono-spec uppercase tracking-wider text-bg-base transition-colors duration-120 ease-standard hover:bg-accent-amber-h active:scale-[0.98] md:inline-flex"
+              className={cn(
+                "hidden h-11 items-center justify-center rounded-sm bg-accent-amber px-5 font-mono text-mono-spec uppercase tracking-wider text-bg-base transition-all duration-300 active:scale-[0.98] md:inline-flex",
+                isCollapsed ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 hover:bg-accent-amber-h"
+              )}
             >
               {t('common.actions.configure')}
             </Link>
@@ -131,9 +164,12 @@ export function Layout() {
               aria-label={mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={mobileOpen}
               aria-controls="mobile-nav"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-hairline text-fg-primary md:hidden"
+              className={cn(
+                "inline-flex items-center justify-center rounded-sm border border-hairline text-fg-primary md:hidden transition-all duration-300",
+                isCollapsed ? "h-7 w-7" : "h-10 w-10"
+              )}
             >
-              {mobileOpen ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
+              {mobileOpen ? <X size={isCollapsed ? 12 : 18} aria-hidden /> : <Menu size={isCollapsed ? 12 : 18} aria-hidden />}
             </button>
           </div>
         </div>
@@ -141,14 +177,17 @@ export function Layout() {
         {mobileOpen ? (
           <div
             id="mobile-nav"
-            className="border-t border-hairline bg-bg-base md:hidden"
+            className={cn(
+              "absolute left-0 right-0 z-50 overflow-y-auto border-b border-hairline bg-bg-base shadow-2xl md:hidden transition-all duration-300",
+              isCollapsed ? "top-11 max-h-[calc(100dvh-2.75rem)]" : "top-16 max-h-[calc(100dvh-4rem)]"
+            )}
             role="dialog"
             aria-modal="true"
             aria-label={t('nav.studioGroupAria')}
           >
             <nav
               aria-label="Mobile primary"
-              className="mx-auto flex max-w-content flex-col gap-1 px-4 py-4"
+              className="mx-auto flex max-w-content flex-col gap-1 px-4 py-4 pb-safe"
             >
               <div className="mb-4 border-b border-hairline pb-4">
                 <LanguageSwitcher variant="drawer" />

@@ -138,5 +138,6 @@ public static class DependencyInjection
         await GlassTypeSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await ColorOptionSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
         await AccessoryCatalogSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
+        await GalleryItemSeeder.SeedAsync(ctx, ct).ConfigureAwait(false);
     }
 }

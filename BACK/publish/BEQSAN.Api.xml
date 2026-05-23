@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BEQSAN.Api</name>
+    </assembly>
+    <members>
+        <member name="T:BEQSAN.Api.Common.ApiResponse`1">
+            <summary>
+            Canonical JSON envelope for every Result&lt;T&gt;-returning endpoint.
+            Consumers (FRONT) can always rely on the same top-level shape regardless of
+            success or failure — only <see cref="P:BEQSAN.Api.Common.ApiResponse`1.IsSuccess"/>, <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Value"/>, and
+            <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Errors"/> need to be checked.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Api.Common.ApiResponse`1.#ctor(System.Boolean,`0,System.Collections.Generic.IReadOnlyList{BEQSAN.Api.Common.ApiError})">
+            <summary>
+            Canonical JSON envelope for every Result&lt;T&gt;-returning endpoint.
+            Consumers (FRONT) can always rely on the same top-level shape regardless of
+            success or failure — only <see cref="P:BEQSAN.Api.Common.ApiResponse`1.IsSuccess"/>, <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Value"/>, and
+            <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Errors"/> need to be checked.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Api.Common.ApiError">
+            <summary>
+            One error entry in <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Errors"/>. Code is machine-readable
+            English (stable across releases); Message is Georgian user-facing copy; Field is
+            the camelCased input property name when bound; Metadata carries structured context
+            the UI uses to render the error precisely (e.g. <c>{ "min": 60, "max": 140,
+            "actual": 30 }</c> for an out-of-range validation).
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Api.Common.ApiError.#ctor(System.String,System.String,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>
+            One error entry in <see cref="P:BEQSAN.Api.Common.ApiResponse`1.Errors"/>. Code is machine-readable
+            English (stable across releases); Message is Georgian user-facing copy; Field is
+            the camelCased input property name when bound; Metadata carries structured context
+            the UI uses to render the error precisely (e.g. <c>{ "min": 60, "max": 140,
+            "actual": 30 }</c> for an out-of-range validation).
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Api.Common.ResultExtensions.ToHttpResult(BEQSAN.Domain.Common.Result)">
+            <summary>
+            Maps a Result to the canonical <see cref="T:BEQSAN.Api.Common.ApiResponse`1"/> envelope.
+            HTTP status comes from <see cref="T:BEQSAN.Domain.Common.ErrorType"/> on failure; success returns 204.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Api.Common.ResultExtensions.ToHttpResult``1(BEQSAN.Domain.Common.Result{``0})">
+            <summary>
+            Maps a Result&lt;T&gt; to the canonical <see cref="T:BEQSAN.Api.Common.ApiResponse`1"/> envelope.
+            200 on success, ErrorType-mapped status on failure.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Api.Endpoints.CatalogSchemaAnchor">
+            <summary>
+            Marker for Swashbuckle so the OpenAPI doc declares the response shapes
+            even though minimal-API endpoints don't reference DTOs in their signatures
+            directly. Used purely at codegen time.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Api.Endpoints.MetaWebhookEndpoints">
+            <summary>
+            Meta webhook receiver. <c>GET</c> verifies the subscription (responds with the
+            challenge); <c>POST</c> ingests events. NOT under the admin gate — Meta hits
+            these directly. Authentication is via the <c>hub.verify_token</c> handshake
+            and the standard <c>X-Hub-Signature-256</c> HMAC, which a follow-up will add
+            once the Meta App is approved and the secret is in place.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Api.Endpoints.SocialEndpoints">
+            <summary>
+            All under <c>/api/v1/admin/social/*</c> — gated by AdminTokenAuthMiddleware.
+            Two read endpoints (<c>accounts</c>, <c>inbox</c>) and the rest write/mutate.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Api.Middleware.AdminTokenAuthMiddleware">
+            <summary>
+            Phase 0 admin gate — checks <c>X-Admin-Token</c> against
+            <c>Social:AdminToken</c> from configuration. Bypasses the public catalog and
+            configurator routes; only paths under <c>/api/v1/admin/</c> require the
+            header. Replaced by JWT-bearer auth once the auth feature ships
+            (see [docs/questions.md] entry: „admin auth: Phase 2 — proper JWT").
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Api.Middleware.AdminTokenAuthMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate,Microsoft.Extensions.Options.IOptions{BEQSAN.Infrastructure.Social.SocialOptions})">
+            <summary>
+            Phase 0 admin gate — checks <c>X-Admin-Token</c> against
+            <c>Social:AdminToken</c> from configuration. Bypasses the public catalog and
+            configurator routes; only paths under <c>/api/v1/admin/</c> require the
+            header. Replaced by JWT-bearer auth once the auth feature ships
+            (see [docs/questions.md] entry: „admin auth: Phase 2 — proper JWT").
+            </summary>
+        </member>
+    </members>
+</doc>

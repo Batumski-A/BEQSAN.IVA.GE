@@ -1,3 +1,4 @@
+using BEQSAN.Api.Common;
 using BEQSAN.Api.Endpoints;
 using BEQSAN.Api.Middleware;
 using BEQSAN.Application;
@@ -19,6 +20,8 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.Configure<AdminAuthOptions>(
+    builder.Configuration.GetSection(AdminAuthOptions.SectionName));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -95,6 +98,12 @@ if (app.Environment.IsDevelopment())
 app.MapHealthEndpoints();
 app.MapCatalogEndpoints();
 app.MapConfiguratorEndpoints();
+app.MapAdminAuthEndpoints();
+app.MapAdminCatalogEndpoints();
+app.MapOrdersEndpoints();
+app.MapAdminReportsEndpoints();
+app.MapAdminWarrantiesEndpoints();
+app.MapAdminGalleryEndpoints();
 app.MapSocialEndpoints();
 app.MapMetaWebhookEndpoints();
 

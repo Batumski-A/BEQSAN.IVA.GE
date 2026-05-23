@@ -13,6 +13,10 @@ import {
   Eye,
   EyeOff,
   LayoutGrid,
+  Ruler,
+  Columns3,
+  X,
+  Building2,
 } from 'lucide-react';
 import type { ConfigurationPaneInput, HingeSide, PaneOpeningType } from '@beqsan/api-types';
 
@@ -27,7 +31,7 @@ const Scene = lazy(() =>
 );
 
 type ViewMode = '3d' | '2d' | 'preview';
-type ProductSlug = 'window' | 'door' | 'sliding' | 'panoramic' | 'balcony';
+type ProductSlug = 'window' | 'door' | 'sliding' | 'panoramic' | 'balcony' | 'veranda';
 type MaterialKey = 'alumil' | 'rehau';
 
 /** Demo's opening dictionary mapped to the BEQSAN PaneOpeningType + HingeSide. */
@@ -69,6 +73,10 @@ type Template = {
   sections: number;
   ratios: number[];
   openings: OpeningKey[];
+  /** Per-pane transom flag — same arity as openings. Default = all false. */
+  transoms?: boolean[];
+  /** Per-pane transom opening — required when transoms[i] is true. */
+  transomOpenings?: OpeningKey[];
 };
 
 const TEMPLATES: ReadonlyArray<Template> = [
@@ -112,12 +120,25 @@ const TEMPLATES: ReadonlyArray<Template> = [
     ratios: [0.25, 0.25, 0.25, 0.25],
     openings: ['fixed', 'tilt-turn-left', 'tilt-turn-right', 'fixed'],
   },
+  {
+    id: 't-transom',
+    labelKey: 'studio.templates.transom',
+    productSlug: 'window',
+    widthCm: 180,
+    heightCm: 260,
+    sections: 2,
+    ratios: [0.5, 0.5],
+    openings: ['turn-left', 'turn-right'],
+    transoms: [true, true],
+    transomOpenings: ['tilt', 'tilt'],
+  },
 ];
 
 const PRODUCT_LIST: ReadonlyArray<{ slug: ProductSlug; labelKey: string; icon: typeof Square }> = [
   { slug: 'window', labelKey: 'studio.products.window', icon: Square },
   { slug: 'door', labelKey: 'studio.products.door', icon: DoorOpen },
   { slug: 'sliding', labelKey: 'studio.products.sliding', icon: GalleryHorizontal },
+  { slug: 'veranda', labelKey: 'studio.products.veranda', icon: Building2 },
   { slug: 'panoramic', labelKey: 'studio.products.panoramic', icon: PanelsTopLeft },
   { slug: 'balcony', labelKey: 'studio.products.balcony', icon: LayoutGrid },
 ];
@@ -129,6 +150,11 @@ const MATERIAL_SLUG_BY_PRODUCT: Record<ProductSlug, Record<MaterialKey, string>>
   sliding: { alumil: 'aluminum-thermal', rehau: 'pvc-white' },
   panoramic: { alumil: 'aluminum-thermal', rehau: 'pvc-white' },
   balcony: { alumil: 'aluminum-thermal', rehau: 'pvc-white' },
+  // Veranda has only aluminum materials in the seeder; the 'rehau' key
+  // falls back to the high-thermal alu so the user can pick a premium
+  // tier via the same toggle. PVC veranda gets added later if Roman
+  // wants the option.
+  veranda: { alumil: 'aluminum-thermal', rehau: 'aluminum-high-thermal' },
 };
 
 /** Two-decimal Georgian price formatting: `1 234 ₾`. */
@@ -136,11 +162,35 @@ function formatGel(amount: number): string {
   return new Intl.NumberFormat('ka-GE', { maximumFractionDigits: 0 }).format(amount);
 }
 
+type MobileSheet = 'product' | 'templates' | 'profile' | 'params' | 'distribution' | null;
+
+export type BackgroundPreset = 'dark' | 'studio' | 'warm';
+
 export default function LiveStudio() {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [orderOpen, setOrderOpen] = useState(false);
   const [materialKey, setMaterialKey] = useState<MaterialKey>('alumil');
+  const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
+  const [bgPreset, setBgPreset] = useState<BackgroundPreset>('dark');
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => {
+      const matches = mq.matches;
+      setIsMobile(matches);
+      if (matches) {
+        setMobileSheet((prev) => (prev === null ? 'product' : prev));
+      }
+    };
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   // Store reads
   const productType = useConfiguratorStore((s) => s.productType);
@@ -154,6 +204,8 @@ export default function LiveStudio() {
   const setPaneOpening = useConfiguratorStore((s) => s.setPaneOpening);
   const setPaneHinge = useConfiguratorStore((s) => s.setPaneHinge);
   const setPaneRatios = useConfiguratorStore((s) => s.setPaneRatios);
+  const setPaneTransom = useConfiguratorStore((s) => s.setPaneTransom);
+  const setPaneTransomOpening = useConfiguratorStore((s) => s.setPaneTransomOpening);
 
   // Catalog
   const productTypesQuery = useProductTypes();
@@ -261,6 +313,17 @@ export default function LiveStudio() {
         store.setPaneOpening(i + 1, mapped.openingType);
         store.setPaneHinge(i + 1, mapped.hingeSide);
       }
+      // Apply transom (Step 9) — opt-in per pane. Reset to false on
+      // panes the template doesn't mark so swapping templates clears
+      // stale transoms.
+      for (let i = 0; i < tpl.sections; i++) {
+        const wantsTransom = tpl.transoms?.[i] === true;
+        store.setPaneTransom(i + 1, wantsTransom);
+        if (wantsTransom && tpl.transomOpenings?.[i]) {
+          const mapped = OPENING_TO_STORE[tpl.transomOpenings[i]!];
+          store.setPaneTransomOpening(i + 1, mapped.openingType, mapped.hingeSide);
+        }
+      }
     })();
   };
 
@@ -281,6 +344,15 @@ export default function LiveStudio() {
     const mapped = OPENING_TO_STORE[key];
     setPaneOpening(paneIndex + 1, mapped.openingType);
     setPaneHinge(paneIndex + 1, mapped.hingeSide);
+  };
+
+  const onTogglePaneTransom = (paneIndex: number, next: boolean) => {
+    setPaneTransom(paneIndex + 1, next);
+  };
+
+  const onSetPaneTransomOpening = (paneIndex: number, key: OpeningKey) => {
+    const mapped = OPENING_TO_STORE[key];
+    setPaneTransomOpening(paneIndex + 1, mapped.openingType, mapped.hingeSide);
   };
 
   const price = priceQuery.data?.totalMinor != null ? priceQuery.data.totalMinor / 100 : null;
@@ -329,8 +401,9 @@ export default function LiveStudio() {
         onWidthChange: (cm: number) => setDimensions({ widthCm: cm }),
         onHeightChange: (cm: number) => setDimensions({ heightCm: cm }),
       },
+      background: bgPreset,
     };
-  }, [showPanels, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge]);
+  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, bgPreset]);
 
   return (
     <>
@@ -339,7 +412,7 @@ export default function LiveStudio() {
         <meta name="description" content={t('studio.metaDescription')} />
       </Helmet>
 
-      <div className="relative h-screen w-full overflow-hidden bg-studio-ink font-studio">
+      <div className="relative h-full w-full overflow-hidden bg-studio-ink font-studio">
         {/* Live preview canvas — 3D or 2D blueprint */}
         <div className="absolute inset-0">
           {viewMode === '2d' ? (
@@ -348,7 +421,7 @@ export default function LiveStudio() {
             </div>
           ) : (
             <Suspense fallback={null}>
-              <Scene interactive={sceneInteractive} />
+              <Scene interactive={sceneInteractive} isStudio={true} background={bgPreset} />
             </Suspense>
           )}
         </div>
@@ -357,7 +430,7 @@ export default function LiveStudio() {
         {showPanels ? (
           <Link
             to="/"
-            className="absolute left-6 top-6 z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-3 text-studio-fg-inv-mute shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3"
+            className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-2.5 text-studio-fg-inv-mute shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 md:left-6 md:top-6 md:p-3"
             aria-label={t('studio.nav.back')}
           >
             <ArrowLeft className="h-5 w-5" aria-hidden />
@@ -367,15 +440,56 @@ export default function LiveStudio() {
           <button
             type="button"
             onClick={() => setViewMode('3d')}
-            className="absolute left-6 top-6 z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/60 p-3 text-studio-fg-inv-soft shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3"
+            className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/60 p-2.5 text-studio-fg-inv-soft shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 md:left-6 md:top-6 md:p-3"
             aria-label={t('studio.viewMode.exitPreview')}
           >
             <Eye className="h-5 w-5" aria-hidden />
           </button>
         )}
 
-        {/* Top-right: view mode toggle + price chip */}
-        <div className="absolute right-6 top-6 z-40 flex items-center gap-3">
+        {/* 3D interaction helper — anchored just above the bottom edge of
+            the canvas, centered. Desktop-only (mobile toolbar covers the
+            bottom). Visible only in 3D mode. */}
+        {showPanels && viewMode === '3d' ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 hidden justify-center md:flex">
+            <div className="inline-flex items-center gap-2 rounded-full border border-studio-ink-3 bg-studio-ink-2/80 px-4 py-2 text-xs text-studio-fg-inv-soft shadow-lg backdrop-blur-md">
+              <span aria-hidden>👆</span>
+              <span>{t('studio.scene.clickGlassHint')}</span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Top-center: background preset swatches — desktop only, 3D mode only */}
+        {showPanels && viewMode === '3d' ? (
+          <div className="absolute left-1/2 top-4 z-30 hidden -translate-x-1/2 items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-1 shadow-lg backdrop-blur-md md:flex md:top-6">
+            {(['dark', 'studio', 'warm'] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setBgPreset(preset)}
+                aria-label={t(`studio.background.${preset}`)}
+                title={t(`studio.background.${preset}`)}
+                className={cn(
+                  'h-7 w-7 rounded-lg border transition-all',
+                  bgPreset === preset
+                    ? 'border-studio-brand ring-1 ring-studio-brand'
+                    : 'border-studio-ink-3 hover:border-studio-fg-inv-mute',
+                )}
+                style={{
+                  background:
+                    preset === 'studio'
+                      ? '#E8ECF2'
+                      : preset === 'warm'
+                        ? '#2A1F18'
+                        : '#0B1220',
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {/* Top-right: view mode toggle + price chip (price hidden on mobile, lives in bottom bar) */}
+        <div className="absolute right-[calc(1rem+env(safe-area-inset-right,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-40 flex items-center gap-3 md:right-6 md:top-6">
           <div className="flex rounded-xl border border-studio-ink-3 bg-studio-ink-2/90 p-1 shadow-xl backdrop-blur-md">
             <ViewToggle
               active={viewMode === '3d'}
@@ -398,7 +512,7 @@ export default function LiveStudio() {
           </div>
 
           {showPanels ? (
-            <div className="flex items-center rounded-2xl border border-studio-ink-3 bg-studio-ink/90 p-2 pl-6 shadow-2xl backdrop-blur-xl">
+            <div className="hidden items-center rounded-2xl border border-studio-ink-3 bg-studio-ink/90 p-2 pl-6 shadow-2xl backdrop-blur-xl md:flex">
               <div className="mr-6">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
                   {t('studio.price.eyebrow')}
@@ -419,9 +533,9 @@ export default function LiveStudio() {
           ) : null}
         </div>
 
-        {/* Left panel: product / templates / material */}
+        {/* Left panel: product / templates / material — desktop only */}
         {showPanels ? (
-          <aside className="absolute left-6 top-24 z-30 flex max-h-[calc(100vh-8rem)] w-72 flex-col gap-4 overflow-y-auto pb-10">
+          <aside className="absolute left-6 top-24 z-30 hidden max-h-[calc(100vh-8rem)] w-72 flex-col gap-4 overflow-y-auto pb-10 md:flex">
             <Panel label={t('studio.panel.product')}>
               <div className="grid grid-cols-2 gap-2">
                 {PRODUCT_LIST.map((p) => {
@@ -481,9 +595,9 @@ export default function LiveStudio() {
           </aside>
         ) : null}
 
-        {/* Right panel: parameters / sections */}
+        {/* Right panel: parameters / sections — desktop only */}
         {showPanels ? (
-          <aside className="absolute right-6 top-24 z-30 flex max-h-[calc(100vh-8rem)] w-80 flex-col gap-4 overflow-y-auto pb-10">
+          <aside className="absolute right-6 top-24 z-30 hidden max-h-[calc(100vh-8rem)] w-80 flex-col gap-4 overflow-y-auto pb-10 md:flex">
             <Panel label={t('studio.panel.parameters')}>
               <div className="space-y-4">
                 <DimensionSlider
@@ -522,7 +636,7 @@ export default function LiveStudio() {
                     max={80}
                     value={Math.round((panes[0]?.widthRatio ?? 0.5) * 100)}
                     onChange={(e) => onSetWeightLR(parseInt(e.target.value, 10))}
-                    className="mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-studio-ink-3 accent-studio-brand"
+                    className="mb-2 slider-touch w-full"
                   />
                   <div className="flex justify-between font-mono text-xs font-bold tabular-nums text-studio-brand-soft">
                     <span>{Math.round((panes[0]?.widthRatio ?? 0.5) * dimensions.widthCm)}{t('common.units.cm')}</span>
@@ -565,8 +679,275 @@ export default function LiveStudio() {
                   ))}
                 </div>
               </div>
+
+              {selectedProductSlug !== 'sliding' && selectedProductSlug !== 'panoramic' ? (
+                <TransomGroup
+                  panes={panes}
+                  onToggle={onTogglePaneTransom}
+                  onChange={onSetPaneTransomOpening}
+                />
+              ) : null}
             </Panel>
           </aside>
+        ) : null}
+
+        {/* Mobile bottom toolbar — price + CTA + section tabs (md and below) */}
+        {showPanels ? (
+          <div className="fixed inset-x-0 bottom-0 z-30 md:hidden">
+            {/* Price + Order CTA */}
+            <div className="flex items-center justify-between border-t border-studio-ink-3 bg-studio-ink/95 px-4 py-3 backdrop-blur-xl">
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+                  {t('studio.price.eyebrow')}
+                </p>
+                <p className="mt-0.5 text-xl font-bold leading-none tabular-nums text-white">
+                  {isLoadingPrice && price === null ? '—' : price !== null ? formatGel(price) : '—'}
+                  <span className="ml-1 text-xs text-studio-fg-inv-soft">₾</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOrderOpen(true)}
+                className="rounded-xl bg-studio-brand px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-colors hover:bg-studio-brand-h"
+              >
+                {t('studio.price.cta')}
+              </button>
+            </div>
+
+            {/* Section tabs */}
+            <div className="flex border-t border-studio-ink-3 bg-studio-ink-2/95 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] backdrop-blur-xl">
+              <MobileTab
+                icon={<Square className="h-4 w-4" aria-hidden />}
+                label={t('studio.panel.product')}
+                onClick={() => setMobileSheet('product')}
+                active={mobileSheet === 'product'}
+              />
+              <MobileTab
+                icon={<LayoutGrid className="h-4 w-4" aria-hidden />}
+                label={t('studio.panel.templates')}
+                onClick={() => setMobileSheet('templates')}
+                active={mobileSheet === 'templates'}
+              />
+              <MobileTab
+                icon={<PanelsTopLeft className="h-4 w-4" aria-hidden />}
+                label={t('studio.panel.profile')}
+                onClick={() => setMobileSheet('profile')}
+                active={mobileSheet === 'profile'}
+              />
+              <MobileTab
+                icon={<Ruler className="h-4 w-4" aria-hidden />}
+                label={t('studio.panel.parameters')}
+                onClick={() => setMobileSheet('params')}
+                active={mobileSheet === 'params'}
+              />
+              <MobileTab
+                icon={<Columns3 className="h-4 w-4" aria-hidden />}
+                label={t('studio.panel.distribution')}
+                onClick={() => setMobileSheet('distribution')}
+                active={mobileSheet === 'distribution'}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {/* Mobile slide-up sheet */}
+        {showPanels ? (
+          <div
+            className={cn(
+              'fixed inset-0 z-50 transition-opacity duration-200 md:hidden',
+              mobileSheet !== null ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+            )}
+            aria-hidden={mobileSheet === null}
+          >
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setMobileSheet(null)}
+            />
+            <div
+              className={cn(
+                'absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-3xl border-t border-studio-ink-3 bg-studio-ink-2 shadow-2xl transition-transform duration-300 ease-out',
+                mobileSheet !== null ? 'translate-y-0' : 'translate-y-full',
+              )}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-studio-ink-3 bg-studio-ink-2/95 px-5 py-3 backdrop-blur-md">
+                <div className="absolute left-1/2 top-1.5 h-1 w-10 -translate-x-1/2 rounded-full bg-studio-ink-3" aria-hidden />
+                <h3 className="pt-1 text-sm font-bold uppercase tracking-wider text-white">
+                  {mobileSheet === 'product' ? t('studio.panel.product')
+                    : mobileSheet === 'templates' ? t('studio.panel.templates')
+                    : mobileSheet === 'profile' ? t('studio.panel.profile')
+                    : mobileSheet === 'params' ? t('studio.panel.parameters')
+                    : mobileSheet === 'distribution' ? t('studio.panel.distribution')
+                    : ''}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setMobileSheet(null)}
+                  aria-label={t('studio.order.close')}
+                  className="rounded-lg p-1.5 text-studio-fg-inv-mute transition-colors hover:bg-studio-ink-3 hover:text-white"
+                >
+                  <X className="h-5 w-5" aria-hidden />
+                </button>
+              </div>
+
+              <div className="px-5 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+                {mobileSheet === 'product' ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {PRODUCT_LIST.map((p) => {
+                      const Icon = p.icon;
+                      const active = selectedProductSlug === p.slug;
+                      return (
+                        <button
+                          key={p.slug}
+                          type="button"
+                          onClick={() => {
+                            onPickProduct(p.slug);
+                            setMobileSheet(null);
+                          }}
+                          className={cn(
+                            'flex flex-col items-center justify-center rounded-xl border p-4 transition-all',
+                            active
+                              ? 'border-studio-brand bg-studio-brand text-white'
+                              : 'border-studio-ink-3 bg-studio-ink/50 text-studio-fg-inv-mute hover:bg-studio-ink-3',
+                          )}
+                        >
+                          <Icon className="h-6 w-6" aria-hidden />
+                          <span className="mt-2 text-xs font-medium">{t(p.labelKey)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {mobileSheet === 'templates' ? (
+                  <div className="flex flex-col gap-2">
+                    {TEMPLATES.map((tpl) => (
+                      <button
+                        key={tpl.id}
+                        type="button"
+                        onClick={() => {
+                          onApplyTemplate(tpl);
+                          setMobileSheet(null);
+                        }}
+                        className="rounded-lg border border-studio-ink-3 bg-studio-ink/50 px-4 py-3 text-left text-sm font-medium text-studio-fg-inv-mute transition-colors hover:bg-studio-ink-3 hover:text-white"
+                      >
+                        {t(tpl.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                {mobileSheet === 'profile' ? (
+                  <div className="flex flex-col gap-2">
+                    <ProfileChoice
+                      active={materialKey === 'alumil'}
+                      onClick={() => setMaterialKey('alumil')}
+                      title={t('studio.profile.alumil.title')}
+                      sub={t('studio.profile.alumil.sub')}
+                    />
+                    <ProfileChoice
+                      active={materialKey === 'rehau'}
+                      onClick={() => setMaterialKey('rehau')}
+                      title={t('studio.profile.rehau.title')}
+                      sub={t('studio.profile.rehau.sub')}
+                    />
+                  </div>
+                ) : null}
+
+                {mobileSheet === 'params' ? (
+                  <div className="space-y-5">
+                    <DimensionSlider
+                      label={t('studio.params.width')}
+                      value={dimensions.widthCm}
+                      min={productType?.constraints.minWidthCm ?? 50}
+                      max={productType?.constraints.maxWidthCm ?? 400}
+                      onChange={(v) => setDimensions({ widthCm: v })}
+                    />
+                    <DimensionSlider
+                      label={t('studio.params.height')}
+                      value={dimensions.heightCm}
+                      min={productType?.constraints.minHeightCm ?? 50}
+                      max={productType?.constraints.maxHeightCm ?? 400}
+                      onChange={(v) => setDimensions({ heightCm: v })}
+                    />
+                  </div>
+                ) : null}
+
+                {mobileSheet === 'distribution' ? (
+                  <div>
+                    <SectionsControl
+                      count={panes.length}
+                      onChange={onSetSections}
+                      max={paneMaxFor(selectedProductSlug)}
+                    />
+
+                    {panes.length === 2 ? (
+                      <div className="mt-5 rounded-xl border border-studio-ink-3/60 bg-studio-ink/40 p-3">
+                        <div className="mb-2 flex justify-between text-xs text-studio-fg-inv-soft">
+                          <span>{t('studio.params.left')}</span>
+                          <span>{t('studio.params.right')}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={20}
+                          max={80}
+                          value={Math.round((panes[0]?.widthRatio ?? 0.5) * 100)}
+                          onChange={(e) => onSetWeightLR(parseInt(e.target.value, 10))}
+                          className="mb-2 slider-touch w-full"
+                        />
+                        <div className="flex justify-between font-mono text-xs font-bold tabular-nums text-studio-brand-soft">
+                          <span>{Math.round((panes[0]?.widthRatio ?? 0.5) * dimensions.widthCm)}{t('common.units.cm')}</span>
+                          <span>{Math.round((panes[1]?.widthRatio ?? 0.5) * dimensions.widthCm)}{t('common.units.cm')}</span>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {panes.length === 3 ? (
+                      <div className="mt-5 rounded-xl border border-studio-ink-3/60 bg-studio-ink/40 p-3">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+                          {t('studio.params.proportions')}
+                        </p>
+                        <div className="grid gap-2">
+                          <PresetChip
+                            active={Math.abs((panes[0]?.widthRatio ?? 0) - 1 / 3) < 0.02}
+                            onClick={() => onSetThreeWeights('equal')}
+                            label={t('studio.params.equal3')}
+                          />
+                          <PresetChip
+                            active={Math.abs((panes[1]?.widthRatio ?? 0) - 0.5) < 0.02}
+                            onClick={() => onSetThreeWeights('wide-middle')}
+                            label={t('studio.params.wideMiddle')}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-5">
+                      <p className="mb-2 text-xs text-studio-fg-inv-mute">{t('studio.params.openings')}</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {panes.map((p, i) => (
+                          <PaneOpeningRow
+                            key={p.position}
+                            index={i}
+                            pane={p}
+                            onChange={(key) => onSetPaneOpening(i, key)}
+                            productSlug={selectedProductSlug}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedProductSlug !== 'sliding' && selectedProductSlug !== 'panoramic' ? (
+                      <TransomGroup
+                        panes={panes}
+                        onToggle={onTogglePaneTransom}
+                        onChange={onSetPaneTransomOpening}
+                      />
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {/* Order overlay */}
@@ -605,6 +986,9 @@ function paneMaxFor(slug: ProductSlug): number {
       return 6;
     case 'balcony':
       return 4;
+    case 'veranda':
+      // 3 panes minimum (one per wall) up to 9 (3 per wall, U-shape).
+      return 9;
     case 'window':
     default:
       return 4;
@@ -686,7 +1070,7 @@ function DimensionSlider({ label, value, min, max, onChange }: DimensionSliderPr
         max={max}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-studio-ink-3 accent-studio-brand"
+        className="slider-touch w-full"
       />
     </div>
   );
@@ -760,13 +1144,37 @@ function ViewToggle({ active, onClick, label, icon }: ViewToggleProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       className={cn(
-        'flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-colors',
+        'flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold transition-colors md:px-3',
         active ? 'bg-studio-brand text-white' : 'text-studio-fg-inv-mute hover:text-white',
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className="hidden md:inline">{label}</span>
+    </button>
+  );
+}
+
+type MobileTabProps = {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+};
+
+function MobileTab({ icon, label, onClick, active }: MobileTabProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex flex-1 flex-col items-center justify-center gap-1 py-2.5 transition-colors hover:bg-studio-ink-3 active:bg-studio-ink-3',
+        active ? 'bg-studio-ink-3/40 font-semibold text-studio-brand' : 'text-studio-fg-inv-mute',
+      )}
+    >
+      {icon}
+      <span className="max-w-full truncate text-[9px] font-medium leading-none">{label}</span>
     </button>
   );
 }
@@ -827,6 +1235,82 @@ function PaneOpeningRow({ index, pane, onChange, productSlug }: PaneOpeningRowPr
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+type TransomGroupProps = {
+  panes: ConfigurationPaneInput[];
+  onToggle: (paneIndex: number, next: boolean) => void;
+  onChange: (paneIndex: number, key: OpeningKey) => void;
+};
+
+/**
+ * Separate "ზედა ფრამუგა (სექციებზე)" section block, matching the Gemini
+ * Canvas mockup. Each section gets a toggle button; when active, a
+ * dropdown for the transom sash's opening shows underneath.
+ */
+function TransomGroup({ panes, onToggle, onChange }: TransomGroupProps) {
+  const { t } = useTranslation();
+  const transomOptions: ReadonlyArray<{ key: OpeningKey; labelKey: string }> = [
+    { key: 'fixed', labelKey: 'studio.opening.fixed' },
+    { key: 'tilt', labelKey: 'studio.opening.tilt' },
+    { key: 'turn-left', labelKey: 'studio.opening.turnLeft' },
+    { key: 'turn-right', labelKey: 'studio.opening.turnRight' },
+  ];
+
+  return (
+    <div className="mt-5 rounded-xl border border-studio-ink-3/60 bg-studio-ink/40 p-3">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+        {t('studio.params.transomGroup')}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        {panes.map((p, i) => (
+          <button
+            key={p.position}
+            type="button"
+            onClick={() => onToggle(i, p.hasTransom !== true)}
+            className={cn(
+              'flex items-center justify-between rounded-md border px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors',
+              p.hasTransom
+                ? 'border-studio-brand bg-studio-brand/20 text-studio-brand-soft'
+                : 'border-studio-ink-3 bg-studio-ink-2 text-studio-fg-inv-mute hover:bg-studio-ink-3',
+            )}
+          >
+            <span>{t('studio.params.paneN', { n: i + 1 })}</span>
+            <span aria-hidden>{p.hasTransom ? '✓' : '+'}</span>
+          </button>
+        ))}
+      </div>
+      {panes.some((p) => p.hasTransom) ? (
+        <div className="mt-3 space-y-2">
+          {panes.map((p, i) => {
+            if (!p.hasTransom) return null;
+            const current = storeToOpeningKey(
+              (p.transomOpeningType ?? 'Fixed') as PaneOpeningType,
+              (p.transomHingeSide ?? null) as HingeSide | null,
+            );
+            return (
+              <div key={`transom-${p.position}`} className="rounded-md border border-studio-ink-3/60 bg-studio-ink-2 p-2">
+                <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+                  {t('studio.params.paneN', { n: i + 1 })}
+                </p>
+                <select
+                  value={current}
+                  onChange={(e) => onChange(i, e.target.value as OpeningKey)}
+                  className="w-full rounded-md border border-studio-ink-3 bg-studio-ink px-2 py-1.5 text-xs font-medium text-studio-fg-inv-mute outline-none focus:border-studio-brand"
+                >
+                  {transomOptions.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {t(o.labelKey)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

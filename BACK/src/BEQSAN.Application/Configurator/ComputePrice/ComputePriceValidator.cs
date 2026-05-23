@@ -90,6 +90,25 @@ internal sealed class ComputePriceValidator : AbstractValidator<ComputePriceComm
             RuleFor(p => p.GlassExtras)
                 .Must(extras => extras is null || extras.Distinct(StringComparer.Ordinal).Count() == extras.Count)
                 .WithMessage("მინის დანამატები უნდა იყოს უნიკალური.");
+
+            // Transom (Step 9) — when HasTransom=true the optional opening
+            // type / hinge follow the same allow-lists. Height ratio stays
+            // in [0.15, 0.5] so the split looks like a transom, not a half-
+            // height window.
+            RuleFor(p => p.TransomOpeningType!)
+                .Must(ValidOpenings.Contains)
+                .When(p => p.HasTransom && p.TransomOpeningType is not null)
+                .WithMessage("ფრამუგის გასაღების ტიპი არასწორია.");
+
+            RuleFor(p => p.TransomHingeSide!)
+                .Must(ValidHinges.Contains)
+                .When(p => p.HasTransom && p.TransomHingeSide is not null)
+                .WithMessage("ფრამუგის მენტეშის მხარე არასწორია.");
+
+            RuleFor(p => p.TransomHeightRatio)
+                .InclusiveBetween(0.15m, 0.5m)
+                .When(p => p.HasTransom)
+                .WithMessage("ფრამუგის სიმაღლე უნდა იყოს 15%-50% შორის.");
         }
     }
 }

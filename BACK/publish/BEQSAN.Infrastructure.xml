@@ -1,0 +1,293 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BEQSAN.Infrastructure</name>
+    </assembly>
+    <members>
+        <member name="T:BEQSAN.Infrastructure.Catalog.HandleStyleDapperReader">
+            <summary>
+            Dapper readers for the Step-7 accessory catalogs. Same pattern as the
+            glass / color readers — list-by-parent for the public endpoints,
+            load-all + load-compat for the AccessoryCatalog bag the pricing
+            pipeline uses.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Catalog.HandleStyleDapperReader.#ctor(BEQSAN.Application.Common.Abstractions.IDbConnectionFactory)">
+            <summary>
+            Dapper readers for the Step-7 accessory catalogs. Same pattern as the
+            glass / color readers — list-by-parent for the public endpoints,
+            load-all + load-compat for the AccessoryCatalog bag the pricing
+            pipeline uses.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.DependencyInjection.InitializeDatabaseAsync(System.IServiceProvider,System.Threading.CancellationToken)">
+            <summary>
+            Ensures the SQLite database file directory exists, applies migrations
+            (or creates the schema from the model if none exist yet), and seeds
+            idempotent reference data. Safe to call repeatedly.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Configurations.HandleStyleConfiguration">
+            <summary>
+            EF Core configurations for the three Step-7 accessory catalog
+            entities. Same JSON-into-TEXT pattern for LocalizedText as the earlier
+            catalogs; enum stored as int for compactness; same slug-unique +
+            active+sort_order index pair.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.InitialCatalog">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.InitialCatalog.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.InitialCatalog.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.InitialCatalog.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddMaterials">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddMaterials.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddMaterials.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddMaterials.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddDimensionConstraints">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddDimensionConstraints.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddDimensionConstraints.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddDimensionConstraints.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddGlassTypes">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddGlassTypes.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddGlassTypes.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddColorOptions">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddColorOptions.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddColorOptions.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddAccessoryCatalog">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddAccessoryCatalog.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddAccessoryCatalog.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddDeliveryTerms">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddDeliveryTerms.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddDeliveryTerms.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Migrations.AddSocialModule">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddSocialModule.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Migrations.AddSocialModule.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Seed.AccessoryCatalogSeeder">
+            <summary>
+            Seeds the Phase-1 accessory catalog (12 rows: 4 handle styles + 4 lock
+            types + 4 blind types) and the three compatibility meshes. Idempotent —
+            skips by slug for catalog rows, by composite pair for compat rows.
+            <para>
+            2026-05-19 baseline (ADR-0004 + docs/research/2026-pricing-baseline.md):
+            handles benchmarked against Hoppe Atlanta retail (maniglieria.com €3.10
+            aluminum → €12.50 brass + Georgian import + workshop markup); locks
+            against Roto/Maco multi-point catalog + Georgian smart-lock retailers;
+            blinds against dio.ge / winsome.ge Tbilisi catalog. Canary-pinned rows
+            (modern-aluminum handle, multi-point-3 lock, external-aluminum-electric
+            blind, sill ₾8000/m) kept verbatim because they're already within ±10%
+            of the Georgian market mid.
+            </para>
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Seed.ColorOptionSeeder">
+            <summary>
+            Seeds the Phase-1 color catalog (14 rows) + the material-compatibility
+            mesh. Idempotent — skips by slug for color rows and by (material, color)
+            pair for compat rows. UUIDv5-style deterministic ids keep rebuilds stable.
+            <para>
+            Per ADR-0002 amendment 2026-05-18: surcharges are flat per order
+            (Roman-locked), not per m². Phase-2 promotes the rates to a
+            PricingRule entity. 2026-05-19 (ADR-0004) baseline confirmed the
+            existing tetri values are congruent with the larsonshutter.com
+            "premium RAL +10–15%" industry rule and gns.ge color-tier deltas
+            (anthracite/black/wine = ₾75 flat, bronze = ₾90, wood laminates = ₾180,
+            mahogany dark = ₾210, custom RAL palette = ₾250).
+            </para>
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Seed.ColorOptionSeeder.CompatibleColorSlugs(System.String)">
+            <summary>
+            Which color slugs each material allows. Wood laminates are exclusive
+            to pvc-laminated; pvc-white sticks to neutrals; aluminum-high-thermal
+            gets the full premium palette.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Seed.GlassTypeSeeder">
+            <summary>
+            Seeds the 7 glass packages + the material-compatibility mesh. Idempotent —
+            skips inserts when a glass row with the matching slug or a compat row with
+            the matching (material, glass) pair already exists.
+            <para>
+            Surcharges are tetri/m² over the material baseline. The 2026-05-19
+            baseline (ADR-0004 + docs/research/2026-pricing-baseline.md) sits within
+            −11% to +0% of the Georgian glass-fabricator mid (glassline.ge /
+            glassco.ge / Şişecam Trakya dealer), per-canary-pinned to keep ADR-0002
+            Step-5 / Step-6 / Step-7 / Step-8 canaries (₾1336.18 / ₾1424.68 /
+            ₾2333.17 / ₾2592.77) intact.
+            Pricing is Roman-locked at code level for Phase 1; Phase 2 promotes the
+            surcharge rates to admin-editable rows in a PricingRule table.
+            </para>
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Persistence.Seed.GlassTypeSeeder.CompatibleGlassSlugs(System.String)">
+            <summary>
+            Which glass slugs each material allows. Quadruple-Low-E is heavy and
+            only offered with aluminum-thermal / -high-thermal profiles. PVC tops
+            out at triple-Low-E for the laminated tier; white PVC stops at double
+            since the thinner profile can't carry triple weight reliably.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Seed.MaterialSeeder">
+            <summary>
+            Idempotent seed of the 13 initial materials across the 5 product types.
+            Prices in tetri (₾×100) are the 2026-05-19 BEQSAN baseline ratified in
+            ADR-0004 (see docs/adr/0004-pricing-baseline-2026.md + the research
+            note docs/research/2026-pricing-baseline.md). The baseline is set 5–10%
+            above the Georgian competitor mid (window.ge / gns.ge / alu.ge /
+            fanjrebi.ge / exclusive-geo.ge) to reflect direct-workshop positioning,
+            German hardware standard, and the 10-year warranty.
+            Aluminum rows stayed at the canary-pinned values because they were
+            already congruent with the market mid; PVC rows lifted ~13% to align
+            with Rehau Synego entry-tier reality.
+            Skips inserts when a row with the same (product_type_id, slug) exists.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.Seed.ProductTypeSeeder">
+            <summary>
+            Idempotent seed of the 5 initial product types. Runs after EnsureCreatedAsync /
+            migrations on every startup. Two kinds of work:
+              1. Insert any rows missing by slug.
+              2. Backfill dimension constraint columns (Min/Max Width/Height) on rows
+                 whose values are zero — covers data created before the AddDimensionConstraints
+                 migration landed.
+            Real photos replace the placeholder hero URLs once Roman provides them.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Persistence.SqliteDapperTypeHandlers">
+            <summary>
+            SQLite stores GUIDs and DateTimes as TEXT — Dapper's default mapping
+            (System.Convert) refuses those casts. Register these handlers once at
+            startup so column types match property types across every Dapper query.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Social.AesGcmTokenCipher">
+            <summary>
+            AES-GCM 256 token cipher. Key bytes come from configuration
+            (<c>Social:Encryption:Key</c>) as base64 — generate with
+            <c>openssl rand -base64 32</c>. IV is 12 bytes (GCM standard) and unique per
+            encrypt; cipher is plaintext+16-byte tag concatenated. Reads write only the
+            IV + concatenated body, no key id — rotation is a re-encrypt-everything event,
+            which is acceptable for ~10s of rows.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Social.KieAiAssistService">
+            <summary>
+            AI assist via KIE.ai chat-completions endpoint (OpenAI-compatible), routed to
+            Claude Sonnet 4.6 by default. Single HTTP call per request — no streaming, no
+            tool-use yet (auto-reply tool wiring lives in Phase 3 of the social plan).
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Social.KieAiAssistService.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{BEQSAN.Infrastructure.Social.SocialOptions},Microsoft.Extensions.Logging.ILogger{BEQSAN.Infrastructure.Social.KieAiAssistService})">
+            <summary>
+            AI assist via KIE.ai chat-completions endpoint (OpenAI-compatible), routed to
+            Claude Sonnet 4.6 by default. Single HTTP call per request — no streaming, no
+            tool-use yet (auto-reply tool wiring lives in Phase 3 of the social plan).
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Social.MetaGraphClient">
+            <summary>
+            Authenticated Meta Graph operations: publish posts (FB single/photo + IG
+            container/publish two-step), pull conversations + comments, send replies.
+            Each call accepts the decrypted page-scoped token — the client itself is
+            stateless and lives as a registered HttpClient instance.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Social.MetaGraphClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{BEQSAN.Infrastructure.Social.SocialOptions},Microsoft.Extensions.Logging.ILogger{BEQSAN.Infrastructure.Social.MetaGraphClient})">
+            <summary>
+            Authenticated Meta Graph operations: publish posts (FB single/photo + IG
+            container/publish two-step), pull conversations + comments, send replies.
+            Each call accepts the decrypted page-scoped token — the client itself is
+            stateless and lives as a registered HttpClient instance.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Infrastructure.Social.MetaOAuthClient">
+            <summary>
+            Meta Graph OAuth flow. Modeled on social.iva.ge/backend/src/lib/meta.ts but
+            without the login-config-id branch — we use classic scope-based login until
+            the BEQSAN Meta App is approved for Login-for-Business. See ADR-0003.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Infrastructure.Social.MetaOAuthClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{BEQSAN.Infrastructure.Social.SocialOptions},Microsoft.Extensions.Logging.ILogger{BEQSAN.Infrastructure.Social.MetaOAuthClient})">
+            <summary>
+            Meta Graph OAuth flow. Modeled on social.iva.ge/backend/src/lib/meta.ts but
+            without the login-config-id branch — we use classic scope-based login until
+            the BEQSAN Meta App is approved for Login-for-Business. See ADR-0003.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Infrastructure.Social.SocialOptions.AdminToken">
+            <summary>
+            Header value the admin SPA sends on /api/v1/admin/social/* and
+            /api/v1/admin/* generally. Phase 0 — replaced by real JWT auth in Phase 2.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Infrastructure.Social.EncryptionOptions.Key">
+            <summary>Base64-encoded 32-byte AES-256 key.</summary>
+        </member>
+        <member name="P:BEQSAN.Infrastructure.Social.AiOptions.BaseUrl">
+            <summary>
+            KIE.ai endpoint base. The chat completions URL is `{BaseUrl}/v1/chat/completions`
+            and is OpenAI-compatible. Override per environment.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Infrastructure.Social.AiOptions.Model">
+            <summary>
+            Claude model id routed via KIE. Default to Sonnet 4.6 — fast + cheap enough
+            for caption drafts and reply suggestions. See [docs/adr/0003-social-module.md].
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -28,10 +28,10 @@ public class CatalogEndpointTests(BeqsanWebAppFactory factory) : IClassFixture<B
         envelope.Should().NotBeNull();
         envelope!.IsSuccess.Should().BeTrue();
         envelope.Errors.Should().BeEmpty();
-        envelope.Value.Should().NotBeNull().And.HaveCount(5);
+        envelope.Value.Should().NotBeNull().And.HaveCount(6);
 
         envelope.Value!.Select(p => p.Slug).Should()
-            .ContainInOrder("window", "door", "sliding", "panoramic", "balcony");
+            .ContainInOrder("window", "door", "sliding", "panoramic", "balcony", "veranda");
 
         var window = envelope.Value!.Single(p => p.Slug == "window");
         window.Name.Should().NotBeNull();

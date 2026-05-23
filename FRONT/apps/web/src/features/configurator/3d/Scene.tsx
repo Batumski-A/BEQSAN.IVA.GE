@@ -1,10 +1,11 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html, Line, Environment, ContactShadows } from '@react-three/drei';
 import { MathUtils } from 'three';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Group, PerspectiveCamera } from 'three';
+import { Check, ChevronDown } from 'lucide-react';
 
 import type {
   AccessorySelectionInput,
@@ -21,6 +22,8 @@ import { useConfiguratorStore } from '../store';
  * The legacy 8-step wizard at `/configurator/wizard` keeps the read-only
  * caption labels — only LiveStudio passes this prop.
  */
+export type SceneBackgroundPreset = 'dark' | 'studio' | 'warm';
+
 export type SceneInteractiveControls = {
   panes: {
     options: ReadonlyArray<{ value: string; label: string }>;
@@ -39,10 +42,14 @@ export type SceneInteractiveControls = {
     onWidthChange: (cm: number) => void;
     onHeightChange: (cm: number) => void;
   };
+  /** Optional canvas background preset. Defaults to 'dark'. */
+  background?: SceneBackgroundPreset;
 };
 
 type ConfiguratorSceneProps = {
   interactive?: SceneInteractiveControls;
+  isStudio?: boolean;
+  background?: SceneBackgroundPreset;
 };
 
 /**
@@ -53,8 +60,9 @@ type ConfiguratorSceneProps = {
  * Mobile detection turns shadows off and clamps dpr to keep iPhone 12-class
  * devices at 60fps per .claude/skills/3d-scene-design.
  */
-export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) {
+export function ConfiguratorScene({ interactive, isStudio, background }: ConfiguratorSceneProps = {}) {
   const { t } = useTranslation();
+  const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
   const dimensions = useConfiguratorStore((s) => s.dimensions);
   const panes = useConfiguratorStore((s) => s.panes);
@@ -184,31 +192,69 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
     });
   }, [panes, innerW]);
 
+  // LiveStudio mounts Scene inside `absolute inset-0` and expects a
+  // full-fill canvas. The legacy wizard sized Scene inside a step body
+  // and relied on `aspect-square` for the framing. Keep both happy by
+  // dropping the aspect lock when `interactive` is supplied. The CSS
+  // radial gradient gives the dark frame contrast without a separate
+  // 3D backdrop plate (Lasha called the old plate "extra background").
+  const isFullScreen = isStudio || interactive !== undefined;
+  const bg = background ?? interactive?.background ?? 'dark';
+  const containerStyle: React.CSSProperties = isFullScreen
+    ? {
+        // Lighter center so the dark anthracite frame reads against
+        // the background. Outer ring stays dark for the premium-studio
+        // feel Lasha wants.
+        backgroundImage:
+          bg === 'studio'
+            ? 'radial-gradient(circle at 50% 45%, #FFFFFF 0%, #E8ECF2 55%, #BFC7D2 100%)'
+            : bg === 'warm'
+              ? 'radial-gradient(circle at 50% 45%, #5B4334 0%, #2A1F18 55%, #14100C 100%)'
+              : 'radial-gradient(circle at 50% 45%, #2E4173 0%, #0F1B36 55%, #050810 100%)',
+      }
+    : {};
+  const containerCls = isFullScreen
+    ? 'relative h-full w-full overflow-hidden'
+    : 'relative aspect-square overflow-hidden rounded-sm border border-hairline bg-bg-elevated';
+
+  // R3F's initial setSize() races with the parent's flex/absolute layout
+  // when Scene mounts before the parent's height resolves. Result: the
+  // canvas stays at the default 300x150 until a window resize hits.
+  // Dispatch a resize on first paint as a safe nudge so the canvas
+  // matches its container from the very first frame.
+  useEffect(() => {
+    if (!isFullScreen) return;
+    const id = requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    return () => cancelAnimationFrame(id);
+  }, [isFullScreen]);
+
   return (
-    <div className="relative aspect-square overflow-hidden rounded-sm border border-hairline bg-bg-elevated">
+    <div className={containerCls} style={containerStyle}>
       <Canvas
         dpr={isMobile ? [1, 1.5] : [1, 2]}
         shadows={!isMobile}
         performance={{ min: 0.5 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: true, powerPreference: 'high-performance', alpha: isFullScreen }}
         aria-hidden
       >
-        <color attach="background" args={['#0A0E14']} />
+        {/* In interactive mode the canvas is transparent so the CSS
+            radial gradient on the parent div shows through. Legacy
+            wizard fills the canvas with a solid dark background. */}
+        {isFullScreen ? null : <color attach="background" args={['#0A0E14']} />}
 
         {/* Auto-fit camera to the window bounding box so the frame fills ~65%
             of viewport height regardless of dimensions. Updates whenever the
             user changes Step 3 measurements. */}
-        <CameraRig widthM={w} heightM={h} />
+        <CameraRig widthM={w} heightM={h} interactive={isFullScreen} />
 
-        {/* §9.7 three-point setup, raised intensity floor + hemisphere fill
-            so the aluminium frame's metalness reflections still read against
-            the dark-navy background. Previous setup left the frame face
-            in dim specular only — fix per audit 🔴. */}
-        <hemisphereLight args={['#FFE4B5', '#1B2030', 0.5]} />
-        <ambientLight intensity={0.35} />
+        {/* §9.7 lighting — extra bright in interactive mode so the dark
+            anthracite frame's metallic edges catch strong specular
+            highlights even against the dark studio background. */}
+        <hemisphereLight args={['#FFE4B5', '#1B2030', isFullScreen ? 0.7 : 0.5]} />
+        <ambientLight intensity={isFullScreen ? 0.55 : 0.35} />
         <directionalLight
           position={[5, 8, 4]}
-          intensity={1.7}
+          intensity={isFullScreen ? 2.2 : 1.7}
           color="#FFEFC8"
           castShadow={!isMobile}
           shadow-mapSize-width={1024}
@@ -216,20 +262,36 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
         />
         {!isMobile ? (
           <>
-            <directionalLight position={[-4, 4, 2]} intensity={0.55} color="#A8C8FF" />
-            <directionalLight position={[0, 2, -5]} intensity={0.4} color="#FFFFFF" />
-            <directionalLight position={[0, 0, 6]} intensity={0.45} color="#FFE4B5" />
+            <directionalLight position={[-4, 4, 2]} intensity={isFullScreen ? 0.85 : 0.55} color="#A8C8FF" />
+            <directionalLight position={[0, 2, -5]} intensity={isFullScreen ? 0.6 : 0.4} color="#FFFFFF" />
+            <directionalLight position={[0, 0, 6]} intensity={isFullScreen ? 0.7 : 0.45} color="#FFE4B5" />
+            {/* Interactive-only top-back rim light — catches the
+                frame's top-front edge with a bright specular streak so
+                the dark aluminium reads against the dark background. */}
+            {isFullScreen ? (
+              <directionalLight position={[2, 6, -3]} intensity={1.4} color="#FFFFFF" />
+            ) : null}
           </>
         ) : null}
 
         <Suspense fallback={null}>
+          <Environment preset="city" />
           {/* World group — rotated by DragRotator on pointer-move. Everything
               inside spins together while the camera stays still, matching
               Lasha's mockup interaction (model spins, not the camera). */}
           <group ref={worldRef}>
-            <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
+            {/* LiveStudio runs without a wall or backdrop plate — Lasha
+                asked for a clean float against the canvas background.
+                The aluminum frame relies on the brightened key light
+                (boosted below) and a rim light to catch its metallic
+                edges. The legacy wizard keeps the full studio Wall. */}
+            {isStudio || interactive ? null : (
+              <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
+            )}
             <Window
+              isStudio={isStudio}
               family={material?.family ?? 'aluminum'}
+              productSlug={productType?.slug ?? 'window'}
               widthCm={dimensions.widthCm}
               heightCm={dimensions.heightCm}
               panes={panes}
@@ -245,8 +307,20 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
               paneClickStates={paneClickStates}
               onPaneClick={onPaneClick}
             />
-            <Ground />
+            {isStudio || interactive ? null : <Ground />}
           </group>
+
+          {/* Apple-like soft ground shadow to anchor the floating model */}
+          {(isStudio || interactive) && (
+            <ContactShadows
+              position={[0, 0, 0]}
+              opacity={0.55}
+              scale={6}
+              blur={1.6}
+              far={3}
+              resolution={512}
+            />
+          )}
         </Suspense>
 
         {/* Drag-to-rotate the world group (replaces OrbitControls). Listens
@@ -293,8 +367,84 @@ export function ConfiguratorScene({ interactive }: ConfiguratorSceneProps = {}) 
   );
 }
 
+function PaneDropdownBadge({
+  paneIndex,
+  options,
+  currentValue,
+  onChange,
+  bottomCenterY,
+  frameDepth,
+}: {
+  paneIndex: number;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  currentValue: string;
+  onChange: (paneIndex: number, value: string) => void;
+  bottomCenterY: number;
+  frameDepth: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const currentOption = options.find((opt) => opt.value === currentValue) || options[0];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClose = () => setIsOpen(false);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [isOpen]);
+
+  return (
+    <Html
+      position={[0, bottomCenterY, frameDepth * 0.65]}
+      center
+      zIndexRange={[100, 0]}
+      style={{ pointerEvents: 'none' }}
+    >
+      <div
+        style={{ pointerEvents: 'auto' }}
+        className="relative select-none font-studio"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/60 px-3.5 py-1.5 text-[10px] font-bold text-white/90 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-all hover:border-white/40 hover:bg-slate-950/80 active:scale-95"
+        >
+          <span>{currentOption?.label || currentValue}</span>
+          <ChevronDown className={`h-3 w-3 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 min-w-[130px] overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            {options.map((opt) => {
+              const isSelected = opt.value === currentValue;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    onChange(paneIndex, opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold transition-all ${
+                    isSelected
+                      ? 'bg-studio-brand text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)]'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {isSelected && <Check className="h-3 w-3" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Html>
+  );
+}
+
 function Window({
+  isStudio,
   family,
+  productSlug,
   widthCm,
   heightCm,
   panes,
@@ -310,7 +460,9 @@ function Window({
   paneClickStates,
   onPaneClick,
 }: {
+  isStudio?: boolean;
   family: 'aluminum' | 'pvc';
+  productSlug: string;
   widthCm: number;
   heightCm: number;
   panes: ConfigurationPaneInput[];
@@ -334,9 +486,20 @@ function Window({
   // metres per cm = 0.01
   const w = (widthCm / 100) * 1.0;
   const h = (heightCm / 100) * 1.0;
-  const frameThickness = 0.06;
-  const mullionThickness = 0.04;
-  const glassInset = 0.08;
+  // Profile geometry differs by material family — Lasha asked for the
+  // PVC vs aluminum identity to be visible at a glance.
+  //   Aluminum (Alumil S-77 reference): slim 5cm outer frame, 4cm sash,
+  //     sharp corners, brushed anthracite reads cold.
+  //   PVC (Rehau Synego reference): chunky 7cm outer frame, 5.5cm sash,
+  //     slight chamfer, matte white reads warm.
+  const isAluminum = family === 'aluminum';
+  const frameThickness = isAluminum ? 0.05 : 0.07;
+  const sashThickness = isAluminum ? 0.04 : 0.055;
+  const mullionThickness = isAluminum ? 0.035 : 0.05;
+  // Frame depth (Z-axis) — PVC chambers are visibly deeper than alu.
+  const frameDepth = isAluminum ? 0.065 : 0.085;
+  // Glass sits inside the sash frame, inset on all 4 sides.
+  const glassInset = isAluminum ? 0.085 : 0.12;
 
   // Outer color drives the front-facing frame material; inner drives the
   // back-facing pieces in dual-color mode. Family controls metalness +
@@ -345,15 +508,13 @@ function Window({
   const frameColor = outerHex;
   // PBR values calibrated to Alumil S-77 anodised (aluminum) and Rehau Synego
   // (PVC) reference photos. Aluminum reads as brushed-finish powder coat —
-  // metalness pulled back from 1.0 → 0.9 (full-metal at 1.0 over-mirrors the
-  // background) with slightly higher roughness 0.35 so the surface scatters
-  // rather than acts like a chrome ball. PVC stays matte-plaster with a touch
-  // of clearcoat (clearcoatRoughness 0.4) to evoke the factory-finish sheen
-  // without going plastic-toy glossy.
-  const metalness = family === 'aluminum' ? 0.9 : 0.05;
-  const roughness = family === 'aluminum' ? 0.35 : 0.7;
-  const clearcoat = family === 'aluminum' ? 0.15 : 0.4;
-  const clearcoatRoughness = family === 'aluminum' ? 0.5 : 0.4;
+  // metalness pulled back from 1.0 → 0.95 with slightly higher roughness 0.22 so the surface scatters.
+  // PVC stays matte-plaster with a touch of clearcoat (clearcoatRoughness 0.4) to evoke the factory-finish sheen.
+  const metalness = family === 'aluminum' ? 0.98 : 0.01;
+  const roughness = family === 'aluminum' ? 0.18 : 0.45;
+  const clearcoat = family === 'aluminum' ? 0.1 : 0.6;
+  const clearcoatRoughness = family === 'aluminum' ? 0.1 : 0.12;
+  const envIntensity = mobile ? 0.6 : 1.2;
 
   // Build cumulative pane x-offsets (in metres, centred around 0).
   const innerW = w - frameThickness * 2;
@@ -374,21 +535,75 @@ function Window({
     <group ref={ref} position={[0, h / 2, 0]}>
       {/* Outer frame: top + bottom + left + right slabs */}
       <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
-        <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+        <boxGeometry args={[w, frameThickness, frameDepth]} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
       </mesh>
       <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
-        <boxGeometry args={[w, frameThickness, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+        <boxGeometry args={[w, frameThickness, frameDepth]} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
       </mesh>
       <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
-        <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+        <boxGeometry args={[frameThickness, h, frameDepth]} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
       </mesh>
       <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
-        <boxGeometry args={[frameThickness, h, frameThickness * 1.4]} />
-        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+        <boxGeometry args={[frameThickness, h, frameDepth]} />
+        <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
       </mesh>
+
+      {/* Frame stop (inner lip/rebate) — gives the frame architectural depth when sashes open.
+          Positioned on the exterior side (z = frameDepth / 2 - 0.005) because sashes open inward.
+          Only rendered for hinged configurations. */}
+      {!(productSlug === 'sliding' || panes.some((p) => p.openingType === 'Sliding')) && (
+        <group position={[0, 0, frameDepth / 2 - 0.005]}>
+          {/* Top stop */}
+          <mesh position={[0, h / 2 - frameThickness - 0.0075, 0]} castShadow={!mobile} receiveShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.015, 0.01]} />
+            <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+          </mesh>
+          {/* Bottom stop */}
+          <mesh position={[0, -(h / 2 - frameThickness - 0.0075), 0]} castShadow={!mobile} receiveShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.015, 0.01]} />
+            <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+          </mesh>
+          {/* Left stop */}
+          <mesh position={[-(w / 2 - frameThickness - 0.0075), 0, 0]} castShadow={!mobile} receiveShadow={!mobile}>
+            <boxGeometry args={[0.015, Math.max(0, h - frameThickness * 2 - 0.03), 0.01]} />
+            <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+          </mesh>
+          {/* Right stop */}
+          <mesh position={[w / 2 - frameThickness - 0.0075, 0, 0]} castShadow={!mobile} receiveShadow={!mobile}>
+            <boxGeometry args={[0.015, Math.max(0, h - frameThickness * 2 - 0.03), 0.01]} />
+            <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Sliding guide tracks (სალასკები) - rendered for sliding pane configurations */}
+      {panes.some((p) => p.openingType === 'Sliding') && (
+        <group>
+          {/* Bottom Track 1 */}
+          <mesh position={[0, -h / 2 + frameThickness + 0.0025, frameDepth * 0.18]} castShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
+            <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
+          </mesh>
+          {/* Bottom Track 2 */}
+          <mesh position={[0, -h / 2 + frameThickness + 0.0025, -frameDepth * 0.18]} castShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
+            <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
+          </mesh>
+          {/* Top Track 1 */}
+          <mesh position={[0, h / 2 - frameThickness - 0.0025, frameDepth * 0.18]} castShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
+            <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
+          </mesh>
+          {/* Top Track 2 */}
+          <mesh position={[0, h / 2 - frameThickness - 0.0025, -frameDepth * 0.18]} castShadow={!mobile}>
+            <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
+            <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
+          </mesh>
+        </group>
+      )}
 
       {/* Dual-color inner skin — thin slabs sitting just behind the outer
           frame on the inside-of-the-room side. Renders only when the user
@@ -396,20 +611,20 @@ function Window({
       {hasDualColor && (
         <group position={[0, 0, innerOffsetZ]}>
           <mesh position={[0, h / 2 - frameThickness / 2, 0]} castShadow={!mobile}>
-            <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+            <boxGeometry args={[w, frameThickness, frameDepth * 0.5]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
           </mesh>
           <mesh position={[0, -(h / 2) + frameThickness / 2, 0]} castShadow={!mobile}>
-            <boxGeometry args={[w, frameThickness, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+            <boxGeometry args={[w, frameThickness, frameDepth * 0.5]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
           </mesh>
           <mesh position={[-w / 2 + frameThickness / 2, 0, 0]} castShadow={!mobile}>
-            <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+            <boxGeometry args={[frameThickness, h, frameDepth * 0.5]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
           </mesh>
           <mesh position={[w / 2 - frameThickness / 2, 0, 0]} castShadow={!mobile}>
-            <boxGeometry args={[frameThickness, h, frameThickness * 0.6]} />
-            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+            <boxGeometry args={[frameThickness, h, frameDepth * 0.5]} />
+            <meshPhysicalMaterial color={innerHex} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
           </mesh>
         </group>
       )}
@@ -436,12 +651,55 @@ function Window({
         const visual = glassVisualFor(opening, pane.glassExtras ?? [], glass?.paneCount ?? 2, mobile);
         // Handle: rendered on openable panes only. Per-product compat is
         // enforced by the validator; here we just need the geometry.
-        const hasHandle = accessories?.handleStyleId != null
+        const hasHandle = (accessories?.handleStyleId != null || isStudio)
           && pane.openingType !== 'Fixed';
         const paneIndex = pane.position ?? i + 1;
         const clickState = paneClickStates[paneIndex] ?? 0;
         const isOpenable = pane.openingType !== 'Fixed';
         const handleClick = () => onPaneClick(paneIndex, pane.openingType);
+
+        // Transom (Step 9) — when present, the pane area is split by a
+        // horizontal mullion. Bottom sash gets the existing AnimatedPane
+        // (with reduced height + downward offset); top sash renders as a
+        // static frame + glass to keep v1 scene logic simple.
+        const innerPaneH = h - frameThickness * 2;
+        const hasTransom = pane.hasTransom === true;
+        const transomRatio = hasTransom ? (pane.transomHeightRatio ?? 0.3) : 0;
+        const transomMullionThickness = hasTransom ? frameThickness * 0.7 : 0;
+
+        // Balcony block geometry — slug 'balcony', panes with index > 0
+        // render the window above an insulated panel (bottom 40%) so they
+        // sit at sill-height above the door's threshold. Pane index 0 is
+        // the door (full height).
+        const isBalconyWindowPane = productSlug === 'balcony' && i > 0 && !hasTransom;
+        const balconyWindowRatio = isBalconyWindowPane ? 0.6 : 1;
+        const balconyPanelH = isBalconyWindowPane ? innerPaneH * (1 - balconyWindowRatio) : 0;
+
+        const bottomSashH = hasTransom
+          ? innerPaneH * (1 - transomRatio) - transomMullionThickness / 2
+          : isBalconyWindowPane
+            ? innerPaneH * balconyWindowRatio
+            : innerPaneH;
+        const topSashH = hasTransom
+          ? innerPaneH * transomRatio - transomMullionThickness / 2
+          : 0;
+        const bottomCenterY = hasTransom
+          ? -innerPaneH / 2 + bottomSashH / 2
+          : isBalconyWindowPane
+            ? innerPaneH / 2 - bottomSashH / 2
+            : 0;
+        const topCenterY = hasTransom
+          ? innerPaneH / 2 - topSashH / 2
+          : 0;
+        const transomVisual = hasTransom
+          ? glassVisualFor(
+              paneTint((pane.transomOpeningType ?? 'Fixed') as PaneOpeningType),
+              pane.glassExtras ?? [],
+              glass?.paneCount ?? 2,
+              mobile,
+            )
+          : null;
+
         return (
           <group key={pane.position} position={[cx, 0, 0]}>
             {/* Mullion sits at the frame-fixed boundary, so it's outside
@@ -452,8 +710,8 @@ function Window({
                 position={[pw / 2, 0, 0]}
                 castShadow={!mobile}
               >
-                <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameThickness * 1.4]} />
-                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} />
+                <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameDepth]} />
+                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
               </mesh>
             )}
             {/* Hinges live on the frame (static axis) — outside AnimatedPane
@@ -461,143 +719,343 @@ function Window({
                 so it reads against the dark window opening. */}
             <Hinges
               paneWidthM={pw}
-              paneHeightM={h - frameThickness * 2}
+              paneHeightM={bottomSashH}
               opening={pane.openingType}
               hingeSide={pane.hingeSide}
+              frameDepth={frameDepth}
               mobile={mobile}
             />
-            <AnimatedPane
-              paneWidthM={pw}
-              paneHeightM={h - frameThickness * 2}
-              opening={pane.openingType}
-              hingeSide={pane.hingeSide}
-              open={open}
-              clickState={clickState}
-              reducedMotion={reducedMotion}
-              glassInset={glassInset}
-              outerFrameHeightM={h}
-            >
+            {/* Horizontal transom mullion — static bar at the split. */}
+            {hasTransom && (
               <mesh
-                receiveShadow={!mobile}
-                onClick={isOpenable ? (e) => { e.stopPropagation(); handleClick(); } : undefined}
+                position={[0, bottomCenterY + bottomSashH / 2 + transomMullionThickness / 2, 0]}
+                castShadow={!mobile}
               >
-                <planeGeometry args={[Math.max(0, pw - glassInset), h - glassInset]} />
-                <meshPhysicalMaterial
-                  color={visual.color}
-                  transparent
-                  opacity={visual.opacity}
-                  transmission={visual.transmission}
-                  ior={1.52}
-                  thickness={0.01}
-                  roughness={visual.roughness}
-                />
+                <boxGeometry args={[pw, transomMullionThickness, frameDepth]} />
+                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
               </mesh>
-              {hasHandle && (
-                <Handle
+            )}
+            {/* Balcony insulated bottom panel — sits below the window
+                sash on the second pane of a balcony block. Renders as a
+                solid frame-colored box with a horizontal divider rail
+                separating it from the sash above. */}
+            {isBalconyWindowPane && (
+              <>
+                <mesh
+                  position={[0, -innerPaneH / 2 + balconyPanelH / 2, 0]}
+                  castShadow={!mobile}
+                  receiveShadow={!mobile}
+                >
+                  <boxGeometry args={[pw, balconyPanelH, frameDepth * 0.85]} />
+                  <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+                </mesh>
+                {/* Horizontal divider rail — separates the sash from the
+                    insulated panel. Matches the mullion thickness so the
+                    profile reads consistently. */}
+                <mesh
+                  position={[0, -innerPaneH / 2 + balconyPanelH + mullionThickness / 2, 0]}
+                  castShadow={!mobile}
+                >
+                  <boxGeometry args={[pw, mullionThickness, frameDepth]} />
+                  <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+                </mesh>
+              </>
+            )}
+            {/* Static top transom sash — sash frame + glass pack. No
+                click-to-open animation in v1; the bottom sash animates. */}
+            {hasTransom && transomVisual && (
+              <group position={[0, topCenterY, 0]}>
+                <SashFrame
                   paneWidthM={pw}
-                  paneHeightM={h - frameThickness * 2}
-                  hingeSide={pane.hingeSide}
-                  opening={pane.openingType}
+                  paneHeightM={topSashH}
+                  thickness={sashThickness}
+                  depth={frameDepth * 0.9}
+                  color={frameColor}
+                  metalness={metalness}
+                  roughness={roughness}
+                  clearcoat={clearcoat}
+                  clearcoatRoughness={clearcoatRoughness}
                   mobile={mobile}
                 />
-              )}
-            </AnimatedPane>
-
-            {/* Per-pane opening-type dropdown — only in interactive (LiveStudio)
-                mode. Anchored at the pane's centre, projected to screen so it
-                tracks the pane on orbit. <Html center> keeps the DOM size in
-                pixels (doesn't scale with zoom). */}
-            {interactive ? (
-              <Html
-                position={[0, 0, frameThickness * 0.7]}
-                center
-                zIndexRange={[100, 0]}
-                style={{ pointerEvents: 'auto' }}
+                {/* Transom glass gasket outline */}
+                <mesh position={[0, 0, 0]}>
+                  <boxGeometry
+                    args={[
+                      Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012)),
+                      Math.max(0, topSashH - glassInset + (isAluminum ? 0.008 : 0.012)),
+                      0.024,
+                    ]}
+                  />
+                  <meshPhysicalMaterial
+                    color="#1A1A1A"
+                    metalness={0.0}
+                    roughness={0.9}
+                    envMapIntensity={0.2}
+                  />
+                </mesh>
+                <mesh receiveShadow={!mobile}>
+                  <boxGeometry
+                    args={[
+                      Math.max(0, pw - glassInset),
+                      Math.max(0, topSashH - glassInset),
+                      0.025,
+                    ]}
+                  />
+                  <meshPhysicalMaterial
+                    color={transomVisual.color}
+                    transparent
+                    opacity={transomVisual.opacity}
+                    transmission={transomVisual.transmission}
+                    ior={1.52}
+                    thickness={0.05}
+                    roughness={transomVisual.roughness}
+                    metalness={0.0}
+                    clearcoat={1.0}
+                    clearcoatRoughness={0.05}
+                    envMapIntensity={mobile ? 0.8 : 1.5}
+                  />
+                </mesh>
+              </group>
+            )}
+            {/* Sliding sashes run on staggered Z tracks (lasaks) to prevent clipping.
+                Track Z positions align with the guide tracks (frameDepth * 0.18). */}
+            <group
+              position={[
+                0,
+                bottomCenterY,
+                pane.openingType === 'Sliding'
+                  ? (i % 2 === 0 ? frameDepth * 0.18 : -frameDepth * 0.18)
+                  : 0,
+              ]}
+            >
+              <AnimatedPane
+                paneWidthM={pw}
+                paneHeightM={bottomSashH}
+                opening={pane.openingType}
+                hingeSide={pane.hingeSide}
+                open={open}
+                clickState={clickState}
+                reducedMotion={reducedMotion}
+                glassInset={glassInset}
+                outerFrameHeightM={h}
+                frameDepth={frameDepth}
+                paneIndex={i}
+                panesCount={paneRects.length}
               >
-                <select
-                  value={interactive.panes.valueFor(pane)}
-                  onChange={(e) => interactive.panes.onChange(paneIndex, e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="cursor-pointer rounded-lg border-2 border-transparent bg-white/95 px-2 py-1.5 text-[10px] font-bold text-slate-800 shadow-2xl outline-none backdrop-blur-sm hover:border-studio-brand"
+                {/* Sash frame — 4 inner slabs forming the swinging sash
+                    profile around the glass. PVC chunkier (0.055m) vs
+                    aluminum slim (0.04m); both extruded forward slightly
+                    so the sash sits proud of the outer frame plane. */}
+                <SashFrame
+                  paneWidthM={pw}
+                  paneHeightM={bottomSashH}
+                  thickness={sashThickness}
+                  depth={frameDepth * 0.9}
+                  color={frameColor}
+                  metalness={metalness}
+                  roughness={roughness}
+                  clearcoat={clearcoat}
+                  clearcoatRoughness={clearcoatRoughness}
+                  mobile={mobile}
+                />
+                {/* Glass gasket outline */}
+                <mesh position={[0, 0, 0]}>
+                  <boxGeometry
+                    args={[
+                      Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012)),
+                      Math.max(0, bottomSashH - glassInset + (isAluminum ? 0.008 : 0.012)),
+                      0.024,
+                    ]}
+                  />
+                  <meshPhysicalMaterial
+                    color="#1A1A1A"
+                    metalness={0.0}
+                    roughness={0.9}
+                    envMapIntensity={0.2}
+                  />
+                </mesh>
+                {/* Double-glazing pack — a slim box giving the glass
+                    visible depth, plus a clickable mesh on the front
+                    face for the open/close interaction. */}
+                <mesh
+                  receiveShadow={!mobile}
+                  onClick={isOpenable ? (e) => { e.stopPropagation(); handleClick(); } : undefined}
                 >
-                  {interactive.panes.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </Html>
+                  <boxGeometry
+                    args={[
+                      Math.max(0, pw - glassInset),
+                      Math.max(0, bottomSashH - glassInset),
+                      0.025,
+                    ]}
+                  />
+                  <meshPhysicalMaterial
+                    color={visual.color}
+                    transparent
+                    opacity={visual.opacity}
+                    transmission={visual.transmission}
+                    ior={1.52}
+                    thickness={0.05}
+                    roughness={visual.roughness}
+                    metalness={0.0}
+                    clearcoat={1.0}
+                    clearcoatRoughness={0.05}
+                    envMapIntensity={mobile ? 0.8 : 1.5}
+                  />
+                </mesh>
+                {hasHandle && (
+                  <>
+                    {/* Interior handle */}
+                    <Handle
+                      paneWidthM={pw}
+                      paneHeightM={bottomSashH}
+                      hingeSide={pane.hingeSide}
+                      opening={pane.openingType}
+                      clickState={clickState}
+                      open={open}
+                      frameDepth={frameDepth}
+                      mobile={mobile}
+                      isExterior={false}
+                    />
+                    {/* Exterior handle — rendered only for doors (door slug or first section of balcony) */}
+                    {(productSlug === 'door' || (productSlug === 'balcony' && i === 0)) && (
+                      <Handle
+                        paneWidthM={pw}
+                        paneHeightM={bottomSashH}
+                        hingeSide={pane.hingeSide}
+                        opening={pane.openingType}
+                        clickState={clickState}
+                        open={open}
+                        frameDepth={frameDepth}
+                        mobile={mobile}
+                        isExterior={true}
+                      />
+                    )}
+                  </>
+                )}
+              </AnimatedPane>
+            </group>
+
+            {/* Per-pane opening chip — small glassmorphic capsule
+                centered over the sash. Sits forward of the glass
+                (slightly toward the camera) so it reads on rotation.
+                Hidden when the section is too narrow to fit the chip
+                without overlapping a neighbor — the right panel
+                carries the same dropdown as a fallback. */}
+            {interactive && (pw > 0.35 || mobile) ? (
+              <PaneDropdownBadge
+                paneIndex={paneIndex}
+                options={interactive.panes.options}
+                currentValue={interactive.panes.valueFor(pane)}
+                onChange={interactive.panes.onChange}
+                bottomCenterY={bottomCenterY}
+                frameDepth={frameDepth}
+              />
             ) : null}
           </group>
         );
       })}
 
-      {/* In-scene W/H number inputs — anchored above the top edge and to the
-          right of the frame, projected to screen so they orbit with the model.
-          Only rendered in interactive mode (LiveStudio); the legacy wizard's
-          right panel carries the same fields. */}
-      {interactive ? (
-        <>
-          <Html
-            position={[0, h / 2 + 0.18, 0]}
-            center
-            zIndexRange={[100, 0]}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
-              <span className="text-[10px] font-bold">W:</span>
-              <input
-                type="number"
-                value={interactive.dimensions.widthCm}
-                min={interactive.dimensions.minWidthCm}
-                max={interactive.dimensions.maxWidthCm}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(v)) {
-                    interactive.dimensions.onWidthChange(
-                      Math.min(
-                        interactive.dimensions.maxWidthCm,
-                        Math.max(interactive.dimensions.minWidthCm, v),
-                      ),
-                    );
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-12 bg-transparent text-center font-mono text-sm outline-none"
-              />
-              <span className="text-[10px]">სმ</span>
-            </div>
-          </Html>
-          <Html
-            position={[w / 2 + 0.18, 0, 0]}
-            center
-            zIndexRange={[100, 0]}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
-              <span className="text-[10px] font-bold">H:</span>
-              <input
-                type="number"
-                value={interactive.dimensions.heightCm}
-                min={interactive.dimensions.minHeightCm}
-                max={interactive.dimensions.maxHeightCm}
-                onChange={(e) => {
-                  const v = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(v)) {
-                    interactive.dimensions.onHeightChange(
-                      Math.min(
-                        interactive.dimensions.maxHeightCm,
-                        Math.max(interactive.dimensions.minHeightCm, v),
-                      ),
-                    );
-                  }
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-12 bg-transparent text-center font-mono text-sm outline-none"
-              />
-              <span className="text-[10px]">სმ</span>
-            </div>
-          </Html>
-        </>
-      ) : null}
+      {/* In-scene W/H number inputs — anchored clearly OUTSIDE the
+          frame so they never overlap the model. W chip sits above the
+          top edge with an extension line down to the corners; H chip
+          sits to the right of the frame and is rotated 90° so it reads
+          vertically (architectural-blueprint convention). */}
+      {interactive ? (() => {
+        const offsetDistance = mobile ? 0.45 : 0.75;
+        return (
+          <>
+            {/* W dimension extension lines — two short verticals from the
+                frame corners up to the chip's y, then a horizontal across.
+                Rendered as a single polyline so they orbit with the model. */}
+            <Line
+              points={[
+                [-w / 2, h / 2, 0],
+                [-w / 2, h / 2 + offsetDistance, 0],
+                [w / 2, h / 2 + offsetDistance, 0],
+                [w / 2, h / 2, 0],
+              ]}
+              color="#60A5FA"
+              lineWidth={1}
+              transparent
+              opacity={0.4}
+            />
+            <Html
+              position={[0, h / 2 + offsetDistance, 0]}
+              center
+              zIndexRange={[100, 0]}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <div className="flex items-center gap-2 rounded-lg border border-studio-brand/60 bg-studio-ink/95 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
+                <span className="text-[10px] font-bold">W:</span>
+                <input
+                  type="number"
+                  value={interactive.dimensions.widthCm}
+                  min={interactive.dimensions.minWidthCm}
+                  max={interactive.dimensions.maxWidthCm}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(v)) {
+                      interactive.dimensions.onWidthChange(
+                        Math.min(
+                          interactive.dimensions.maxWidthCm,
+                          Math.max(interactive.dimensions.minWidthCm, v),
+                        ),
+                      );
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+                />
+                <span className="text-[10px]">სმ</span>
+              </div>
+            </Html>
+            {/* H dimension extension lines — two horizontals from the right
+                corners out to the chip's x, then a vertical between. */}
+            <Line
+              points={[
+                [w / 2, h / 2, 0],
+                [w / 2 + offsetDistance, h / 2, 0],
+                [w / 2 + offsetDistance, -h / 2, 0],
+                [w / 2, -h / 2, 0],
+              ]}
+              color="#60A5FA"
+              lineWidth={1}
+              transparent
+              opacity={0.4}
+            />
+            <Html
+              position={[w / 2 + offsetDistance, 0, 0]}
+              center
+              zIndexRange={[100, 0]}
+              style={{ pointerEvents: 'auto' }}
+            >
+              <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
+                <span className="text-[10px] font-bold">H:</span>
+                <input
+                  type="number"
+                  value={interactive.dimensions.heightCm}
+                  min={interactive.dimensions.minHeightCm}
+                  max={interactive.dimensions.maxHeightCm}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!Number.isNaN(v)) {
+                      interactive.dimensions.onHeightChange(
+                        Math.min(
+                          interactive.dimensions.maxHeightCm,
+                          Math.max(interactive.dimensions.minHeightCm, v),
+                        ),
+                      );
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+                />
+                <span className="text-[10px]">სმ</span>
+              </div>
+            </Html>
+          </>
+        );
+      })() : null}
     </group>
   );
 }
@@ -622,6 +1080,9 @@ function AnimatedPane({
   reducedMotion,
   glassInset,
   outerFrameHeightM,
+  frameDepth,
+  paneIndex,
+  panesCount,
   children,
 }: {
   paneWidthM: number;
@@ -641,38 +1102,102 @@ function AnimatedPane({
   reducedMotion: boolean;
   glassInset: number;
   outerFrameHeightM: number;
+  frameDepth: number;
+  paneIndex: number;
+  panesCount: number;
   children: React.ReactNode;
 }) {
-  const pivotRef = useRef<Group>(null);
+  const slideRef = useRef<Group>(null);
+  const turnRef = useRef<Group>(null);
+  const tiltRef = useRef<Group>(null);
+
+  // Spring physics states (current values and velocities)
+  const currentRotY = useRef(0);
+  const velocityRotY = useRef(0);
+  const currentRotX = useRef(0);
+  const velocityRotX = useRef(0);
+  const currentTx = useRef(0);
+  const velocityTx = useRef(0);
+
+  // Rotation pivot aligned exactly with the physical hinge axis (-frameDepth / 2)
+  const pivotZ = -frameDepth / 2;
 
   // Direction signs per opening type. Stored once so the per-frame loop stays
-  // allocation-free.
+  // allocation-free. swingSign convention:
+  //   Camera at +Z (viewer is outside the building looking at the window).
+  //   "Open" = sash swings inward TOWARD the camera (the off-hinge edge
+  //   visibly comes forward, hinge edge stays planted on the frame).
+  //   For LEFT hinge, the right edge swings to +Z → that's a CLOCKWISE Y
+  //   rotation viewed from +Y → swingSign = -1.
+  //   For RIGHT hinge, the left edge swings to +Z → counter-clockwise →
+  //   swingSign = +1.
   const rig = useMemo(() => {
+    const pivotX = hingeSide === 'Left' ? -paneWidthM / 2 : paneWidthM / 2;
+    const pivotY = -paneHeightM / 2;
+
     if (opening === 'Casement' || opening === 'TiltAndTurn') {
-      const swingSign = hingeSide === 'Left' ? 1 : -1;
-      const pivotSign = hingeSide === 'Left' ? -1 : 1;
+      const swingSign = hingeSide === 'Left' ? -1 : 1;
       return {
         type: 'rotY' as const,
         swingSign,
-        pivot: { x: (pivotSign * paneWidthM) / 2, y: 0 },
+        pivotX,
+        pivotY,
+        pivotZ,
       };
     }
     if (opening === 'Tilt') {
       return {
         type: 'rotX' as const,
         swingSign: -1,
-        pivot: { x: 0, y: -paneHeightM / 2 },
+        pivotX: 0,
+        pivotY,
+        pivotZ,
       };
     }
     if (opening === 'Sliding') {
+      // Staggered opening direction inside the frame:
+      // Left-most sashes slide right, right-most slide left, so they open inside the frame.
+      // Explicit hingeSide overrides: 'Right' -> slide right (+1), 'Left' -> slide left (-1).
+      const defaultSign = paneIndex < panesCount / 2 ? 1 : -1;
+      const swingSign = hingeSide === 'Right' ? 1 : (hingeSide === 'Left' ? -1 : defaultSign);
       return {
         type: 'slide' as const,
-        swingSign: -1,
-        pivot: { x: 0, y: 0 },
+        swingSign,
+        pivotX: 0,
+        pivotY: 0,
+        pivotZ: 0,
       };
     }
-    return { type: 'fixed' as const, swingSign: 1, pivot: { x: 0, y: 0 } };
-  }, [opening, hingeSide, paneWidthM, paneHeightM]);
+    return {
+      type: 'fixed' as const,
+      swingSign: 1,
+      pivotX: 0,
+      pivotY: 0,
+      pivotZ: 0,
+    };
+  }, [opening, hingeSide, paneWidthM, paneHeightM, pivotZ, paneIndex, panesCount]);
+
+  // Reset refs rotation and position if opening changes to Fixed or type changes
+  useEffect(() => {
+    const slide = slideRef.current;
+    const turn = turnRef.current;
+    const tilt = tiltRef.current;
+    if (slide) slide.position.set(0, 0, 0);
+    if (turn) {
+      turn.rotation.set(0, 0, 0);
+      turn.position.set(rig.pivotX, 0, rig.pivotZ);
+    }
+    if (tilt) {
+      tilt.rotation.set(0, 0, 0);
+      tilt.position.set(0, rig.pivotY, rig.pivotZ);
+    }
+    currentRotY.current = 0;
+    velocityRotY.current = 0;
+    currentRotX.current = 0;
+    velocityRotX.current = 0;
+    currentTx.current = 0;
+    velocityTx.current = 0;
+  }, [rig]);
 
   // Compute the current target each frame. Three regimes:
   //   - clickState > 0  →  click-locked pose (LiveStudio only):
@@ -681,9 +1206,12 @@ function AnimatedPane({
   //   - open=true       →  global "open all" toggle: full pose (75° / 15° / 70% slide).
   //   - open=false      →  breathing ±12° (or 8% slide-out) with |sin(πt/3)|.
   useFrame((state, delta) => {
-    const g = pivotRef.current;
-    if (!g || rig.type === 'fixed') return;
+    const slide = slideRef.current;
+    const turn = turnRef.current;
+    const tilt = tiltRef.current;
+    if (!slide || !turn || !tilt || rig.type === 'fixed') return;
 
+    const dt = Math.min(0.05, delta); // Clamp delta to avoid explosions during frames drops
     const time = state.clock.elapsedTime;
     // |sin| over a half-period of 3s gives 0 → 1 → 0 every 3 seconds.
     const breath = Math.abs(Math.sin((time * Math.PI) / 3));
@@ -694,12 +1222,10 @@ function AnimatedPane({
     let targetTx = 0;
 
     if (rig.type === 'rotY') {
-      // Casement / TiltAndTurn use Y-rotation pivot.
-      const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
-      const openAngle = (Math.PI / 180) * 75 * rig.swingSign;
+      const breathAngle = (Math.PI / 180) * 5 * breath * rig.swingSign;
+      const openAngle = (Math.PI / 180) * 80 * rig.swingSign;
       if (clicked) {
         if (opening === 'TiltAndTurn' && clickState === 2) {
-          // Lasha's mockup cycle slot 2 = tilt (top edge tips outward).
           targetRotX = -(Math.PI / 180) * 15;
           targetRotY = 0;
         } else {
@@ -709,45 +1235,69 @@ function AnimatedPane({
         targetRotY = open ? openAngle : breathAngle;
       }
     } else if (rig.type === 'rotX') {
-      const breathAngle = (Math.PI / 180) * 12 * breath * rig.swingSign;
-      const openAngle = (Math.PI / 180) * 15 * rig.swingSign;
+      const breathAngle = (Math.PI / 180) * 4 * breath * rig.swingSign;
+      const openAngle = (Math.PI / 180) * 28 * rig.swingSign;
       if (clicked) targetRotX = openAngle;
       else targetRotX = open ? openAngle : breathAngle;
     } else {
       // slide
-      const breathTx = 0.08 * paneWidthM * breath * rig.swingSign;
+      const breathTx = 0.02 * paneWidthM * breath * rig.swingSign;
       const openTx = 0.7 * paneWidthM * rig.swingSign;
       if (clicked) targetTx = openTx;
       else targetTx = open ? openTx : breathTx;
     }
 
     if (reducedMotion) {
-      // Static partial-open pose — no animation, but still conveys direction.
       const staticPose = clicked || open ? 1.0 : 0.25;
-      g.rotation.y = targetRotY * staticPose;
-      g.rotation.x = targetRotX * staticPose;
-      g.position.x = rig.pivot.x + targetTx * staticPose;
+      currentRotY.current = targetRotY * staticPose;
+      currentRotX.current = targetRotX * staticPose;
+      currentTx.current = targetTx * staticPose;
+      velocityRotY.current = 0;
+      velocityRotX.current = 0;
+      velocityTx.current = 0;
+      turn.rotation.y = currentRotY.current;
+      tilt.rotation.x = currentRotX.current;
+      slide.position.x = currentTx.current;
       return;
     }
 
-    // Framerate-independent damping. Equivalent to Lasha's mockup formula
-    // `pivot.rotation.x += (target - pivot.rotation.x) * 10 * delta` — at 60fps
-    // that's ~0.17/frame, at 120fps half that (so the perceived duration stays
-    // the same regardless of monitor refresh rate). Clamp to 1 in case of a
-    // long frame drop so a single tick doesn't overshoot.
-    const tau = Math.min(1, 10 * delta);
-    g.rotation.y += (targetRotY - g.rotation.y) * tau;
-    g.rotation.x += (targetRotX - g.rotation.x) * tau;
-    g.position.x += (rig.pivot.x + targetTx - g.position.x) * tau;
+    // Solve Spring equations for smooth physical animations:
+    // mass = 1.0
+    const stiffness = 36.0; // Spring stiffness tension (stiff but heavy feel)
+    const damping = 9.5;    // Spring damping resistance (slight elegant recoil bounce at targets)
+
+    // Y Rotation Spring
+    const fRotY = -stiffness * (currentRotY.current - targetRotY) - damping * velocityRotY.current;
+    velocityRotY.current += fRotY * dt;
+    currentRotY.current += velocityRotY.current * dt;
+    turn.rotation.y = currentRotY.current;
+
+    // X Rotation Spring
+    const fRotX = -stiffness * (currentRotX.current - targetRotX) - damping * velocityRotX.current;
+    velocityRotX.current += fRotX * dt;
+    currentRotX.current += velocityRotX.current * dt;
+    tilt.rotation.x = currentRotX.current;
+
+    // Slide Translation Spring
+    const fTx = -stiffness * (currentTx.current - targetTx) - damping * velocityTx.current;
+    velocityTx.current += fTx * dt;
+    currentTx.current += velocityTx.current * dt;
+    slide.position.x = currentTx.current;
   });
 
   void glassInset;
   void outerFrameHeightM;
 
   return (
-    <group position={[rig.pivot.x, rig.pivot.y, 0]}>
-      <group ref={pivotRef} position={[-rig.pivot.x, -rig.pivot.y, 0]}>
-        {children}
+    <group ref={slideRef}>
+      <group ref={turnRef} position={[rig.pivotX, 0, rig.pivotZ]}>
+        <group position={[-rig.pivotX, 0, -rig.pivotZ]}>
+          <group ref={tiltRef} position={[0, rig.pivotY, rig.pivotZ]}>
+            <group position={[0, -rig.pivotY, -rig.pivotZ]}>
+              {children}
+            </group>
+          </group>
+        </group>
       </group>
     </group>
   );
@@ -765,12 +1315,14 @@ function Hinges({
   paneHeightM,
   opening,
   hingeSide,
+  frameDepth,
   mobile,
 }: {
   paneWidthM: number;
   paneHeightM: number;
   opening: PaneOpeningType;
   hingeSide: HingeSide | null | undefined;
+  frameDepth: number;
   mobile: boolean;
 }) {
   if (opening === 'Fixed' || opening === 'Sliding') return null;
@@ -780,11 +1332,11 @@ function Hinges({
   const radiusM = 0.015; // 1.5cm
   const lengthM = 0.08; // 8cm
   const inset = 0.08; // pull hinges away from the very corner so they read as discrete pivots
+  const z = -frameDepth / 2; // on the interior room-side face
 
   if (opening === 'Casement' || opening === 'TiltAndTurn') {
     const sign = hingeSide === 'Left' ? -1 : 1;
     const x = (sign * paneWidthM) / 2;
-    const z = 0.025; // forward of the frame so it's visible against the glass
     // 2 hinges for Casement, 3 for TiltAndTurn (top, middle, bottom).
     const positions: Array<[number, number, number]> =
       opening === 'TiltAndTurn'
@@ -816,7 +1368,6 @@ function Hinges({
 
   // Tilt — 2 hinges at the bottom edge, rotated to lie horizontally along x.
   const y = -paneHeightM / 2;
-  const z = 0.025;
   return (
     <>
       <mesh position={[-paneWidthM / 2 + inset, y, z]} castShadow={!mobile}>
@@ -841,28 +1392,114 @@ function Hinges({
  * from there. When dimensions change (Step 3 slider), the rig re-fits with
  * a quick lerp instead of snapping.
  */
-function CameraRig({ widthM, heightM }: { widthM: number; heightM: number }) {
+function CameraRig({
+  widthM,
+  heightM,
+  interactive,
+}: {
+  widthM: number;
+  heightM: number;
+  interactive?: boolean;
+}) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  const { gl } = useThree();
+  const aspect = useThree((s) => s.viewport.aspect);
 
-  // Distance that makes the frame fill ~65% of viewport height. With a 1:1
-  // canvas aspect this also satisfies the horizontal axis as long as width
-  // <= height; for wider-than-tall windows we re-derive against the larger
-  // axis (FOV is vertical on three.js, so horizontal fit uses width / aspect).
+  const zoomFactorRef = useRef(1.0);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const getTouchDistance = (e: TouchEvent) => {
+      if (e.touches.length < 2) return 0;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomFactorRef.current = Math.max(0.3, Math.min(zoomFactorRef.current + e.deltaY * 0.0015, 3.0));
+    };
+
+    let initialTouchDistance = 0;
+    let initialZoomValue = 1.0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        initialTouchDistance = getTouchDistance(e);
+        initialZoomValue = zoomFactorRef.current;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialTouchDistance > 0) {
+        e.preventDefault();
+        const currentDistance = getTouchDistance(e);
+        if (currentDistance > 0) {
+          const ratio = initialTouchDistance / currentDistance;
+          zoomFactorRef.current = Math.max(0.3, Math.min(initialZoomValue * ratio, 3.0));
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      initialTouchDistance = 0;
+    };
+
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      canvas.removeEventListener('wheel', handleWheel);
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [gl]);
+
   const target = useMemo(() => {
     const fov = 35;
     const fovRad = (fov * Math.PI) / 180;
-    const fillFactor = 0.65;
+    // LiveStudio panels eat ~340px on each side at desktop; aim for the
+    // model to fill ~42% of the visible middle (closer/larger than the
+    // earlier 55% — Lasha wanted the model to read large). The wizard's
+    // tighter aspect-square layout keeps its 65% fill.
+    // Zoom in closer on mobile portrait aspect ratios (aspect < 1) so the window reads large and inputs don't cover it
+    const fillFactor = interactive ? (aspect < 1 ? 0.82 : 0.45) : 0.65;
     const distForHeight = heightM / (2 * Math.tan(fovRad / 2) * fillFactor);
-    // Canvas aspect is square → horizontal half-FOV equals vertical
-    const distForWidth = widthM / (2 * Math.tan(fovRad / 2) * fillFactor);
+    // Horizontal FOV = 2*atan(tan(vFov/2)*aspect); the per-axis distance
+    // that just-fits widthM is widthM / (2*tan(vFov/2)*aspect*fillFactor).
+    const distForWidth = widthM / (2 * Math.tan(fovRad / 2) * (aspect || 1) * fillFactor);
     const dist = Math.max(distForHeight, distForWidth, 1.8);
-    // Slight elevation + side angle so the frame reads as 3D, not orthographic.
+    // Interactive (LiveStudio) — center the model in the canvas, no
+    // top-down look-down (which previously dragged the window to the
+    // bottom edge). Legacy wizard keeps the slight 3/4 elevation.
+    if (interactive) {
+      const isPortrait = aspect < 1;
+      if (isPortrait) {
+        return {
+          x: 0,
+          y: heightM / 2,
+          z: dist,
+        };
+      }
+      return {
+        x: dist * 0.25,
+        y: heightM / 2 + dist * 0.04,
+        z: dist * 0.97,
+      };
+    }
     return {
       x: dist * 0.55,
       y: heightM / 2 + dist * 0.18,
       z: dist * 0.95,
     };
-  }, [widthM, heightM]);
+  }, [widthM, heightM, aspect, interactive]);
 
   // On dimension change, lerp the camera toward the new auto-fit pose.
   // First mount snaps for a clean entry; subsequent updates ease in.
@@ -882,9 +1519,20 @@ function CameraRig({ widthM, heightM }: { widthM: number; heightM: number }) {
     // sash animation (10*delta) so the camera glides rather than snaps when
     // Step-3 dimensions change.
     const tau = Math.min(1, 4 * delta);
-    camera.position.x += (target.x - camera.position.x) * tau;
-    camera.position.y += (target.y - camera.position.y) * tau;
-    camera.position.z += (target.z - camera.position.z) * tau;
+    const zoom = zoomFactorRef.current;
+
+    const centerX = 0;
+    const centerY = heightM / 2;
+    const centerZ = 0;
+
+    const targetX = centerX + (target.x - centerX) * zoom;
+    const targetY = centerY + (target.y - centerY) * zoom;
+    const targetZ = centerZ + (target.z - centerZ) * zoom;
+
+    camera.position.x += (targetX - camera.position.x) * tau;
+    camera.position.y += (targetY - camera.position.y) * tau;
+    camera.position.z += (targetZ - camera.position.z) * tau;
+    camera.lookAt(0, heightM / 2, 0);
     camera.updateProjectionMatrix();
   });
 
@@ -975,6 +1623,74 @@ function labelTextFor(
  *
  * Phase 1.5: real workshop / home backdrops per product type.
  */
+/**
+ * Sash frame — 4 box slabs forming the swinging sash profile around the
+ * glass. Lives INSIDE AnimatedPane so it rotates/translates with the
+ * glass on open/close (real sashes carry the glass; the outer frame
+ * stays fixed). Thickness + depth come from the parent, which sizes
+ * them differently per material family (PVC chunky, aluminum slim).
+ */
+function SashFrame({
+  paneWidthM,
+  paneHeightM,
+  thickness,
+  depth,
+  color,
+  metalness,
+  roughness,
+  clearcoat,
+  clearcoatRoughness,
+  mobile,
+}: {
+  paneWidthM: number;
+  paneHeightM: number;
+  thickness: number;
+  depth: number;
+  color: string;
+  metalness: number;
+  roughness: number;
+  clearcoat: number;
+  clearcoatRoughness: number;
+  mobile: boolean;
+}) {
+  if (paneWidthM <= 2 * thickness || paneHeightM <= 2 * thickness) return null;
+  // Sash slab depth is slightly bigger than the outer frame depth on
+  // the -Z side so the sash visibly sits forward of the outer frame
+  // when closed (real sashes overlap the frame stop).
+  const zOffset = -depth * 0.15;
+  const envIntensity = mobile ? 0.6 : 1.2;
+  return (
+    <group position={[0, 0, zOffset]}>
+      {/* Top slab */}
+      <mesh position={[0, paneHeightM / 2 - thickness / 2, 0]} castShadow={!mobile}>
+        <boxGeometry args={[paneWidthM, thickness, depth]} />
+        <meshPhysicalMaterial color={color} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+      </mesh>
+      {/* Bottom slab */}
+      <mesh position={[0, -paneHeightM / 2 + thickness / 2, 0]} castShadow={!mobile}>
+        <boxGeometry args={[paneWidthM, thickness, depth]} />
+        <meshPhysicalMaterial color={color} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+      </mesh>
+      {/* Left slab — runs between the top and bottom slabs */}
+      <mesh
+        position={[-paneWidthM / 2 + thickness / 2, 0, 0]}
+        castShadow={!mobile}
+      >
+        <boxGeometry args={[thickness, Math.max(0, paneHeightM - thickness * 2), depth]} />
+        <meshPhysicalMaterial color={color} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+      </mesh>
+      {/* Right slab */}
+      <mesh
+        position={[paneWidthM / 2 - thickness / 2, 0, 0]}
+        castShadow={!mobile}
+      >
+        <boxGeometry args={[thickness, Math.max(0, paneHeightM - thickness * 2), depth]} />
+        <meshPhysicalMaterial color={color} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+      </mesh>
+    </group>
+  );
+}
+
 function Wall({ widthCm, heightCm }: { widthCm: number; heightCm: number }) {
   const w = (widthCm / 100);
   const h = (heightCm / 100);
@@ -990,6 +1706,14 @@ function Wall({ widthCm, heightCm }: { widthCm: number; heightCm: number }) {
 }
 
 /**
+ * Studio-mode backdrop — a small, window-tracked plate at z=-0.4 that
+ * exists solely to give the dark aluminum frame contrast in LiveStudio.
+ * Sized to window+margin so it reads as a stage backdrop, not a wall.
+ * Slightly lighter than the canvas background (#0B1220) so the frame
+ * outline + glass panes are clearly visible.
+ */
+
+/**
  * Per-pane handle — a cylindrical primitive mounted on the hinge-opposite
  * edge of an openable pane, centred vertically. Geometry is the same
  * across all four handle families for Phase-1 (Roman supplies real photos
@@ -1001,35 +1725,118 @@ function Handle({
   paneHeightM,
   hingeSide,
   opening,
+  clickState = 0,
+  open = false,
+  frameDepth,
   mobile,
+  isExterior = false,
 }: {
   paneWidthM: number;
   paneHeightM: number;
   hingeSide: HingeSide | null | undefined;
   opening: PaneOpeningType;
+  clickState?: number;
+  open: boolean;
+  frameDepth: number;
   mobile: boolean;
+  isExterior?: boolean;
 }) {
-  const lengthM = 0.12; // 12 cm
-  const radiusM = 0.012;
-  // Sliding panes have their handle near the centre; for casement/tilt-
-  // and-turn it sits on the hinge-OPPOSITE side ~5cm in from the edge.
+  const stemLength = 0.02; // 2 cm out
+  const stemRadius = 0.005; // 5 mm radius
+  const baseWidth = 0.016; // base plate width
+  const baseHeight = 0.038; // base plate height
+  const baseThickness = 0.005; // base thickness
+  const leverLength = 0.11; // 11 cm lever handle
+  const leverRadius = 0.007; // 7 mm lever thickness
+
   const isSliding = opening === 'Sliding';
+  const isTilt = opening === 'Tilt';
   const inset = 0.05;
-  const offsetX = isSliding
+
+  // Horizontal position: center for Sliding and Tilt, hinge-opposite for Casement
+  const offsetX = isSliding || isTilt
     ? 0
     : hingeSide === 'Left'
       ? paneWidthM / 2 - inset
       : -(paneWidthM / 2 - inset);
-  // Forward of the frame so it doesn't z-fight the glass plane.
-  const offsetZ = 0.025;
-  // Skip when the pane is too narrow to fit — keeps small fixed-sized
-  // schematic test renders from looking visually broken.
+
+  // Vertical position: top center for Tilt, centered vertically for Casement
+  const offsetY = isTilt
+    ? paneHeightM / 2 - inset
+    : 0;
+
+  // Located flush on the interior face (-depth * 0.65) or exterior face (depth * 0.35) of the sash
+  const depth = frameDepth * 0.9;
+  const offsetZ = isExterior ? depth * 0.35 : -depth * 0.65;
+
   if (paneWidthM < 0.2 || paneHeightM < 0.3) return null;
+
+  // Determine handle rotation angle based on state:
+  // - Closed (open = false and clickState = 0): points straight down (rotZ = 0)
+  // - Open/Turned (open = true or clickState = 1): points horizontally toward the hinge side.
+  //   - If handle is on the right (hingeSide === 'Left'), it should point left.
+  //     Due to the [0, Math.PI, 0] group rotation, local +X is world -X (left).
+  //     So rotZ = Math.PI / 2 points to local +X (world left).
+  //   - If handle is on the left (hingeSide === 'Right'), it should point right.
+  //     Local -X is world +X (right). So rotZ = -Math.PI / 2 points to local -X (world right).
+  // - Tilted (clickState === 2): points straight up (rotZ = Math.PI)
+  let rotZ = 0;
+  const isCurrentlyOpen = open || clickState === 1;
+  const isCurrentlyTilted = clickState === 2;
+
+  if (isCurrentlyTilted) {
+    rotZ = Math.PI; // Pointing up
+  } else if (isCurrentlyOpen) {
+    if (isSliding) {
+      rotZ = isExterior ? Math.PI / 2 : -Math.PI / 2; // Sliding handle rotates when open
+    } else {
+      // Points toward the center (hinge side)
+      if (isExterior) {
+        rotZ = hingeSide === 'Left' ? -Math.PI / 2 : Math.PI / 2;
+      } else {
+        rotZ = hingeSide === 'Left' ? Math.PI / 2 : -Math.PI / 2;
+      }
+    }
+  }
+
+  const leverGroupRef = useRef<Group>(null);
+
+  useFrame((_, delta) => {
+    if (leverGroupRef.current) {
+      const tau = Math.min(1, 14 * delta); // Fast mechanical turn rate
+      leverGroupRef.current.rotation.z += (rotZ - leverGroupRef.current.rotation.z) * tau;
+    }
+  });
+
   return (
-    <mesh position={[offsetX, 0, offsetZ]} rotation={[0, 0, Math.PI / 2]} castShadow={!mobile}>
-      <cylinderGeometry args={[radiusM, radiusM, lengthM, 12]} />
-      <meshPhysicalMaterial color="#8B8B8B" metalness={1} roughness={0.15} />
-    </mesh>
+    <group position={[offsetX, offsetY, offsetZ]} rotation={isExterior ? [0, 0, 0] : [0, Math.PI, 0]} castShadow={!mobile}>
+      {/* 1. Base Plate (Escutcheon) */}
+      <mesh castShadow={!mobile} receiveShadow={!mobile}>
+        <boxGeometry args={[baseWidth, baseHeight, baseThickness]} />
+        <meshPhysicalMaterial color="#9E9E9E" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* 2. Stem/Neck extending outwards (along +Z in local coordinates) */}
+      <mesh position={[0, 0, baseThickness / 2 + stemLength / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow={!mobile}>
+        <cylinderGeometry args={[stemRadius, stemRadius, stemLength, 12]} />
+        <meshPhysicalMaterial color="#A5A5A5" metalness={0.9} roughness={0.2} />
+      </mesh>
+
+      {/* 3. Rotating Lever Group */}
+      <group ref={leverGroupRef} position={[0, 0, baseThickness / 2 + stemLength]} rotation={[0, 0, rotZ]}>
+        {/* We place the lever cylinder offset so it pivots from one of its ends, not the center */}
+        {/* Lever points DOWN by default when group rotation is 0 */}
+        <mesh position={[0, -leverLength / 2 + 0.01, 0.008]} castShadow={!mobile}>
+          <cylinderGeometry args={[leverRadius, leverRadius, leverLength, 12]} />
+          <meshPhysicalMaterial color="#BCBCBC" metalness={0.9} roughness={0.15} />
+        </mesh>
+        {/* Handle end-cap curve */}
+        <mesh position={[0, -leverLength + 0.01, 0.008]} rotation={[Math.PI / 2, 0, 0]} castShadow={!mobile}>
+          <sphereGeometry args={[leverRadius, 12, 12]} />
+          <meshPhysicalMaterial color="#BCBCBC" metalness={0.9} roughness={0.15} />
+        </mesh>
+      </group>
+    </group>
   );
 }
 

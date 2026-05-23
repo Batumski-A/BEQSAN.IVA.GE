@@ -36,7 +36,11 @@ public sealed record ConfigurationPane(
     HingeSide? HingeSide,
     bool HasMosquitoNet,
     Guid GlassTypeId = default,
-    IReadOnlyList<GlassExtra>? GlassExtras = null)
+    IReadOnlyList<GlassExtra>? GlassExtras = null,
+    bool HasTransom = false,
+    PaneOpeningType TransomOpeningType = PaneOpeningType.Fixed,
+    HingeSide? TransomHingeSide = null,
+    decimal TransomHeightRatio = 0.3m)
 {
     /// <summary>
     /// Null-safe accessor for the extras list — consumers iterate this

@@ -18,11 +18,11 @@ public sealed class Material
     /// Never a decimal/double — see ADR-0002. Convert via <see cref="Money.FromMinor"/>
     /// at display / DTO boundaries.
     /// </summary>
-    public int BasePricePerSqmMinor { get; init; }
+    public int BasePricePerSqmMinor { get; set; }
 
     public Currency Currency { get; init; } = Currency.Gel;
     public int SortOrder { get; init; }
-    public bool IsActive { get; init; }
+    public bool IsActive { get; set; }
     public DateTime CreatedAtUtc { get; init; }
 
     public static Result<Material> Create(

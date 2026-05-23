@@ -1,0 +1,577 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BEQSAN.Application</name>
+    </assembly>
+    <members>
+        <member name="T:BEQSAN.Application.Catalog.GetColorsByMaterial.ColorOptionDto">
+            <summary>
+            Public-API shape for a ColorOption available to a chosen Material.
+            Family sent as a string for FRONT readability; surcharge in int minor
+            plus display string so the SPA never does currency math.
+            <para>
+            The <c>ral-custom</c> placeholder slug is filtered out of the list
+            endpoint (it's not browseable) — the FRONT triggers it via the RAL
+            palette modal and passes hex + code in the price request.
+            </para>
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetColorsByMaterial.ColorOptionDto.#ctor(System.Guid,System.String,BEQSAN.Domain.ValueObjects.LocalizedText,BEQSAN.Domain.ValueObjects.LocalizedText,System.String,System.String,System.String,System.String,System.Int32,System.String,System.String,System.Boolean,System.Int32)">
+            <summary>
+            Public-API shape for a ColorOption available to a chosen Material.
+            Family sent as a string for FRONT readability; surcharge in int minor
+            plus display string so the SPA never does currency math.
+            <para>
+            The <c>ral-custom</c> placeholder slug is filtered out of the list
+            endpoint (it's not browseable) — the FRONT triggers it via the RAL
+            palette modal and passes hex + code in the price request.
+            </para>
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetColorsByMaterial.IColorOptionReader">
+            <summary>
+            Reader for color-option catalog data. <see cref="M:BEQSAN.Application.Catalog.GetColorsByMaterial.IColorOptionReader.ListActiveByMaterialAsync(System.Guid,System.Threading.CancellationToken)"/>
+            excludes the <c>ral-custom</c> placeholder slug from the public list
+            (it's modal-only, not browseable). <see cref="M:BEQSAN.Application.Catalog.GetColorsByMaterial.IColorOptionReader.LoadDomainByMaterialAsync(System.Guid,System.Threading.CancellationToken)"/>
+            returns the FULL set including ral-custom so the pricing pipeline can
+            resolve it when the request body picks it.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.IGlassTypeReader">
+            <summary>
+            Reader for glass-type catalog data. List variant returns the per-material
+            compatible set ordered for display (default first, then SortOrder).
+            LoadById variants are used by the pricing handler to hand the calculator
+            the dictionary it needs for per-pane glass resolution.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.IGlassTypeReader.LoadDomainByMaterialAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns the domain entities (not DTOs) for the glass types compatible
+            with the given material. Used by the pricing pipeline so the
+            calculator can resolve Guid.Empty → IsDefault and price per pane.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.GlassTypeDto">
+            <summary>
+            Public-API shape for a GlassType available to a chosen Material. Wire-stable;
+            surcharge sent as int minor units plus an explicit display string so the
+            SPA never does decimal math on currency values (per ADR-0002).
+            <para>
+            <see cref="P:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.GlassTypeDto.IsDefault"/> is the per-material baseline package — the FRONT
+            auto-selects this on Step 5 entry so the price preview is non-empty
+            immediately.
+            </para>
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.GlassTypeDto.#ctor(System.Guid,System.String,BEQSAN.Domain.ValueObjects.LocalizedText,BEQSAN.Domain.ValueObjects.LocalizedText,System.Int32,System.Int32,System.String,System.String,System.Decimal,System.Boolean,System.Int32)">
+            <summary>
+            Public-API shape for a GlassType available to a chosen Material. Wire-stable;
+            surcharge sent as int minor units plus an explicit display string so the
+            SPA never does decimal math on currency values (per ADR-0002).
+            <para>
+            <see cref="P:BEQSAN.Application.Catalog.GetGlassTypesByMaterial.GlassTypeDto.IsDefault"/> is the per-material baseline package — the FRONT
+            auto-selects this on Step 5 entry so the price preview is non-empty
+            immediately.
+            </para>
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetHandleStyles.IHandleStyleReader">
+            <summary>
+            Reader for handle-style catalog data. <see cref="M:BEQSAN.Application.Catalog.GetHandleStyles.IHandleStyleReader.ListActiveByMaterialAsync(System.Guid,System.Threading.CancellationToken)"/>
+            returns the per-material compat set ordered by SortOrder + default flag;
+            <see cref="M:BEQSAN.Application.Catalog.GetHandleStyles.IHandleStyleReader.LoadAllAsync(System.Threading.CancellationToken)"/> + <see cref="M:BEQSAN.Application.Catalog.GetHandleStyles.IHandleStyleReader.LoadCompatibilityAsync(System.Threading.CancellationToken)"/> back the
+            AccessoryCatalog bag the pricing pipeline uses.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetMaterialsByProductType.IMaterialReader.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Loads a single material's domain shape (not the DTO) — used by the
+            pricing endpoint where we need BasePricePerSqmMinor + ProductTypeId
+            for cross-field validation.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetMaterialsByProductType.IProductTypeExistsCheck">
+            <summary>
+            Narrow existence check so the materials handler doesn't pull the full
+            IProductTypeReader contract just to assert a foreign key.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetMaterialsByProductType.MaterialDto">
+            <summary>
+            Public-API shape for a Material. Wire-stable — changes are breaking for codegen.
+            Family + ThermalRating sent as strings (camelCase) for FRONT readability;
+            price kept in minor units (tetri) with an explicit display string so the
+            client never has to do its own decimal math on currency values.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetMaterialsByProductType.MaterialDto.#ctor(System.Guid,System.Guid,System.String,BEQSAN.Domain.ValueObjects.LocalizedText,BEQSAN.Domain.ValueObjects.LocalizedText,System.String,System.String,System.Int64,System.String,System.String,System.Int32)">
+            <summary>
+            Public-API shape for a Material. Wire-stable — changes are breaking for codegen.
+            Family + ThermalRating sent as strings (camelCase) for FRONT readability;
+            price kept in minor units (tetri) with an explicit display string so the
+            client never has to do its own decimal math on currency values.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetProductTypeDetail.GetProductTypeDetailQuery">
+            <summary>
+            Loads a single product type by id OR slug. The endpoint detects which
+            from the route param shape (a parseable Guid → by-id; otherwise → by-slug).
+            Returns Result&lt;ProductTypeDetailDto&gt; with the full constraints payload.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypeDetail.GetProductTypeDetailQuery.#ctor(System.String)">
+            <summary>
+            Loads a single product type by id OR slug. The endpoint detects which
+            from the route param shape (a parseable Guid → by-id; otherwise → by-slug).
+            Returns Result&lt;ProductTypeDetailDto&gt; with the full constraints payload.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetProductTypeDetail.ProductTypeDetailDto">
+            <summary>
+            Detail shape for a single ProductType — superset of the list DTO with
+            dimension constraints attached. Used by the FRONT to populate Step 3's
+            width/height bounds and by future detail pages.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypeDetail.ProductTypeDetailDto.#ctor(System.Guid,System.String,BEQSAN.Domain.ValueObjects.LocalizedText,BEQSAN.Domain.ValueObjects.LocalizedText,System.String,System.Int32,BEQSAN.Application.Catalog.GetProductTypeDetail.DimensionConstraintsDto)">
+            <summary>
+            Detail shape for a single ProductType — superset of the list DTO with
+            dimension constraints attached. Used by the FRONT to populate Step 3's
+            width/height bounds and by future detail pages.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetProductTypes.IProductTypeReader">
+            <summary>
+            Read-side abstraction for catalog product types. Implemented by
+            Infrastructure using Dapper. Kept narrow so handlers don't take a
+            dependency on a generic repository.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypes.IProductTypeReader.ListActiveAsync(System.Threading.CancellationToken)">
+            <summary>Wire-shape DTO list for the public catalog endpoint.</summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypes.IProductTypeReader.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>Loads the full domain entity by id — for handlers that need
+            fields like dimension constraints that the list DTO doesn't carry.</summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypes.IProductTypeReader.GetBySlugAsync(System.String,System.Threading.CancellationToken)">
+            <summary>Same shape as GetByIdAsync, but keyed by slug. Used by the
+            detail endpoint when the FRONT navigates with a slug URL.</summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetProductTypes.GetProductTypesQuery">
+            <summary>
+            Returns all active product types in display order. Hot read path —
+            the handler routes through Dapper + a 5-minute IMemoryCache layer.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Catalog.GetProductTypes.ProductTypeDto">
+            <summary>
+            Public-API shape for a catalog entry. Wire-stable — changes here are
+            breaking changes for FRONT codegen.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Catalog.GetProductTypes.ProductTypeDto.#ctor(System.Guid,System.String,BEQSAN.Domain.ValueObjects.LocalizedText,BEQSAN.Domain.ValueObjects.LocalizedText,System.String,System.Int32)">
+            <summary>
+            Public-API shape for a catalog entry. Wire-stable — changes here are
+            breaking changes for FRONT codegen.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Common.Abstractions.ICacheService.PingAsync(System.Threading.CancellationToken)">
+            <summary>
+            Round-trips a tiny value (set + get + remove) under a reserved key to verify
+            the cache backend is alive. Used by the /health probe. Returns true on success,
+            false if any step fails or returns an unexpected value.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Common.Abstractions.IStorageService.PingAsync(System.Threading.CancellationToken)">
+            <summary>
+            Writes a tiny probe file under a reserved key, reads it back, and deletes it.
+            Used by the /health probe to verify the storage backend is writable.
+            Returns true on success, false if any step fails.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Common.Abstractions.ITokenCipher">
+            <summary>
+            Symmetric encrypt/decrypt for Meta access tokens. Application handlers stay
+            PlainOldDotNet — they hand the cipher a string and a TTL, get back an
+            <see cref="T:BEQSAN.Domain.Social.EncryptedToken"/> they can persist. Implementation lives in
+            Infrastructure and binds an AES-GCM key from configuration.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Common.Persistence.IBeqsanDbContext">
+            <summary>
+            Abstraction over the EF Core DbContext used by Application handlers.
+            DbSet&lt;T&gt; properties will be added here as Domain entities are introduced.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Common.Persistence.IBeqsanDbContext.PingAsync(System.Threading.CancellationToken)">
+            <summary>
+            Convenience alias for <see cref="M:BEQSAN.Application.Common.Persistence.IBeqsanDbContext.CanConnectAsync(System.Threading.CancellationToken)"/>; symmetric with
+            ICacheService.PingAsync and IStorageService.PingAsync for the /health probe.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput">
+             <summary>
+             Wire shape for the configuration-level accessory bundle. Mirrors
+             <see cref="T:BEQSAN.Domain.Configurator.AccessorySelection"/> with the
+             enums kept as strings the way the FRONT serialises them:
+               sill.position: "Inner" | "Outer" | "Both"
+               blind.control: "Manual" | "Electric" | "Remote"
+            
+             <para>
+             Every field is optional — the customer can skip the whole step. Door
+             product types must populate <see cref="P:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput.HandleStyleId"/> +
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput.LockTypeId"/> when any pane opens; the validator enforces
+             that with `reason: "door"` metadata.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput.#ctor(System.Nullable{System.Guid},System.Nullable{System.Guid},BEQSAN.Application.Configurator.ComputePrice.SillSelectionInput,BEQSAN.Application.Configurator.ComputePrice.BlindSelectionInput)">
+             <summary>
+             Wire shape for the configuration-level accessory bundle. Mirrors
+             <see cref="T:BEQSAN.Domain.Configurator.AccessorySelection"/> with the
+             enums kept as strings the way the FRONT serialises them:
+               sill.position: "Inner" | "Outer" | "Both"
+               blind.control: "Manual" | "Electric" | "Remote"
+            
+             <para>
+             Every field is optional — the customer can skip the whole step. Door
+             product types must populate <see cref="P:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput.HandleStyleId"/> +
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput.LockTypeId"/> when any pane opens; the validator enforces
+             that with `reason: "door"` metadata.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput">
+             <summary>
+             Wire shape for the configuration-level color decision. Mirrors
+             <see cref="T:BEQSAN.Domain.Configurator.ColorSelection"/> with the
+             hex/code pair carried as strings the way the FRONT picks them out of
+             the RAL palette modal.
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.OuterColorOptionId"/> is required when this object is
+             present. <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.InnerColorOptionId"/> defaults to null (same as
+             outer). <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.CustomRalHex"/> + <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.CustomRalCode"/> are
+             required only when the outer option's slug is <c>ral-custom</c>.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.#ctor(System.Guid,System.Nullable{System.Guid},System.String,System.String)">
+             <summary>
+             Wire shape for the configuration-level color decision. Mirrors
+             <see cref="T:BEQSAN.Domain.Configurator.ColorSelection"/> with the
+             hex/code pair carried as strings the way the FRONT picks them out of
+             the RAL palette modal.
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.OuterColorOptionId"/> is required when this object is
+             present. <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.InnerColorOptionId"/> defaults to null (same as
+             outer). <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.CustomRalHex"/> + <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput.CustomRalCode"/> are
+             required only when the outer option's slug is <c>ral-custom</c>.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand">
+             <summary>
+             Configurator price input. The endpoint hits this command on every meaningful
+             change in the FRONT (debounced).
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand.Panes"/> is OPTIONAL: when omitted (null), the calculator
+             synthesizes a single full-width Fixed pane so Step 2/3 request bodies
+             (no panes field) keep producing their regression-canary numbers.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand.#ctor(System.Guid,System.Guid,System.Int32,System.Int32,System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput},BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput,BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput,BEQSAN.Application.Configurator.ComputePrice.InstallationOptionInput)">
+             <summary>
+             Configurator price input. The endpoint hits this command on every meaningful
+             change in the FRONT (debounced).
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand.Panes"/> is OPTIONAL: when omitted (null), the calculator
+             synthesizes a single full-width Fixed pane so Step 2/3 request bodies
+             (no panes field) keep producing their regression-canary numbers.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceValidator">
+            <summary>
+            First-line input validation. Per-product-type rules (door taller than
+            window, sliding requires 2+ panes, hinge matrix, etc.) are enforced
+            inside <see cref="M:BEQSAN.Domain.Configurator.PriceCalculator.Compute(BEQSAN.Domain.Catalog.ProductType,BEQSAN.Domain.Catalog.Material,System.Int32,System.Int32,System.Collections.Generic.IReadOnlyList{BEQSAN.Domain.Configurator.ConfigurationPane},System.Collections.Generic.IReadOnlyDictionary{System.Guid,BEQSAN.Domain.Catalog.GlassType},BEQSAN.Domain.Configurator.ColorSelection,System.Collections.Generic.IReadOnlyDictionary{System.Guid,BEQSAN.Domain.Catalog.ColorOption},BEQSAN.Domain.Configurator.AccessorySelection,BEQSAN.Domain.Configurator.AccessoryCatalog,BEQSAN.Domain.Configurator.InstallationOption)"/> against the actual
+            ProductType row — this validator only catches the absolute outliers
+            that would never make sense for any product (negative dims, > 8 m,
+            pane with ratio outside (0, 1], missing position).
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput">
+             <summary>
+             Wire shape for one pane in the price-request body. String-typed enums so
+             the FRONT can author requests by hand and the API doc reads cleanly:
+               openingType: "Fixed" | "Casement" | "Tilt" | "TiltAndTurn" | "Sliding"
+               hingeSide:   "Left"  | "Right" | null
+               glassExtras: ("LowECoating" | "Tempered" | "Frosted" | "Tinted")[]  // distinct
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput.GlassTypeId"/> is optional — when null or <see cref="F:System.Guid.Empty"/>
+             the handler resolves the material's default glass package so canaries
+             from earlier slices keep their numbers without forcing the client to
+             know about the new field.
+             </para>
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput.GlassExtras"/> defaults to an empty list when omitted. Duplicates
+             are de-duped in the calculator; the validator rejects a Frosted + Tinted
+             pair on the same pane (visual conflict).
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput.#ctor(System.Int32,System.Decimal,System.String,System.String,System.Boolean,System.Nullable{System.Guid},System.Collections.Generic.IReadOnlyList{System.String},System.Boolean,System.String,System.String,System.Decimal)">
+             <summary>
+             Wire shape for one pane in the price-request body. String-typed enums so
+             the FRONT can author requests by hand and the API doc reads cleanly:
+               openingType: "Fixed" | "Casement" | "Tilt" | "TiltAndTurn" | "Sliding"
+               hingeSide:   "Left"  | "Right" | null
+               glassExtras: ("LowECoating" | "Tempered" | "Frosted" | "Tinted")[]  // distinct
+            
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput.GlassTypeId"/> is optional — when null or <see cref="F:System.Guid.Empty"/>
+             the handler resolves the material's default glass package so canaries
+             from earlier slices keep their numbers without forcing the client to
+             know about the new field.
+             </para>
+             <para>
+             <see cref="P:BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput.GlassExtras"/> defaults to an empty list when omitted. Duplicates
+             are de-duped in the calculator; the validator rejects a Frosted + Tinted
+             pair on the same pane (visual conflict).
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.InstallationOptionInput">
+            <summary>
+            Wire shape for the configurator's Step-8 installation decision. Region
+            is a camelCase string that the handler parses defensively with
+            <c>Enum.TryParse&lt;InstallationRegion&gt;</c>; invalid tokens flow back
+            as a structured <c>configurator.installation.regionInvalid</c> error
+            with metadata.got.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.InstallationOptionInput.#ctor(System.String,System.String,System.Boolean,System.String,System.Int32,System.Boolean)">
+            <summary>
+            Wire shape for the configurator's Step-8 installation decision. Region
+            is a camelCase string that the handler parses defensively with
+            <c>Enum.TryParse&lt;InstallationRegion&gt;</c>; invalid tokens flow back
+            as a structured <c>configurator.installation.regionInvalid</c> error
+            with metadata.got.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto">
+            <summary>
+            Wire shape for /configurator/price. AreaSqm is sent as a string ("1.68")
+            so JS Number precision doesn't bite — same decision the FRONT made for
+            MaterialDto.BasePricePerSqmDisplay. Money is paired (amountMinor + amountDisplay)
+            so the client never does its own currency math.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto.#ctor(System.String,System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Configurator.ComputePrice.PriceLineDto},System.Int64,System.String,System.String)">
+            <summary>
+            Wire shape for /configurator/price. AreaSqm is sent as a string ("1.68")
+            so JS Number precision doesn't bite — same decision the FRONT made for
+            MaterialDto.BasePricePerSqmDisplay. Money is paired (amountMinor + amountDisplay)
+            so the client never does its own currency math.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.Review.ReviewCommand">
+            <summary>
+            Step-8 review request — same wire shape as <see cref="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand"/>
+            plus an installation block, returning a richer grouped breakdown +
+            delivery info. The FRONT calls <c>/price</c> for live recompute on
+            earlier steps and switches to <c>/review</c> on Step 8 to render the
+            full summary screen with grouped totals, warranty, and lead time.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.Review.ReviewCommand.#ctor(System.Guid,System.Guid,System.Int32,System.Int32,System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Configurator.ComputePrice.ConfigurationPaneInput},BEQSAN.Application.Configurator.ComputePrice.ColorSelectionInput,BEQSAN.Application.Configurator.ComputePrice.AccessorySelectionInput,BEQSAN.Application.Configurator.ComputePrice.InstallationOptionInput)">
+            <summary>
+            Step-8 review request — same wire shape as <see cref="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand"/>
+            plus an installation block, returning a richer grouped breakdown +
+            delivery info. The FRONT calls <c>/price</c> for live recompute on
+            earlier steps and switches to <c>/review</c> on Step 8 to render the
+            full summary screen with grouped totals, warranty, and lead time.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.Review.ReviewHandler">
+            <summary>
+            Handler for the Step-8 review request. Delegates the price math to
+            <see cref="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand"/> via MediatR — same canary numbers,
+            same validator chain, no risk of drift — and layers three review-
+            only outputs on top:
+              1. Grouped pricing breakdown — line codes sorted into Material /
+                 Glass / Color / Accessories / Installation buckets, VAT and
+                 grand total separated.
+              2. Lead time estimate via <see cref="T:BEQSAN.Domain.Configurator.LeadTimeEstimator"/>.
+              3. Warranty terms via <see cref="T:BEQSAN.Domain.Configurator.WarrantyEstimator"/>.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.Review.ReviewHandler.#ctor(BEQSAN.Application.Catalog.GetProductTypes.IProductTypeReader,BEQSAN.Application.Catalog.GetLockTypes.ILockTypeReader,MediatR.ISender)">
+            <summary>
+            Handler for the Step-8 review request. Delegates the price math to
+            <see cref="T:BEQSAN.Application.Configurator.ComputePrice.ComputePriceCommand"/> via MediatR — same canary numbers,
+            same validator chain, no risk of drift — and layers three review-
+            only outputs on top:
+              1. Grouped pricing breakdown — line codes sorted into Material /
+                 Glass / Color / Accessories / Installation buckets, VAT and
+                 grand total separated.
+              2. Lead time estimate via <see cref="T:BEQSAN.Domain.Configurator.LeadTimeEstimator"/>.
+              3. Warranty terms via <see cref="T:BEQSAN.Domain.Configurator.WarrantyEstimator"/>.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.Review.ReviewHandler.GroupBreakdown(BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto)">
+            <summary>
+            Sorts the flat <see cref="P:BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto.Lines"/> list into the
+            5 UX buckets the Step-8 receipt renders. VAT and grand total are
+            returned separately because they're rendered below the disclosure
+            group rows.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Configurator.Review.ReviewResponseDto">
+            <summary>
+            Rich response shape for the Step-8 review screen. Carries the
+            flattened <see cref="T:BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto"/> for power consumers AND a
+            pre-grouped pricing structure the FRONT renders directly into the
+            receipt-style summary without re-parsing line codes.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Configurator.Review.ReviewResponseDto.#ctor(BEQSAN.Application.Configurator.Review.PricingDto,BEQSAN.Application.Configurator.Review.DeliveryDto)">
+            <summary>
+            Rich response shape for the Step-8 review screen. Carries the
+            flattened <see cref="T:BEQSAN.Application.Configurator.ComputePrice.PriceBreakdownDto"/> for power consumers AND a
+            pre-grouped pricing structure the FRONT renders directly into the
+            receipt-style summary without re-parsing line codes.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Connect.CompleteConnectCommand">
+            <summary>
+            Step 2 — Meta calls us back with `code` + `state`. We verify the state,
+            exchange the code for a long-lived user token, discover the pages, and
+            persist the account + page tokens encrypted.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Connect.CompleteConnectCommand.#ctor(System.String,System.String)">
+            <summary>
+            Step 2 — Meta calls us back with `code` + `state`. We verify the state,
+            exchange the code for a long-lived user token, discover the pages, and
+            persist the account + page tokens encrypted.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Connect.StartConnectCommand">
+            <summary>
+            Step 1 of the OAuth dance — admin clicks „Connect Facebook" and we mint a
+            `state` nonce + return Meta's dialog URL. The state is cached briefly so we
+            can verify it on callback.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Contracts.IAiAssistService">
+            <summary>
+            Single AI service for caption drafting and reply suggestions. Backed by
+            Claude Sonnet 4.6 — model id stays inside the implementation so swapping
+            providers (Anthropic direct, KIE, Azure OpenAI) is one DI registration.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.IAiAssistService.DraftCaptionAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <param name="topic">Free-form admin brief — e.g. „ახალი მოდელი slim 70mm".</param>
+            <param name="tonality">One of: friendly | technical | promo. Optional.</param>
+            <param name="ct">Cancellation token.</param>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.IAiAssistService.SuggestReplyAsync(System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Social.Contracts.AiTurn},System.String,System.Threading.CancellationToken)">
+            <param name="conversationContext">Last ~10 turns, oldest first.</param>
+            <param name="customerLastMessage">The message we're replying to.</param>
+            <param name="ct">Cancellation token.</param>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Contracts.IMetaGraphClient">
+            <summary>
+            Authenticated Meta Graph operations on behalf of a single page. The caller
+            passes the decrypted page-scoped token explicitly — this client doesn't
+            touch persistence and doesn't decide which page is active.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.IMetaGraphClient.ListConversationsAsync(System.String,System.String,BEQSAN.Domain.Social.InboxChannel,System.Threading.CancellationToken)">
+            <summary>
+            Page conversations (DMs) — pulled on demand or on a poll. The page-scoped
+            token is required; messenger + IG share the endpoint via the `platform`
+            query param.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Contracts.IMetaOAuthClient">
+            <summary>
+            OAuth flow with Meta — build the consent URL, exchange the code, upgrade to
+            long-lived, discover pages + IG business accounts. No persistence concerns:
+            returns plain DTOs, the use-case handler turns them into Domain entities.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.IMetaOAuthClient.BuildAuthorizeUrl(System.String)">
+            <summary>
+            Build the dialog URL the admin will be redirected to. <paramref name="state"/>
+            is a CSRF nonce we generate and verify on the callback.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.IMetaOAuthClient.GetPagesAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            All pages the user has admin access to, with their page-scoped tokens and
+            linked IG business account (if any).
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Contracts.ISocialAccountRepository">
+            <summary>
+            Persistence boundary for <see cref="T:BEQSAN.Domain.Social.SocialAccount"/> + the pages it owns.
+            Implementation lives in Infrastructure (EF Core, see ADR-0003). Application
+            handlers never touch DbContext directly.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Contracts.MetaTokenResponse">
+            <summary>
+            Result of exchanging an OAuth code for a long-lived token. <see cref="P:BEQSAN.Application.Social.Contracts.MetaTokenResponse.ExpiresInSeconds"/>
+            is what Meta returns (typically ~5184000 = 60 days); the application layer turns
+            that into an absolute UTC timestamp before persisting.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Contracts.MetaTokenResponse.#ctor(System.String,System.Int64)">
+            <summary>
+            Result of exchanging an OAuth code for a long-lived token. <see cref="P:BEQSAN.Application.Social.Contracts.MetaTokenResponse.ExpiresInSeconds"/>
+            is what Meta returns (typically ~5184000 = 60 days); the application layer turns
+            that into an absolute UTC timestamp before persisting.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Posts.PublishPostCommand">
+            <summary>
+            Composer submission. <see cref="P:BEQSAN.Application.Social.Posts.PublishPostCommand.Targets"/> is one entry per (page, platform)
+            the admin ticked — we fan out into N <see cref="T:BEQSAN.Domain.Social.SocialPost"/> rows under a
+            shared composer id and publish them sequentially so a partial failure leaves
+            useful state (some published, some failed) rather than rolling back the world.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Posts.PublishPostCommand.#ctor(System.String,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Social.Posts.PublishTarget})">
+            <summary>
+            Composer submission. <see cref="P:BEQSAN.Application.Social.Posts.PublishPostCommand.Targets"/> is one entry per (page, platform)
+            the admin ticked — we fan out into N <see cref="T:BEQSAN.Domain.Social.SocialPost"/> rows under a
+            shared composer id and publish them sequentially so a partial failure leaves
+            useful state (some published, some failed) rather than rolling back the world.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Application.Social.Webhooks.ReceiveMetaWebhookCommand">
+            <summary>
+            Webhook fan-out from Meta. Payload is delivered as already-parsed records by
+            the API edge — the handler doesn't see raw JSON. Idempotent on
+            <see cref="P:BEQSAN.Application.Social.Webhooks.WebhookEvent.ExternalMessageId"/> via <see cref="M:BEQSAN.Application.Social.Contracts.IInboxRepository.MessageExistsAsync(System.String,System.Threading.CancellationToken)"/>.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Application.Social.Webhooks.ReceiveMetaWebhookCommand.#ctor(System.Collections.Generic.IReadOnlyList{BEQSAN.Application.Social.Webhooks.WebhookEvent})">
+            <summary>
+            Webhook fan-out from Meta. Payload is delivered as already-parsed records by
+            the API edge — the handler doesn't see raw JSON. Idempotent on
+            <see cref="P:BEQSAN.Application.Social.Webhooks.WebhookEvent.ExternalMessageId"/> via <see cref="M:BEQSAN.Application.Social.Contracts.IInboxRepository.MessageExistsAsync(System.String,System.Threading.CancellationToken)"/>.
+            </summary>
+        </member>
+    </members>
+</doc>

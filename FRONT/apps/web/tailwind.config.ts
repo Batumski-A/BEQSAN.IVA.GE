@@ -6,6 +6,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Legacy "Industrial Elegance" tokens kept for the pages still in that
+        // aesthetic (/about, /process, /materials, /warranty, /contact, /catalog).
+        // New Modern Studio pages use the studio.* scale below.
         bg: {
           base: 'oklch(15% 0.01 250)',
           elevated: 'oklch(19% 0.012 250)',
@@ -15,8 +18,6 @@ const config: Config = {
         fg: {
           primary: 'oklch(96% 0.005 95)',
           secondary: 'oklch(78% 0.008 95)',
-          // 62% lifts captions above WCAG 4.5:1 contrast against bg-base
-          // (was 56% which measured ~4.0:1 in Lighthouse on 2026-05-17).
           tertiary: 'oklch(62% 0.01 250)',
           disabled: 'oklch(38% 0.01 250)',
         },
@@ -40,6 +41,32 @@ const config: Config = {
           DEFAULT: 'oklch(96% 0 0 / 0.08)',
           strong: 'oklch(96% 0 0 / 0.14)',
         },
+
+        // Modern Studio palette — Home + Configurator + new admin surfaces.
+        // Slate scale mirrors Tailwind's slate but exposed as semantic names so
+        // future colour-mode work (e.g. light-on-light) can rebind without
+        // touching every component.
+        studio: {
+          // Surface
+          ink: '#0f172a',          // slate-900 — primary dark surface
+          'ink-2': '#1e293b',      // slate-800 — raised panel
+          'ink-3': '#334155',      // slate-700 — hover state on dark
+          paper: '#f8fafc',        // slate-50 — primary light surface
+          'paper-2': '#f1f5f9',    // slate-100 — alt light surface
+          'paper-3': '#e2e8f0',    // slate-200 — borders on light
+          // Foreground
+          fg: '#0f172a',           // slate-900 on light
+          'fg-mute': '#475569',    // slate-600
+          'fg-soft': '#94a3b8',    // slate-400
+          'fg-inv': '#f8fafc',     // on dark
+          'fg-inv-mute': '#cbd5e1',// slate-300 on dark
+          'fg-inv-soft': '#64748b',// slate-500 on dark
+          // Accent — Studio Blue (new primary)
+          brand: '#2563eb',        // blue-600
+          'brand-h': '#3b82f6',    // blue-500 hover
+          'brand-soft': '#60a5fa', // blue-400 (gradient tail)
+          'brand-glow': 'rgba(37, 99, 235, 0.35)',
+        },
       },
       fontFamily: {
         // Stacks list the BPG/FiraGO names FIRST so they win once those .woff2
@@ -61,6 +88,17 @@ const config: Config = {
           'sans-serif',
         ],
         sans: ['FiraGO', '"Noto Sans Georgian"', 'system-ui', 'sans-serif'],
+        // Studio stack — BPG Glaho carries Georgian glyphs, system stack carries
+        // Latin/numeric so weights and tracking match the Modern Studio reference.
+        studio: [
+          '"BPG Glaho Sans"',
+          '"Noto Sans Georgian"',
+          'system-ui',
+          '-apple-system',
+          '"Segoe UI"',
+          'Inter',
+          'sans-serif',
+        ],
         mono: [
           '"JetBrains Mono"',
           'ui-monospace',

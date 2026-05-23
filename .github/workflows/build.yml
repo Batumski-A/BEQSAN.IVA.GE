@@ -1,0 +1,94 @@
+name: build
+
+# Builds the BACK (.NET 8) + the FRONT web app on every push to main and on PRs.
+# Produces two artifacts:
+#   - back-publish: self-contained-ish dotnet publish output (BEQSAN.Api/bin/Release/net8.0/publish)
+#   - front-dist:   FRONT/apps/web/dist (the static SPA bundle)
+#
+# Deployment is a separate workflow (deploy.yml) that requires SSH secrets.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  back:
+    name: BACK · .NET 8
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BACK
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Test
+        run: |
+          if compgen -G "tests/**/*.csproj" > /dev/null; then
+            dotnet test --no-build -c Release --verbosity normal
+          else
+            echo "No test projects found — skipping."
+          fi
+
+      - name: Publish
+        run: |
+          dotnet publish src/BEQSAN.Api/BEQSAN.Api.csproj \
+            -c Release \
+            -o ./publish \
+            --no-restore
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: back-publish
+          path: BACK/publish
+          retention-days: 14
+
+  front:
+    name: FRONT · web SPA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FRONT
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: FRONT/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm --filter @beqsan/web exec tsc --noEmit
+
+      - name: Build
+        run: pnpm --filter @beqsan/web build
+        env:
+          VITE_API_BASE: ${{ vars.VITE_API_BASE || 'https://api.beqsan.iva.ge' }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: front-dist
+          path: FRONT/apps/web/dist
+          retention-days: 14

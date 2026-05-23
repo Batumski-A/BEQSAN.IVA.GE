@@ -88,6 +88,14 @@ export type ConfiguratorActions = {
   setPaneOpening: (position: number, opening: PaneOpeningType) => void;
   setPaneHinge: (position: number, hinge: HingeSide | null) => void;
   setPaneRatios: (ratios: number[]) => void;
+  /** Step 9 — toggle the horizontal transom split on/off for a pane. */
+  setPaneTransom: (position: number, hasTransom: boolean) => void;
+  /** Step 9 — set the transom sash opening type + hinge in one call. */
+  setPaneTransomOpening: (
+    position: number,
+    opening: PaneOpeningType,
+    hinge: HingeSide | null,
+  ) => void;
   togglePaneMosquito: (position: number) => void;
   setPaneGlass: (position: number, glassTypeId: string) => void;
   togglePaneGlassExtra: (position: number, extra: GlassExtra) => void;
@@ -121,6 +129,10 @@ export const PANE_COUNT_RANGE: Record<string, { min: number; max: number; defaul
   sliding: { min: 2, max: 4, defaultCount: 2 },
   panoramic: { min: 1, max: 6, defaultCount: 2 },
   balcony: { min: 1, max: 8, defaultCount: 3 },
+  // Veranda — U-shape with at least 1 pane per wall (front + 2 sides),
+  // up to 9 if multiple panes per wall. Default of 3 maps cleanly to
+  // one pane per wall for the first render.
+  veranda: { min: 3, max: 9, defaultCount: 3 },
 };
 
 export function paneRangeFor(slug: string | null | undefined): {
@@ -255,9 +267,33 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           const range = paneRangeFor(prev.productType?.slug);
           const target = Math.max(range.min, Math.min(range.max, n));
           if (target === prev.panes.length) return prev;
-          return {
-            panes: buildEqualPanes(target, prev.productType?.slug, prev.defaultGlassTypeId),
-          };
+
+          const ratio = Number((1 / target).toFixed(4));
+          const baseline = buildEqualPanes(target, prev.productType?.slug, prev.defaultGlassTypeId);
+
+          // Preserve per-pane openings + glass when shrinking/growing so
+          // the user's per-section choices don't get wiped on every
+          // pane-count change. New slots picked up from baseline.
+          // Width is re-balanced equally to keep ratios summing to 1.
+          const next = baseline.map((freshPane, i) => {
+            const carry = prev.panes[i];
+            if (!carry) return freshPane;
+            return {
+              ...freshPane,
+              widthRatio: ratio,
+              openingType: carry.openingType,
+              hingeSide: carry.hingeSide,
+              hasMosquitoNet: carry.hasMosquitoNet,
+              glassTypeId: carry.glassTypeId ?? freshPane.glassTypeId,
+              glassExtras: carry.glassExtras ?? [],
+              hasTransom: carry.hasTransom ?? false,
+              transomOpeningType: carry.transomOpeningType,
+              transomHingeSide: carry.transomHingeSide,
+              transomHeightRatio: carry.transomHeightRatio,
+            };
+          });
+
+          return { panes: next };
         }),
 
       setPaneOpening: (position, opening) =>
@@ -290,6 +326,50 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           }));
           return { panes: normalize(next) };
         }),
+
+      setPaneTransom: (position, hasTransom) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) => {
+            if (p.position !== position) return p;
+            if (!hasTransom) {
+              // Toggling off resets transom fields so the wire request
+              // doesn't carry stale opening/hinge values the validator
+              // would reject.
+              return {
+                ...p,
+                hasTransom: false,
+                transomOpeningType: null,
+                transomHingeSide: null,
+                transomHeightRatio: 0.3,
+              };
+            }
+            return {
+              ...p,
+              hasTransom: true,
+              transomOpeningType: p.transomOpeningType ?? 'Fixed',
+              transomHingeSide: p.transomHingeSide ?? null,
+              transomHeightRatio: p.transomHeightRatio ?? 0.3,
+            };
+          }),
+        })),
+
+      setPaneTransomOpening: (position, opening, hinge) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) =>
+            p.position === position
+              ? {
+                  ...p,
+                  hasTransom: true,
+                  transomOpeningType: opening,
+                  transomHingeSide:
+                    opening === 'Casement' || opening === 'TiltAndTurn'
+                      ? hinge ?? 'Right'
+                      : null,
+                  transomHeightRatio: p.transomHeightRatio ?? 0.3,
+                }
+              : p,
+          ),
+        })),
 
       togglePaneMosquito: (position) =>
         set((prev) => ({
@@ -478,7 +558,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         defaultLockTypeId: s.defaultLockTypeId,
         installation: s.installation,
       }),
-      version: 7, // bumped — installation choice added
+      version: 8, // bumped — added dismantling, dwellingType, floor, hasElevator to installation
       migrate: (persisted, fromVersion) => {
         if (fromVersion < 2) {
           return INITIAL;
@@ -547,6 +627,23 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           return {
             ...prior,
             installation: null,
+          } as ConfiguratorState;
+        }
+        if (fromVersion < 8) {
+          // v7 → v8: added dismantling, dwellingType, floor, hasElevator to installation.
+          const prior = persisted as ConfiguratorState;
+          return {
+            ...prior,
+            installation: prior.installation
+              ? {
+                  region: prior.installation.region,
+                  cityHint: prior.installation.cityHint,
+                  dismantling: prior.installation.dismantling ?? false,
+                  dwellingType: prior.installation.dwellingType ?? 'apartment',
+                  floor: prior.installation.floor ?? 1,
+                  hasElevator: prior.installation.hasElevator ?? false,
+                }
+              : null,
           } as ConfiguratorState;
         }
         return persisted as ConfiguratorState;

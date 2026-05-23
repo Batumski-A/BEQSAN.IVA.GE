@@ -15,12 +15,33 @@ public sealed class AdminTokenAuthMiddleware(RequestDelegate next, IOptions<Soci
     private const string HeaderName = "X-Admin-Token";
     private const string ProtectedPrefix = "/api/v1/admin/";
 
+    /// <summary>
+    /// Auth endpoints reachable without the admin token. The SPA needs
+    /// these to (a) detect if the owner exists yet, (b) create the owner
+    /// on first install, (c) exchange credentials for the token.
+    /// </summary>
+    private static readonly string[] PublicPaths =
+    [
+        "/api/v1/admin/auth/login",
+        "/api/v1/admin/auth/setup",
+        "/api/v1/admin/auth/setup-status",
+    ];
+
     private readonly string _expected = options.Value.AdminToken ?? string.Empty;
 
     public async Task InvokeAsync(HttpContext ctx)
     {
         var path = ctx.Request.Path.Value ?? string.Empty;
-        if (path.StartsWith(ProtectedPrefix, StringComparison.OrdinalIgnoreCase))
+        var isPublic = false;
+        foreach (var p in PublicPaths)
+        {
+            if (path.Equals(p, StringComparison.OrdinalIgnoreCase))
+            {
+                isPublic = true;
+                break;
+            }
+        }
+        if (path.StartsWith(ProtectedPrefix, StringComparison.OrdinalIgnoreCase) && !isPublic)
         {
             if (string.IsNullOrEmpty(_expected))
             {

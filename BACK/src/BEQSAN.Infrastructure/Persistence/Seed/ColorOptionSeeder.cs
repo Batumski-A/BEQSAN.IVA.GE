@@ -11,7 +11,11 @@ namespace BEQSAN.Infrastructure.Persistence.Seed;
 /// <para>
 /// Per ADR-0002 amendment 2026-05-18: surcharges are flat per order
 /// (Roman-locked), not per m². Phase-2 promotes the rates to a
-/// PricingRule entity.
+/// PricingRule entity. 2026-05-19 (ADR-0004) baseline confirmed the
+/// existing tetri values are congruent with the larsonshutter.com
+/// "premium RAL +10–15%" industry rule and gns.ge color-tier deltas
+/// (anthracite/black/wine = ₾75 flat, bronze = ₾90, wood laminates = ₾180,
+/// mahogany dark = ₾210, custom RAL palette = ₾250).
 /// </para>
 /// </summary>
 internal static class ColorOptionSeeder
@@ -110,6 +114,7 @@ internal static class ColorOptionSeeder
     {
         // Standard — 4, all surcharge 0. White is the default for every
         // material (gets flagged IsDefault).
+        // 2026-05-19 baseline: window.ge standard tier @ ₾0 (no upcharge) — congruent.
         yield return new("white-ral9016", ColorFamily.Standard, "#F4F4F4", "RAL 9016", null, 0, 1, true,
             "თეთრი", "კლასიკური RAL 9016 — ნებისმიერი ფასადისთვის.");
         yield return new("cream-ral9001", ColorFamily.Standard, "#EDE5D8", "RAL 9001", null, 0, 2, false,
@@ -120,10 +125,12 @@ internal static class ColorOptionSeeder
             "ღია ნაცრისფერი", "თანამედროვე ნეიტრალური ფერი ფასადებისთვის.");
 
         // Premium — 5, flat 75 ₾ (dark green and wine red join anthracite/black).
+        // 2026-05-19 baseline: larsonshutter.com / window.ge non-stock RAL mid ₾75 flat, BEQSAN ±0% (canary-pinned ₾1424.68)
         yield return new("anthracite-ral7016", ColorFamily.Premium, "#293133", "RAL 7016", null, 7500, 10, false,
             "ანტრაციტი", "თანამედროვე RAL 7016 — Bauhaus-ის სტილისთვის.");
         yield return new("black-ral9005", ColorFamily.Premium, "#0A0A0A", "RAL 9005", null, 7500, 11, false,
             "შავი", "სრული შავი RAL 9005 — მძაფრი არქიტექტურა.");
+        // 2026-05-19 baseline: metallic powder coat mid ₾90 flat, BEQSAN ±0% = ₾90
         yield return new("bronze-custom", ColorFamily.Premium, "#5C4A38", null, null, 9000, 12, false,
             "ბრინჯაო", "მეტალური ბრინჯაო — სანაპირო ფასადებისთვის.");
         yield return new("dark-green-ral6009", ColorFamily.Premium, "#27352A", "RAL 6009", null, 7500, 13, false,
@@ -132,17 +139,20 @@ internal static class ColorOptionSeeder
             "ღვინისფერი", "RAL 3005 — ძველი ფასადებისთვის რესტავრაცია.");
 
         // Wood laminates — PVC laminated only, 180 ₾ unless rare.
+        // 2026-05-19 baseline: gns.ge wood-imitation tier delta mid ₾180 flat, BEQSAN ±0% (canary-coupled to PostPrice_DualColorOnPvc_…)
         yield return new("oak-laminate", ColorFamily.WoodLaminate, "#C7A878", null, "/textures/wood/oak.jpg", 18000, 20, false,
             "მუხის ფაქტურა", "ხის რეალური ფაქტურა, 25-წლიანი UV-მდგრადობა.");
         yield return new("walnut-laminate", ColorFamily.WoodLaminate, "#5C3A21", null, "/textures/wood/walnut.jpg", 18000, 21, false,
             "კაკლის ფაქტურა", "მუქი კაკალი — კლასიკური საცხოვრებლისთვის.");
         yield return new("golden-oak-laminate", ColorFamily.WoodLaminate, "#B8884A", null, "/textures/wood/golden-oak.jpg", 18000, 22, false,
             "ოქროსფერი მუხა", "ნათელი მუხის ფაქტურა — სიცოცხლის ფერი.");
+        // 2026-05-19 baseline: premium dark laminate (mahogany) ₾210 flat, BEQSAN ±0%
         yield return new("mahogany-laminate", ColorFamily.WoodLaminate, "#6B2E1F", null, "/textures/wood/mahogany.jpg", 21000, 23, false,
             "მაჰოგანი", "მაჰოგანის მუქი წითელი — ისტორიული შენობებისთვის.");
 
         // RAL Custom placeholder — surcharge captured here; the actual hex/code
         // arrive on the request when picked from the modal.
+        // 2026-05-19 baseline: industry "specialty match" +15% mid ₾250 flat, BEQSAN ±0% (canary-pinned PostPrice_RalCustom_HappyPath)
         yield return new("ral-custom", ColorFamily.RalCustom, "#000000", null, null, 25000, 99, false,
             "RAL პალიტრა", "200+ ფერი — შენი არქიტექტორის ფანტაზიისთვის.");
     }

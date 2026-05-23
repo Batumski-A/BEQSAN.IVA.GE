@@ -8,6 +8,16 @@ namespace BEQSAN.Infrastructure.Persistence.Seed;
 /// Seeds the Phase-1 accessory catalog (12 rows: 4 handle styles + 4 lock
 /// types + 4 blind types) and the three compatibility meshes. Idempotent —
 /// skips by slug for catalog rows, by composite pair for compat rows.
+/// <para>
+/// 2026-05-19 baseline (ADR-0004 + docs/research/2026-pricing-baseline.md):
+/// handles benchmarked against Hoppe Atlanta retail (maniglieria.com €3.10
+/// aluminum → €12.50 brass + Georgian import + workshop markup); locks
+/// against Roto/Maco multi-point catalog + Georgian smart-lock retailers;
+/// blinds against dio.ge / winsome.ge Tbilisi catalog. Canary-pinned rows
+/// (modern-aluminum handle, multi-point-3 lock, external-aluminum-electric
+/// blind, sill ₾8000/m) kept verbatim because they're already within ±10%
+/// of the Georgian market mid.
+/// </para>
 /// </summary>
 internal static class AccessoryCatalogSeeder
 {
@@ -42,15 +52,19 @@ internal static class AccessoryCatalogSeeder
 
     private static IEnumerable<HandleSpec> HandleSpecs()
     {
+        // 2026-05-19 baseline: Hoppe Atlanta aluminum retail-installed mid ₾45/pane, BEQSAN ±0% (canary-pinned ₾2333.17)
         yield return new("modern-aluminum", "modern", 4500, 1, IsDefault: true,
             "Modern ალუმინი",
             "თანამედროვე გეომეტრიული სახელური, ნებისმიერი მინიმალისტური ფასადისთვის.");
+        // 2026-05-19 baseline: Hoppe Atlanta brass / classic mid ₾62/pane, BEQSAN −3% = ₾60
         yield return new("classic-curved", "classic", 6000, 2, IsDefault: true,
             "Classic მრუდი",
             "ერგონომიკული მრუდი ფორმა, კლასიკური ხანდაზმული გრძნობით.");
+        // 2026-05-19 baseline: Hoppe Tokyo Secustic mid ₾110/pane, BEQSAN +9% = ₾120 (premium positioning)
         yield return new("premium-secustic", "premium", 12000, 3, IsDefault: true,
             "Premium Secustic",
             "გერმანული უსაფრთხო ბორბალი — ანტი-ვანდალური, თერმო-იზოლირებული.");
+        // 2026-05-19 baseline: recessed-pull dealer mid ₾85/pane, BEQSAN ±0% = ₾85
         yield return new("minimal-recessed", "minimal", 8500, 4, IsDefault: true,
             "Minimal ჩაკრული",
             "უხილავი სახელური ფასადის სუფთა ხედვისთვის.");
@@ -108,15 +122,19 @@ internal static class AccessoryCatalogSeeder
 
     private static IEnumerable<LockSpec> LockSpecs()
     {
+        // 2026-05-19 baseline: cam-cylinder retail mid ₾35/pane, BEQSAN ±0% = ₾35
         yield return new("basic-cam", LockGrade.Basic, 2, RequiresFull: false, 3500, 1, IsDefault: true,
             "Basic ცილინდრი",
             "სტანდარტული საკეტი — საცხოვრებლისთვის საკმარისი.");
+        // 2026-05-19 baseline: Roto Multi 3-point retail mid ₾95/pane, BEQSAN −5% = ₾90 (canary-pinned ₾2333.17)
         yield return new("multi-point-3", LockGrade.MultiPoint, 4, RequiresFull: true, 9000, 2, IsDefault: false,
             "Multi-point 3 წერტილი",
             "სამ-წერტილოვანი ჩაკეტვა — გაუმჯობესებული უსაფრთხოება.");
+        // 2026-05-19 baseline: Roto Multi 5-point retail mid ₾155/pane, BEQSAN −10% = ₾140
         yield return new("multi-point-5", LockGrade.MultiPoint, 5, RequiresFull: true, 14000, 3, IsDefault: false,
             "Multi-point 5 წერტილი",
             "ხუთ-წერტილოვანი ჩაკეტვა — საუკეთესო ანტი-ვანდალური.");
+        // 2026-05-19 baseline: Tbilisi smart-lock retail mid ₾380/pane, BEQSAN −8% = ₾350 (24-mo vendor warranty)
         yield return new("smart-fingerprint", LockGrade.Smart, 5, RequiresFull: false, 35000, 4, IsDefault: false,
             "Smart Fingerprint",
             "თითის ანაბეჭდი + Bluetooth — გასაღების გარეშე.");
@@ -176,18 +194,22 @@ internal static class AccessoryCatalogSeeder
 
     private static IEnumerable<BlindSpec> BlindSpecs()
     {
+        // 2026-05-19 baseline: window.ge external ჟალუზი base mid ₾180 + ₾65/m², BEQSAN ±0%
         yield return new("external-aluminum-manual", BlindPlacement.External, SupportsElectric: false,
             BaseMounting: 18000, SurchargePerSqm: 6500, SortOrder: 1,
             "გარეთა ალუმინი (მექანიკური)",
             "გარეთა ალუმინის ჟალუზი — ხელით მართვა, ფასადის დაცვა.");
+        // 2026-05-19 baseline: motorized external ჟალუზი base mid ₾250 + ₾90/m² + ₾45 motor, BEQSAN ±0% (canary-pinned ₾2333.17)
         yield return new("external-aluminum-electric", BlindPlacement.External, SupportsElectric: true,
             BaseMounting: 25000, SurchargePerSqm: 9000, SortOrder: 2,
             "გარეთა ალუმინი (ელექტრო)",
             "ელექტრო-მართვადი გარეთა ჟალუზი — დისტანციური მართვის ვარიანტით.");
+        // 2026-05-19 baseline: dio.ge Roman blind mid ₾80 + ₾40/m², BEQSAN ±0%
         yield return new("internal-roman", BlindPlacement.Internal, SupportsElectric: false,
             BaseMounting: 8000, SurchargePerSqm: 4000, SortOrder: 3,
             "შიდა Roman",
             "ფარდისებური შიდა ჟალუზი — ქსოვილოვანი, კლასიკური ინტერიერისთვის.");
+        // 2026-05-19 baseline: dio.ge Roller blind mid ₾60 + ₾35/m², BEQSAN ±0%
         yield return new("internal-roller", BlindPlacement.Internal, SupportsElectric: true,
             BaseMounting: 6000, SurchargePerSqm: 3500, SortOrder: 4,
             "შიდა Roller",

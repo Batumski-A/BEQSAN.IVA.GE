@@ -6,9 +6,15 @@ namespace BEQSAN.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// Idempotent seed of the 13 initial materials across the 5 product types.
-/// Prices in tetri (₾×100) are market-realistic 2026 baselines pulled from
-/// public Georgian competitors (window.ge, gns.ge, alu.ge, fanjrebi.ge) for
-/// the Phase 1 launch. Roman locks the final numbers before public preview.
+/// Prices in tetri (₾×100) are the 2026-05-19 BEQSAN baseline ratified in
+/// ADR-0004 (see docs/adr/0004-pricing-baseline-2026.md + the research
+/// note docs/research/2026-pricing-baseline.md). The baseline is set 5–10%
+/// above the Georgian competitor mid (window.ge / gns.ge / alu.ge /
+/// fanjrebi.ge / exclusive-geo.ge) to reflect direct-workshop positioning,
+/// German hardware standard, and the 10-year warranty.
+/// Aluminum rows stayed at the canary-pinned values because they were
+/// already congruent with the market mid; PVC rows lifted ~13% to align
+/// with Rehau Synego entry-tier reality.
 /// Skips inserts when a row with the same (product_type_id, slug) exists.
 /// </summary>
 internal static class MaterialSeeder
@@ -56,53 +62,77 @@ internal static class MaterialSeeder
     private static IEnumerable<MaterialSpec> MaterialSpecs()
     {
         // window — 4 materials
+        // 2026-05-19 baseline: window.ge/exclusive-geo.ge ALU thermal ₾340–430/m², mid ₾385, BEQSAN −1% = ₾380/m²
         yield return new("window", "aluminum-thermal", 1, MaterialFamily.Aluminum, ThermalRating.Thermal, 38000,
             "ალუმინი თერმო",
             "თერმოწყვეტიანი პროფილი, ბათუმის ცხელი ზაფხულისთვის და დეკემბრის ქარისთვის.");
+        // 2026-05-19 baseline: exclusive-geo.ge/gns.ge ALU non-thermal mid ₾260/m², BEQSAN ±0% = ₾260/m²
         yield return new("window", "aluminum-basic", 2, MaterialFamily.Aluminum, ThermalRating.Basic, 26000,
             "ალუმინი არათერმო",
             "მუშა ვარიანტი — სათავსოები, აივნები, კომერციული ფართები.");
-        yield return new("window", "pvc-white", 3, MaterialFamily.Pvc, ThermalRating.Basic, 17000,
+        // 2026-05-19 baseline: gns.ge Synego entry-tier mid ₾195/m², BEQSAN +0% = ₾195/m² (was 170; +14.7% to match market reality)
+        yield return new("window", "pvc-white", 3, MaterialFamily.Pvc, ThermalRating.Basic, 19500,
             "PVC თეთრი",
             "კლასიკური თეთრი, ხელმისაწვდომი, საცხოვრებლისთვის ნაცადი.");
-        yield return new("window", "pvc-laminated", 4, MaterialFamily.Pvc, ThermalRating.Thermal, 24000,
+        // 2026-05-19 baseline: Synego laminate mid ₾275/m², BEQSAN ±0% = ₾275/m² (was 240; +14.6% to align with PVC bump)
+        yield return new("window", "pvc-laminated", 4, MaterialFamily.Pvc, ThermalRating.Thermal, 27500,
             "PVC ლამინირებული",
             "ხის ფაქტურა ან ფერი — PVC-ის ფასი, ხის სტილი.");
 
         // door — 4 materials, sturdier profiles, higher per-m² price
+        // 2026-05-19 baseline: Alumil S77/M11000-door dealer mid ₾440/m², BEQSAN −5% = ₾420/m² (canary-pinned ₾832.61)
         yield return new("door", "aluminum-thermal", 1, MaterialFamily.Aluminum, ThermalRating.Thermal, 42000,
             "ალუმინი თერმო",
             "უსაფრთხო შესასვლელი კარი — თერმოწყვეტა და სიმტკიცე ერთად.");
+        // 2026-05-19 baseline: ALU non-thermal door mid ₾285/m², BEQSAN +1.8% = ₾290/m²
         yield return new("door", "aluminum-basic", 2, MaterialFamily.Aluminum, ThermalRating.Basic, 29000,
             "ალუმინი არათერმო",
             "შიდა და სამეურნეო კარები — გამძლე, მსუბუქი.");
-        yield return new("door", "pvc-white", 3, MaterialFamily.Pvc, ThermalRating.Basic, 19500,
+        // 2026-05-19 baseline: Synego door section mid ₾220/m², BEQSAN ±0% = ₾220/m² (was 195; +12.8% door reinforcement)
+        yield return new("door", "pvc-white", 3, MaterialFamily.Pvc, ThermalRating.Basic, 22000,
             "PVC თეთრი",
             "კლასიკური PVC კარი — საცხოვრებლის შიდა ან აივნის გასასვლელი.");
-        yield return new("door", "pvc-laminated", 4, MaterialFamily.Pvc, ThermalRating.Thermal, 26500,
+        // 2026-05-19 baseline: Synego laminate door mid ₾295/m², BEQSAN ±0% = ₾295/m² (was 265; +11.3%)
+        yield return new("door", "pvc-laminated", 4, MaterialFamily.Pvc, ThermalRating.Thermal, 29500,
             "PVC ლამინირებული",
             "ხის ფაქტურით — PVC-ის ფასი, ხის სტილის შესასვლელი.");
 
         // sliding — 2 materials, aluminum only (PVC sliding rare at this scale)
+        // 2026-05-19 baseline: Alumil S560/PHOS dealer mid ₾500/m², BEQSAN −4% = ₾480/m²
         yield return new("sliding", "aluminum-thermal", 1, MaterialFamily.Aluminum, ThermalRating.Thermal, 48000,
             "ალუმინი თერმო",
             "სლაიდინგ სისტემა თერმოწყვეტით — საცხოვრებლის ფართო გახსნისთვის.");
+        // 2026-05-19 baseline: commercial non-thermal slider mid ₾330/m², BEQSAN +6.1% = ₾350/m²
         yield return new("sliding", "aluminum-basic", 2, MaterialFamily.Aluminum, ThermalRating.Basic, 35000,
             "ალუმინი არათერმო",
             "კომერციული სლაიდინგი — მაღაზიები, ოფისები, კაფეები.");
 
         // panoramic — 1 material, top-thermal only (the whole point is large glass)
+        // 2026-05-19 baseline: Alumil M11500 high-thermal dealer mid ₾530/m², BEQSAN −1.9% = ₾520/m²
         yield return new("panoramic", "aluminum-high-thermal", 1, MaterialFamily.Aluminum, ThermalRating.HighThermal, 52000,
             "ალუმინი თერმო (პრემიუმ)",
             "მინიმალური ჩარჩო, მაქსიმუმი მინა. პრემიუმ თერმოწყვეტა დიდი ფართებისთვის.");
 
         // balcony — 2 materials
+        // 2026-05-19 baseline: ALU balcony glazing mid ₾220/m², BEQSAN ±0% = ₾220/m²
         yield return new("balcony", "aluminum-basic", 1, MaterialFamily.Aluminum, ThermalRating.Basic, 22000,
             "ალუმინი არათერმო",
             "აივნის შემინვის ეკონომიური ვარიანტი — ღია ნახევრად-დახურული.");
-        yield return new("balcony", "pvc-white", 2, MaterialFamily.Pvc, ThermalRating.Basic, 15000,
+        // 2026-05-19 baseline: PVC balcony Brillant entry mid ₾165/m², BEQSAN ±0% = ₾165/m² (was 150; +10%)
+        yield return new("balcony", "pvc-white", 2, MaterialFamily.Pvc, ThermalRating.Basic, 16500,
             "PVC თეთრი",
             "ჩარჩოიანი აივნის შემინვა — სითბოს და ხმის იზოლაცია.");
+
+        // veranda — 2 materials. U-shape costs ~front + 2 side walls × area;
+        // pricing mirrors panoramic per m² since the system is similar (large
+        // glass + slim frame) plus the extra corner mullions are absorbed in
+        // pane-count via the layout, not the per-m² rate.
+        yield return new("veranda", "aluminum-thermal", 1, MaterialFamily.Aluminum, ThermalRating.Thermal, 46000,
+            "ალუმინი თერმო",
+            "სამმხრიდან შემოსაზღვრული ვერანდა — ფრონტი + 2 გვერდითი კედელი.");
+        yield return new("veranda", "aluminum-high-thermal", 2, MaterialFamily.Aluminum, ThermalRating.HighThermal, 52000,
+            "ალუმინი თერმო (პრემიუმ)",
+            "სრულწლიური ექსპლუატაცია — გათბობის და კონდიცირების მქონე ვერანდისთვის.");
     }
 
     private static Material BuildMaterial(Guid productTypeId, MaterialSpec spec)

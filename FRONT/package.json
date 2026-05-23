@@ -1,7 +1,7 @@
 {
   "name": "@beqsan/root",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "packageManager": "pnpm@11.1.2",
   "engines": {
@@ -9,7 +9,6 @@
   },
   "scripts": {
     "dev": "pnpm --filter @beqsan/web dev",
-    "dev:admin": "pnpm --filter @beqsan/admin dev",
     "build": "pnpm -r build",
     "build:web": "pnpm --filter @beqsan/web build",
     "preview": "pnpm --filter @beqsan/web preview",

@@ -49,6 +49,21 @@ public static class PriceCalculator
     /// <summary>Per-pane mosquito-net flat surcharge in tetri. Phase-2 accessory entity replaces.</summary>
     public const long MosquitoNetMinor = 8000L;
 
+    /// <summary>Flat hardware cost in tetri added per pane that has a
+    /// transom (horizontal frame split). Covers the extra mullion + seal +
+    /// installation labor. Phase-2 admin pricing promotes this to a
+    /// PricingRule row.</summary>
+    public const long TransomMullionMinor = 5000L;
+
+    /// <summary>Flat dismantling cost per pane in tetri (30 GEL).</summary>
+    public const long DismantlingPerPaneMinor = 3000L;
+
+    /// <summary>Flat carrying/lifting fee in tetri if elevator is present for apartments (20 GEL).</summary>
+    public const long LiftElevatorFlatMinor = 2000L;
+
+    /// <summary>Carrying fee per pane per floor (above floor 1) in tetri if stairs only (5 GEL).</summary>
+    public const long LiftStairsPerPanePerFloorMinor = 500L;
+
     public static decimal SurchargeRate(PaneOpeningType type) => type switch
     {
         PaneOpeningType.Fixed => 0.00m,
@@ -215,32 +230,67 @@ public static class PriceCalculator
         };
 
         var surchargeTotalMinor = 0L;
+        var transomTotalMinor = 0L;
         foreach (var pane in effective.OrderBy(p => p.Position))
         {
-            var rate = SurchargeRate(pane.OpeningType);
-            if (rate <= 0m)
-            {
-                continue;
-            }
-
             var paneMaterialDecimal = areaSqm * pane.WidthRatio * material.BasePricePerSqmMinor;
-            var surchargeMinor = (long)decimal.Round(
-                paneMaterialDecimal * rate,
-                0,
-                MidpointRounding.ToEven);
 
-            if (surchargeMinor == 0)
+            // When the pane has a transom (horizontal split), the bottom sash
+            // hardware is applied to (1 - TransomHeightRatio) of the pane area
+            // and the top sash hardware to TransomHeightRatio. Without a
+            // transom the bottom covers the full pane so existing canaries
+            // hold byte-for-byte.
+            var bottomRatio = pane.HasTransom ? (1m - pane.TransomHeightRatio) : 1m;
+            var rate = SurchargeRate(pane.OpeningType);
+            if (rate > 0m)
             {
-                continue;
+                var surchargeMinor = (long)decimal.Round(
+                    paneMaterialDecimal * bottomRatio * rate,
+                    0,
+                    MidpointRounding.ToEven);
+                if (surchargeMinor != 0)
+                {
+                    surchargeTotalMinor += surchargeMinor;
+                    var typeToken = pane.OpeningType.ToString().ToLowerInvariant();
+                    var typeLabel = OpeningLabelKa(pane.OpeningType);
+                    lines.Add(new PriceLine(
+                        Code: $"pane.{pane.Position}.opening.{typeToken}",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"პანელი {pane.Position} · {typeLabel}"),
+                        AmountMinor: surchargeMinor));
+                }
             }
 
-            surchargeTotalMinor += surchargeMinor;
-            var typeToken = pane.OpeningType.ToString().ToLowerInvariant();
-            var typeLabel = OpeningLabelKa(pane.OpeningType);
-            lines.Add(new PriceLine(
-                Code: $"pane.{pane.Position}.opening.{typeToken}",
-                Label: string.Create(CultureInfo.InvariantCulture, $"პანელი {pane.Position} · {typeLabel}"),
-                AmountMinor: surchargeMinor));
+            if (pane.HasTransom)
+            {
+                // Transom opening surcharge (if any) on the top portion.
+                var transomRate = SurchargeRate(pane.TransomOpeningType);
+                if (transomRate > 0m)
+                {
+                    var transomSurchargeMinor = (long)decimal.Round(
+                        paneMaterialDecimal * pane.TransomHeightRatio * transomRate,
+                        0,
+                        MidpointRounding.ToEven);
+                    if (transomSurchargeMinor != 0)
+                    {
+                        transomTotalMinor += transomSurchargeMinor;
+                        var transomTypeToken = pane.TransomOpeningType.ToString().ToLowerInvariant();
+                        var transomTypeLabel = OpeningLabelKa(pane.TransomOpeningType);
+                        lines.Add(new PriceLine(
+                            Code: $"pane.{pane.Position}.transom.opening.{transomTypeToken}",
+                            Label: string.Create(CultureInfo.InvariantCulture, $"პანელი {pane.Position} · ფრამუგა · {transomTypeLabel}"),
+                            AmountMinor: transomSurchargeMinor));
+                    }
+                }
+
+                // Flat horizontal-mullion + sealing hardware cost. Charged
+                // regardless of the transom opening rate so a fixed transom
+                // still incurs the carpentry cost.
+                transomTotalMinor += TransomMullionMinor;
+                lines.Add(new PriceLine(
+                    Code: $"pane.{pane.Position}.transom.mullion",
+                    Label: string.Create(CultureInfo.InvariantCulture, $"პანელი {pane.Position} · ფრამუგის ჰორიზონტი"),
+                    AmountMinor: TransomMullionMinor));
+            }
         }
 
         // Per-pane glass surcharge + extras. Skipped entirely when the
@@ -436,6 +486,8 @@ public static class PriceCalculator
         // → zero-amount line with metadata so the FRONT renders the
         // manual-quote affordance. Everything else → flat zone surcharge.
         var installationMinor = 0L;
+        var dismantlingMinor = 0L;
+        var carryingMinor = 0L;
         if (installation is not null)
         {
             var zoneMinor = (long)InstallationPricing.SurchargeMinor(installation.Region);
@@ -456,11 +508,45 @@ public static class PriceCalculator
                     AmountMinor: 0L));
             }
             // Batumi → no line, no surcharge.
+
+            // Dismantling fee: 30 GEL per pane.
+            if (installation.Dismantling)
+            {
+                dismantlingMinor = effective.Count * DismantlingPerPaneMinor;
+                lines.Add(new PriceLine(
+                    Code: "dismantling.panes",
+                    Label: string.Create(CultureInfo.InvariantCulture, $"დემონტაჟი · {effective.Count} პანელი"),
+                    AmountMinor: dismantlingMinor));
+            }
+
+            // Carrying fee: charged only for apartments when Floor > 1.
+            if (string.Equals(installation.DwellingType, "apartment", StringComparison.OrdinalIgnoreCase) && installation.Floor > 1)
+            {
+                if (installation.HasElevator)
+                {
+                    carryingMinor = LiftElevatorFlatMinor;
+                    lines.Add(new PriceLine(
+                        Code: "carrying.elevator",
+                        Label: string.Create(CultureInfo.InvariantCulture, $"ატანა ლიფტით · სართული {installation.Floor}"),
+                        AmountMinor: carryingMinor));
+                }
+                else
+                {
+                    carryingMinor = (installation.Floor - 1) * LiftStairsPerPanePerFloorMinor * effective.Count;
+                    if (carryingMinor > 0)
+                    {
+                        lines.Add(new PriceLine(
+                            Code: "carrying.stairs",
+                            Label: string.Create(CultureInfo.InvariantCulture, $"ატანა კიბით · სართული {installation.Floor} · {effective.Count} პანელი"),
+                            AmountMinor: carryingMinor));
+                    }
+                }
+            }
         }
 
-        var subtotalMinor = materialMinor + surchargeTotalMinor + glassTotalMinor
-            + extrasTotalMinor + mosquitoMinor + colorOuterMinor + colorInnerMinor
-            + accessoryTotalMinor + installationMinor;
+        var subtotalMinor = materialMinor + surchargeTotalMinor + transomTotalMinor
+            + glassTotalMinor + extrasTotalMinor + mosquitoMinor + colorOuterMinor
+            + colorInnerMinor + accessoryTotalMinor + installationMinor + dismantlingMinor + carryingMinor;
         var vatMinor = (long)decimal.Round(
             subtotalMinor * VatRate,
             0,

@@ -1,0 +1,1082 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BEQSAN.Domain</name>
+    </assembly>
+    <members>
+        <member name="T:BEQSAN.Domain.Catalog.BlindType">
+             <summary>
+             A blind / shutter option the customer can pick at configurator Step 7.
+             Pricing is <em>base mounting + per-m² of frame area</em> — the mounting
+             fee covers the bracketry + electrical (if any) and doesn't scale with
+             size; the per-m² part scales with the curtain itself.
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Catalog.BlindType.Placement"/> separates External (mounted on the façade) from
+             Internal (rolled or pleated behind the frame). External requires solid
+             upper anchor + power feed for electric variants; for now Phase-1 ships
+             external only for window / sliding / panoramic. Compatibility table
+             enforces the matrix.
+             </para>
+             <para>
+             <see cref="P:BEQSAN.Domain.Catalog.BlindType.SupportsElectric"/> gates the control choice — manual-only
+             types reject Electric/Remote at the validator. The motor / remote
+             surcharge is applied by <see cref="T:BEQSAN.Domain.Configurator.PriceCalculator"/>
+             on top of the base + per-m² total.
+             </para>
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.BlindType.BaseMountingMinor">
+            <summary>Flat mounting fee in tetri. 18000 = 180 ₾.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.BlindType.SurchargePerSqmMinor">
+            <summary>Tetri per m² of frame area.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.ColorOption">
+             <summary>
+             A frame color / finish option the customer can pick at configurator
+             Step 6. Color is a configuration-level decision (not per-pane) — the
+             frame is unified across mullions, sashes, and outer trim.
+            
+             <para>
+             Compatibility is keyed by material via <c>material_color_compatibility</c>:
+             wood laminates only apply to PVC-laminated, RAL Custom is offered to
+             everything, and PVC-white sticks to neutrals. Exactly one row per
+             material is flagged <see cref="P:BEQSAN.Domain.Catalog.ColorOption.IsDefault"/> — the configurator
+             auto-selects it on Step 6 entry so the price preview is non-empty.
+             </para>
+             <para>
+             Per ADR-0002 amendment 2026-05-18 (Step 6): surcharge is <em>flat per
+             order</em>, not per m². Paint match / lamination film prep is largely
+             fixed setup cost; per-m² pricing would punish small windows
+             disproportionately. Roman-locked rates live in the seeder.
+             </para>
+             <para>
+             <see cref="F:BEQSAN.Domain.Catalog.ColorFamily.RalCustom"/> is a placeholder slug
+             (<c>ral-custom</c>) — the actual chosen hex + RAL code arrive in the
+             <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalHex"/> /
+             <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalCode"/>
+             fields when the user picks from the RAL palette modal.
+             </para>
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ColorOption.HexCode">
+            <summary>
+            Hex code (#RRGGBB) used by the FRONT swatch and the 3D scene's
+            frame material. For <see cref="F:BEQSAN.Domain.Catalog.ColorFamily.WoodLaminate"/> this is
+            a fallback solid color while the texture loads.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ColorOption.RalCode">
+            <summary>
+            Canonical RAL code (e.g. <c>"RAL 9016"</c>) for printed/admin
+            reference; null for custom / non-RAL palette entries.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ColorOption.WoodTextureUrl">
+            <summary>
+            Public path to the wood-grain texture; required for
+            <see cref="F:BEQSAN.Domain.Catalog.ColorFamily.WoodLaminate"/>, null otherwise.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ColorOption.SurchargeMinor">
+            <summary>Tetri added once per order; not per-m². 0 for standard colors.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ColorOption.IsDefault">
+            <summary>Per-material baseline — typically white-ral9016.</summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Catalog.ColorOption.HexRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>^#[0-9A-Fa-f]{6}$</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match '#'.<br/>
+            ○ Match a character in the set [0-9A-Fa-f] exactly 6 times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:BEQSAN.Domain.Catalog.ColorOption.RalRegex">
+            <remarks>
+            Pattern:<br/>
+            <code>^RAL\\s\\d{4}$</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match the string "RAL".<br/>
+            ○ Match a whitespace character.<br/>
+            ○ Match a Unicode digit exactly 4 times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.ColorFamily">
+            <summary>
+            Family-level grouping used by the FRONT swatch grid. Standard is
+            included at zero surcharge; Premium / WoodLaminate / RalCustom have
+            progressively higher flat surcharges.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.DimensionConstraints">
+            <summary>
+            Per-product-type allowed dimension range for the Configurator. Sourced from
+            the ProductType row (admin-editable in Phase 2); falls back to a slug-keyed
+            default for unknown / legacy slugs so the calculator can never NPE on a
+            missing range.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Catalog.DimensionConstraints.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Per-product-type allowed dimension range for the Configurator. Sourced from
+            the ProductType row (admin-editable in Phase 2); falls back to a slug-keyed
+            default for unknown / legacy slugs so the calculator can never NPE on a
+            missing range.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Catalog.DimensionConstraints.ForProductType(System.String)">
+            <summary>
+            Slug-keyed market-realistic defaults used when seeding new product types and
+            as a safety net when a row hasn't migrated yet. Final numbers are admin-locked
+            per-row; this static map is the floor, not the contract.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.GlassType">
+             <summary>
+             A glass package the customer can pick per pane — single/double/triple/quadruple
+             layers, with optional pre-applied treatments (Low-E, tempered, frosted,
+             tinted). Availability is gated by the chosen material via the
+             <c>material_glass_compatibility</c> table — e.g. quadruple-Low-E is only
+             offered with aluminum-thermal profiles that can carry the weight.
+            
+             One row per material family is flagged <see cref="P:BEQSAN.Domain.Catalog.GlassType.IsDefault"/> so the
+             configurator can auto-select a sensible baseline when the user lands on
+             Step 5 — usually <c>double-standard</c>.
+            
+             Per ADR-0002 amendment 2026-05-17 (Step 5): <see cref="P:BEQSAN.Domain.Catalog.GlassType.SurchargePerSqmMinor"/>
+             is integer tetri above the material baseline; the default package carries 0.
+             Extra treatments applied on top of a glass type (e.g. tempering a
+             double-Low-E pane) live in <see cref="T:BEQSAN.Domain.Configurator.GlassExtra"/>.
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.GlassType.PaneCount">
+            <summary>1..4 — number of glass sheets stacked in the unit.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.GlassType.SurchargePerSqmMinor">
+            <summary>
+            Tetri / m² added on top of the material baseline. 0 means this is the
+            per-material baseline package. Always integer; decimal only in the
+            calculator (per ADR-0002).
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.GlassType.UValue">
+            <summary>
+            Thermal transmittance — W/(m²·K). Informational, used in marketing
+            copy on the Step 5 card. Lower = better insulation.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.GlassType.IsDefault">
+            <summary>
+            True for the per-material baseline. Exactly one row per material in
+            <c>material_glass_compatibility</c> should be flagged default — the
+            reader resolves it for the configurator's auto-select.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.HandleStyle">
+             <summary>
+             A handle option the customer can pick at configurator Step 7. Surcharge
+             is <em>per openable pane</em> — a 2-pane Casement+Fixed window with the
+             "modern-aluminum" handle pays 1× the per-pane surcharge (only the
+             Casement pane gets a handle).
+            
+             <para>
+             Family is a string enum kept loose (we don't carry an enum on the wire;
+             it shapes FRONT swatch grouping only). Compatibility with materials is
+             modeled via <c>material_handle_compatibility</c> — most handles work
+             across all materials; rare cases (e.g. premium-secustic) are ALU-only.
+             </para>
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.HandleStyle.Family">
+            <summary>"modern" | "classic" | "premium" | "minimal".</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.HandleStyle.ImageUrl">
+            <summary>Public path to the swatch / hero image; null until Phase 1.5.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.HandleStyle.SurchargePerPaneMinor">
+            <summary>Tetri per openable pane. 4500 = 45 ₾/pane.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.HandleStyle.IsDefault">
+            <summary>One default per family — Step-7 auto-select fallback.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.CatalogSlugRules">
+            <summary>
+            Shared catalog slug validator — lowercase ASCII letters / digits /
+            hyphens, 2-64 characters, no leading/trailing hyphen. Used by every
+            catalog entity introduced from Step 5 onwards.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Catalog.LockType">
+             <summary>
+             A lock option the customer can pick at configurator Step 7. Surcharge
+             is <em>per openable pane</em> (each handle gets its own lock cylinder).
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Catalog.LockType.RequiresCasementOrTurn"/> is the engineering constraint: a
+             multi-point lock needs a full-perimeter opening to anchor the locking
+             points around. A Tilt-only or Sliding-only configuration can't carry
+             one — the validator rejects that pairing with metadata pointing at
+             the offending lock slug.
+             </para>
+             <para>
+             Phase-1 scope: <see cref="F:BEQSAN.Domain.Catalog.LockGrade.Smart"/> is door-only (the smart
+             fingerprint vendor we're integrating with hasn't shipped window
+             firmware). Compatibility table enforces it.
+             </para>
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.LockType.SecurityRating">
+            <summary>1..5 stars displayed by the FRONT.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.LockType.RequiresCasementOrTurn">
+            <summary>
+            True for multi-point locks that physically need a Casement or
+            TiltAndTurn pane. The validator surfaces
+            <c>configurator.accessory.lockRequiresFullOpening</c> when the
+            chosen layout has no such pane.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.Material.BasePricePerSqmMinor">
+            <summary>
+            Storage representation: int minor units (tetri for GEL). 38000 = 380.00 ₾/m².
+            Never a decimal/double — see ADR-0002. Convert via <see cref="M:BEQSAN.Domain.ValueObjects.Money.FromMinor(System.Int64,BEQSAN.Domain.ValueObjects.Currency)"/>
+            at display / DTO boundaries.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ProductType.WarrantyMonths">
+            <summary>
+            Frame warranty in months — surfaced at Step 8 and on the post-order
+            confirmation. Roman-locked per product family (window 36, door 60,
+            sliding 36, panoramic 36, balcony 24). Phase 1 admin tooling will
+            move this to a per-row editable value.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ProductType.LeadTimeDaysMin">
+            <summary>Base production lead time (low end). Modified by the configuration via
+            <see cref="T:BEQSAN.Domain.Configurator.LeadTimeEstimator"/>.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Catalog.ProductType.LeadTimeDaysMax">
+            <summary>Base production lead time (high end).</summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Catalog.ProductType.GetConstraints">
+            <summary>
+            Resolves the dimension constraints from the entity's own columns.
+            Falls back to the slug-keyed defaults when columns are zeroed (e.g.
+            rows that pre-dated the AddDimensionConstraints migration and somehow
+            escaped the seeder backfill).
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Common.Error">
+            <summary>
+            Domain error. <see cref="P:BEQSAN.Domain.Common.Error.Code"/> is dot-namespaced English (machine-readable, stable);
+            <see cref="P:BEQSAN.Domain.Common.Error.Message"/> is Georgian (user-facing, server-localized). <see cref="P:BEQSAN.Domain.Common.Error.Field"/>
+            is non-null when the error is bound to an input property — populated by FluentValidation.
+            <see cref="P:BEQSAN.Domain.Common.Error.Metadata"/> carries structured context the UI uses to render the error
+            precisely (min/max/actual on out-of-range, expected/got on mismatch, etc.).
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Common.Error.#ctor(System.String,System.String,BEQSAN.Domain.Common.ErrorType,System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>
+            Domain error. <see cref="P:BEQSAN.Domain.Common.Error.Code"/> is dot-namespaced English (machine-readable, stable);
+            <see cref="P:BEQSAN.Domain.Common.Error.Message"/> is Georgian (user-facing, server-localized). <see cref="P:BEQSAN.Domain.Common.Error.Field"/>
+            is non-null when the error is bound to an input property — populated by FluentValidation.
+            <see cref="P:BEQSAN.Domain.Common.Error.Metadata"/> carries structured context the UI uses to render the error
+            precisely (min/max/actual on out-of-range, expected/got on mismatch, etc.).
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Common.Error.WithMetadata(System.String,System.Object)">
+            <summary>
+            Returns a new Error with one entry appended (or overwritten) in the metadata bag.
+            The record stays immutable; existing references to the original Error are unaffected.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Common.Result.Errors">
+            <summary>
+            All errors collected for this failure. Empty when <see cref="P:BEQSAN.Domain.Common.Result.IsSuccess"/> is true.
+            Typical sizes: 0 (success), 1 (single error), 2+ (validation across multiple fields).
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Common.Result.Error">
+            <summary>
+            Convenience accessor: first error in <see cref="P:BEQSAN.Domain.Common.Result.Errors"/>, or <see cref="F:BEQSAN.Domain.Common.Error.None"/>
+            on success. Tests and most handler call-sites only care about the primary error.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.AccessorySelection">
+             <summary>
+             Configuration-level accessory bundle. Every field is optional — the
+             customer can pick any subset of (handle, lock, sill, blind) for their
+             configuration. Mosquito net is per-pane (see <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HasMosquitoNet"/>),
+             not in here.
+            
+             <para>
+             Handle + lock prices scale with the number of openable panes (per-pane
+             surcharge × count). Sill is config-level (one continuous slab below
+             the frame) priced by linear metres. Blind is a single assembly per
+             frame, priced as base mounting + per-m² + control surcharge.
+             </para>
+             <para>
+             Door product types have <em>required</em> handle + lock (legal +
+             security expectation) — the validator enforces this when any openable
+             pane is present. Window / sliding / etc. treat the whole selection as
+             optional.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.AccessorySelection.#ctor(System.Nullable{System.Guid},System.Nullable{System.Guid},BEQSAN.Domain.Configurator.SillSelection,BEQSAN.Domain.Configurator.BlindSelection)">
+             <summary>
+             Configuration-level accessory bundle. Every field is optional — the
+             customer can pick any subset of (handle, lock, sill, blind) for their
+             configuration. Mosquito net is per-pane (see <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HasMosquitoNet"/>),
+             not in here.
+            
+             <para>
+             Handle + lock prices scale with the number of openable panes (per-pane
+             surcharge × count). Sill is config-level (one continuous slab below
+             the frame) priced by linear metres. Blind is a single assembly per
+             frame, priced as base mounting + per-m² + control surcharge.
+             </para>
+             <para>
+             Door product types have <em>required</em> handle + lock (legal +
+             security expectation) — the validator enforces this when any openable
+             pane is present. Window / sliding / etc. treat the whole selection as
+             optional.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.AccessoryValidator">
+             <summary>
+             Pure validation of an <see cref="T:BEQSAN.Domain.Configurator.AccessorySelection"/> against the
+             chosen product type, material, and pane layout. Split out from
+             <see cref="T:BEQSAN.Domain.Configurator.LayoutValidator"/> at the Step-7 size threshold — same
+             shape, same "no I/O, no time, no randomness" contract.
+            
+             <para>
+             Caller hands in an <see cref="T:BEQSAN.Domain.Configurator.AccessoryCatalog"/> bag with the
+             per-material / per-product-type allow-lists already resolved by the
+             pricing handler. Returns <see cref="M:BEQSAN.Domain.Common.Result.Success"/> when the
+             selection is null (whole step is optional) OR every present field
+             passes its compatibility + per-product rules.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.AccessoryCatalog">
+            <summary>
+            Lookup bag passed in by the pricing handler. Holds per-material /
+            per-product-type allow-lists + the domain entities the validator
+            + calculator need. Built once per request; immutable.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.ColorSelection">
+             <summary>
+             Configuration-level color decision. Frame color is unified across all
+             panes — per-pane color was deliberately excluded from the Step 6 scope
+             (mixed-frame-color windows are non-standard).
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.OuterColorOptionId"/> is the visible-outside color and is
+             always required. <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.InnerColorOptionId"/> is optional — when
+             null, "inner = outer" (the typical case). Only PVC frames support a
+             different inner color; aluminum is single-pass painted/anodized so
+             inner ≠ outer is rejected by the layout validator.
+             </para>
+             <para>
+             When the outer slug is <c>ral-custom</c>, <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalHex"/>
+             and <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalCode"/> carry the modal-picked values and are
+             both required. For any other selection they should be null.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.ColorSelection.#ctor(System.Guid,System.Nullable{System.Guid},System.String,System.String)">
+             <summary>
+             Configuration-level color decision. Frame color is unified across all
+             panes — per-pane color was deliberately excluded from the Step 6 scope
+             (mixed-frame-color windows are non-standard).
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.OuterColorOptionId"/> is the visible-outside color and is
+             always required. <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.InnerColorOptionId"/> is optional — when
+             null, "inner = outer" (the typical case). Only PVC frames support a
+             different inner color; aluminum is single-pass painted/anodized so
+             inner ≠ outer is rejected by the layout validator.
+             </para>
+             <para>
+             When the outer slug is <c>ral-custom</c>, <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalHex"/>
+             and <see cref="P:BEQSAN.Domain.Configurator.ColorSelection.CustomRalCode"/> carry the modal-picked values and are
+             both required. For any other selection they should be null.
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.ConfigurationPane">
+             <summary>
+             A single pane in a multi-pane layout. Value-object record — equality is
+             structural so configurations can be compared and de-duped.
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.Position"/> is 1-based, left-to-right.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.WidthRatio"/> is 0..1; LayoutValidator enforces that ratios across
+             panes sum to 1.0 within a 0.001 tolerance.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HingeSide"/> is required for Casement and TiltAndTurn openings,
+             forbidden for Fixed / Tilt / Sliding.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HasMosquitoNet"/> is a per-pane accessory toggle pricing-wise; the
+             full accessory catalog lands in Step 7.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassTypeId"/> picks one of the GlassType packages compatible
+             with the chosen material. <see cref="F:System.Guid.Empty"/> means "let the server
+             pick the default for this material" — the backcompat path that keeps
+             canaries #1, #2, #3 valid (they default to <c>double-standard</c>).
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassExtras"/> are additive per-pane treatments on top of the
+             glass type. Frosted + Tinted is rejected by the validator. Null is
+             treated as empty by <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.Extras"/> so consumers don't have to
+             coalesce manually.
+             </para>
+             <para>
+             The last two params default so Steps 1-4 call sites that never knew
+             about glass still construct valid panes — pass
+             <c>(Position, WidthRatio, OpeningType, HingeSide, HasMosquitoNet)</c>
+             and the calculator resolves the rest from the material's default
+             glass package.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.ConfigurationPane.#ctor(System.Int32,System.Decimal,BEQSAN.Domain.Configurator.PaneOpeningType,System.Nullable{BEQSAN.Domain.Configurator.HingeSide},System.Boolean,System.Guid,System.Collections.Generic.IReadOnlyList{BEQSAN.Domain.Configurator.GlassExtra},System.Boolean,BEQSAN.Domain.Configurator.PaneOpeningType,System.Nullable{BEQSAN.Domain.Configurator.HingeSide},System.Decimal)">
+             <summary>
+             A single pane in a multi-pane layout. Value-object record — equality is
+             structural so configurations can be compared and de-duped.
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.Position"/> is 1-based, left-to-right.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.WidthRatio"/> is 0..1; LayoutValidator enforces that ratios across
+             panes sum to 1.0 within a 0.001 tolerance.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HingeSide"/> is required for Casement and TiltAndTurn openings,
+             forbidden for Fixed / Tilt / Sliding.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.HasMosquitoNet"/> is a per-pane accessory toggle pricing-wise; the
+             full accessory catalog lands in Step 7.
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassTypeId"/> picks one of the GlassType packages compatible
+             with the chosen material. <see cref="F:System.Guid.Empty"/> means "let the server
+             pick the default for this material" — the backcompat path that keeps
+             canaries #1, #2, #3 valid (they default to <c>double-standard</c>).
+             <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassExtras"/> are additive per-pane treatments on top of the
+             glass type. Frosted + Tinted is rejected by the validator. Null is
+             treated as empty by <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.Extras"/> so consumers don't have to
+             coalesce manually.
+             </para>
+             <para>
+             The last two params default so Steps 1-4 call sites that never knew
+             about glass still construct valid panes — pass
+             <c>(Position, WidthRatio, OpeningType, HingeSide, HasMosquitoNet)</c>
+             and the calculator resolves the rest from the material's default
+             glass package.
+             </para>
+             </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Configurator.ConfigurationPane.Extras">
+            <summary>
+            Null-safe accessor for the extras list — consumers iterate this
+            instead of <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassExtras"/> directly so a pane built from
+            the 5-arg backcompat constructor doesn't crash on NPE.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.GlassExtra">
+             <summary>
+             Per-pane additive treatments layered on top of the chosen GlassType. They
+             stack — a customer can pick "triple-low-e" as the type and still ask for
+             tempered + tinted on the pane in front of a balcony.
+            
+             Two treatments are mutually exclusive on the same pane:
+             <see cref="F:BEQSAN.Domain.Configurator.GlassExtra.Frosted"/> and <see cref="F:BEQSAN.Domain.Configurator.GlassExtra.Tinted"/> — one obscures, the other
+             shades; combining them serves no visible purpose and the validator
+             rejects it.
+            
+             Pricing per m² of pane area is in <see cref="M:BEQSAN.Domain.Configurator.GlassExtraPricing.SurchargeMinor(BEQSAN.Domain.Configurator.GlassExtra)"/>.
+             Phase 2 moves these to an admin-editable PricingRule entity; for now
+             Roman locks the rates in code (see ADR-0002 amendment for Step 5).
+             </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.GlassExtra.LowECoating">
+            <summary>ენერგო-ეფექტური საფარი — heat-reflective coating.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.GlassExtra.Tempered">
+            <summary>დაკაჟებული — safety-tempered glass.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.GlassExtra.Frosted">
+            <summary>მქრქალი — etched / sandblasted for privacy.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.GlassExtra.Tinted">
+            <summary>ტონირებული — bronze / grey tint, reduces solar gain.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.GlassExtraPricing">
+            <summary>
+            Pure pricing table for glass extras. Per-pane surcharge in tetri per
+            square metre of pane area. Roman-locked numbers; admin-editable in
+            Phase 2 via the PricingRule entity.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.InstallationOption">
+             <summary>
+             Configuration-level installation decision picked at Step 8. Pricing is
+             zone-based (Roman-locked) for Phase 1 — per-km dynamic pricing is
+             Phase-2 work if/when real demand justifies it.
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.InstallationOption.Region"/> drives the surcharge via
+             <see cref="M:BEQSAN.Domain.Configurator.InstallationPricing.SurchargeMinor(BEQSAN.Domain.Configurator.InstallationRegion)"/>. Batumi is free
+             (within ~30 km radius), Other → we quote manually after a phone
+             call and surface that intent via <see cref="M:BEQSAN.Domain.Configurator.InstallationPricing.RequiresManualQuote(BEQSAN.Domain.Configurator.InstallationRegion)"/>.
+             </para>
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.InstallationOption.CityHint"/> is an optional free-text breadcrumb for the
+             crew — "Batumi, Khimshiashvili 7" — kept null when the customer
+             hasn't typed anything; only meaningful when paired with
+             <see cref="F:BEQSAN.Domain.Configurator.InstallationRegion.Other"/>.
+             </para>
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.InstallationOption.#ctor(BEQSAN.Domain.Configurator.InstallationRegion,System.String,System.Boolean,System.String,System.Int32,System.Boolean)">
+             <summary>
+             Configuration-level installation decision picked at Step 8. Pricing is
+             zone-based (Roman-locked) for Phase 1 — per-km dynamic pricing is
+             Phase-2 work if/when real demand justifies it.
+            
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.InstallationOption.Region"/> drives the surcharge via
+             <see cref="M:BEQSAN.Domain.Configurator.InstallationPricing.SurchargeMinor(BEQSAN.Domain.Configurator.InstallationRegion)"/>. Batumi is free
+             (within ~30 km radius), Other → we quote manually after a phone
+             call and surface that intent via <see cref="M:BEQSAN.Domain.Configurator.InstallationPricing.RequiresManualQuote(BEQSAN.Domain.Configurator.InstallationRegion)"/>.
+             </para>
+             <para>
+             <see cref="P:BEQSAN.Domain.Configurator.InstallationOption.CityHint"/> is an optional free-text breadcrumb for the
+             crew — "Batumi, Khimshiashvili 7" — kept null when the customer
+             hasn't typed anything; only meaningful when paired with
+             <see cref="F:BEQSAN.Domain.Configurator.InstallationRegion.Other"/>.
+             </para>
+             </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.Batumi">
+            <summary>Batumi + 30 km — free.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.KobuletiCoast">
+            <summary>Kobuleti, Khelvachauri, Khulo — +100 ₾.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.Guria">
+            <summary>Ozurgeti, Lanchkhuti, Chokhatauri — +150 ₾.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.Imereti">
+            <summary>Kutaisi, Tskaltubo, Samtredia — +220 ₾.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.Samegrelo">
+            <summary>Zugdidi, Senaki, Poti — +280 ₾.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.EastGeorgia">
+            <summary>Tbilisi, Rustavi, anything not on the coast — +400 ₾.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.InstallationRegion.Other">
+            <summary>Anything else — Roman calls within an hour and quotes manually.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.InstallationPricing">
+            <summary>
+            Pure pricing table for installation zones. Roman-locked Phase-1 rates;
+            Phase-2 admin tooling moves these to a per-region PricingRule entity
+            the same way Step-6/7 surcharges will migrate.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.InstallationPricing.RequiresManualQuote(BEQSAN.Domain.Configurator.InstallationRegion)">
+            <summary>
+            True when the chosen region falls outside the standard zone table
+            and Roman handles the quote on the phone. The
+            <see cref="T:BEQSAN.Domain.Configurator.PriceCalculator"/> still emits a zero-amount line so the
+            FRONT can render the "we'll call you" affordance.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.LayoutValidator">
+             <summary>
+             Pure validation of a multi-pane layout against a product type. No I/O, no
+             time, no randomness — same inputs always produce the same Result. Used by
+             <see cref="T:BEQSAN.Domain.Configurator.PriceCalculator"/> before any pricing math runs.
+            
+             Rules enforced (in this order, first failure wins so errors stay specific):
+               1. Pane count within slug-keyed [min, max] band.
+               2. Σ WidthRatio = 1.0 within 0.001 tolerance.
+               3. Positions form a complete 1..N sequence (no gaps, no duplicates).
+               4. Slug-specific rules:
+                    door     — at most one Fixed pane (sidelight)
+                    sliding  — every pane must be Sliding or Fixed
+               5. Hinge side matrix:
+                    Casement / TiltAndTurn → HingeSide required
+                    Fixed / Tilt / Sliding → HingeSide forbidden
+               6. Glass rules (only when an availableGlassTypes set is supplied):
+                    - Each pane's GlassTypeId must be a key in the available set.
+                    - Frosted + Tinted may not coexist on a single pane.
+               7. Color rules (only when a colorSelection is supplied):
+                    - Outer color must be a key in the availableColorOptions set.
+                    - Inner color (when supplied) must also be in the set.
+                    - Dual-color (inner ≠ outer) is PVC-only.
+                    - When the outer slug is <c>ral-custom</c>: CustomRalHex +
+                      CustomRalCode must both be supplied and well-formed.
+               The optional params let Step 1-N call sites that don't yet know
+               about a rule family bypass it without breaking — every existing
+               canary keeps its number when called with null/omitted args.
+             </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.LayoutValidator.PaneCountRange(System.String)">
+            <summary>
+            Slug-keyed pane-count band. ProductType.MinPaneCount / MaxPaneCount
+            columns are Phase 2 admin work; until then the static table here is the
+            source of truth, mirrored on the FRONT for the segmented control.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.LeadTimeEstimator">
+             <summary>
+             Pure production-and-install lead-time estimator. No I/O, no clock, no
+             randomness — same inputs always produce the same window. The result is
+             a min/max pair because real workshops give ranges; the FRONT renders
+             "{min}–{max} days" on Step 8.
+            
+             <para>
+             Formula (Phase 1 — Roman-validated against shop capacity):
+               <list type="bullet">
+                 <item>Start with <see cref="P:BEQSAN.Domain.Catalog.ProductType.LeadTimeDaysMin"/> +
+                   <see cref="P:BEQSAN.Domain.Catalog.ProductType.LeadTimeDaysMax"/> base window.</item>
+                 <item>+ pane-count factor: 2 panes → +1 day, 3 → +3, 4+ → +5.</item>
+                 <item>+ blind (motor mount, electrical run): +2/+3 days on the window.</item>
+                 <item>+ smart-lock (vendor lead, wiring): +3/+5 days.</item>
+                 <item>+ regional install days (Batumi 1 / nearby zones 2 / mid 3 / east 4).</item>
+               </list>
+             </para>
+             </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.PaneOpeningType">
+            <summary>
+            How a single pane opens. Surcharge rates baked into <see cref="T:BEQSAN.Domain.Configurator.PriceCalculator"/> —
+            admin-editable per-product-type pricing matrix is Phase 2 territory.
+            </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PaneOpeningType.Fixed">
+            <summary>ყრუ — fixed glass, no opening mechanism. No surcharge.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PaneOpeningType.Casement">
+            <summary>გასაღები — single-axis swing (casement). +8%.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PaneOpeningType.Tilt">
+            <summary>დასაკეცი — top-pivot tilt. +10%.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PaneOpeningType.TiltAndTurn">
+            <summary>გასაღები + დასაკეცი — combined casement + tilt. +18%.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PaneOpeningType.Sliding">
+            <summary>სლაიდინგი — horizontal slider. +12%. Only valid for sliding/balcony product types.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.PriceBreakdown">
+            <summary>
+            Result of a price computation. AreaSqm is the exact computed area
+            (4 decimal places); lines hold each pricing contribution in tetri;
+            TotalMinor is their sum. Currency is the ISO-style code.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.PriceBreakdown.#ctor(System.Decimal,System.Collections.Generic.IReadOnlyList{BEQSAN.Domain.Configurator.PriceLine},System.Int64,System.String)">
+            <summary>
+            Result of a price computation. AreaSqm is the exact computed area
+            (4 decimal places); lines hold each pricing contribution in tetri;
+            TotalMinor is their sum. Currency is the ISO-style code.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.PriceCalculator">
+             <summary>
+             Pure pricing function — no I/O, no time, no randomness. Same inputs
+             always produce the same breakdown.
+            
+             Per ADR-0002: money is int minor units (tetri) at storage and transport;
+             decimal lives only in this calculator. Banker's rounding everywhere so
+             0.5-tetri cases don't drift up systematically.
+            
+             Composition (Step 5):
+               material_minor      = round(area × material.basePricePerSqmMinor)
+               for each pane p with paneArea = area × p.widthRatio:
+                 opening_minor    += round(paneArea × material.basePricePerSqmMinor
+                                            × SurchargeRate(p.openingType))
+                                      → line "pane.{n}.opening.{type}" if > 0
+                 glass_minor      += round(paneArea × glassType.SurchargePerSqmMinor)
+                                      → line "pane.{n}.glass.{slug}" if > 0
+                 for each distinct extra:
+                   extra_minor    += round(paneArea × GlassExtraPricing.SurchargeMinor(extra))
+                                      → line "pane.{n}.glass.extra.{name}"
+               mosquito_minor      = 8000 tetri × #(panes with HasMosquitoNet)
+               subtotal_minor      = material + opening + glass + extras + mosquito
+               vat_minor           = round(subtotal × 0.18)
+               total_minor         = subtotal + vat
+            
+             Backwards compat:
+               - When <c>panes</c> is null or empty, a single full-width Fixed pane is
+                 synthesized. Canaries #1 / #2 hold (753.31 / 832.61 GEL).
+               - When <c>availableGlassTypes</c> is null/empty, all glass math is
+                 skipped. Canary #3 holds (1077.23 GEL) because the Step 4 commit was
+                 written before glass landed and its tests don't pass a glass set.
+               - When <c>availableGlassTypes</c> is supplied, panes with
+                 <see cref="P:BEQSAN.Domain.Configurator.ConfigurationPane.GlassTypeId"/> == <see cref="F:System.Guid.Empty"/>
+                 are auto-resolved to the IsDefault glass type for that material so
+                 callers don't need to know the material's default themselves.
+             </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.MosquitoNetMinor">
+            <summary>Per-pane mosquito-net flat surcharge in tetri. Phase-2 accessory entity replaces.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.TransomMullionMinor">
+            <summary>Flat hardware cost in tetri added per pane that has a
+            transom (horizontal frame split). Covers the extra mullion + seal +
+            installation labor. Phase-2 admin pricing promotes this to a
+            PricingRule row.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.DismantlingPerPaneMinor">
+            <summary>Flat dismantling cost per pane in tetri (30 GEL).</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.LiftElevatorFlatMinor">
+            <summary>Flat carrying/lifting fee in tetri if elevator is present for apartments (20 GEL).</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.LiftStairsPerPanePerFloorMinor">
+            <summary>Carrying fee per pane per floor (above floor 1) in tetri if stairs only (5 GEL).</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.InnerColorRate">
+            <summary>Inner-color surcharge applied at 60% of the inner option's flat
+            surcharge — dual-color is cheaper than two full paint jobs because only
+            the inner face is reworked from the baseline white.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.SillPerMeterMinor">
+            <summary>Sill per-meter base rate in tetri (8 000 = 80 ₾/m). Phase-2
+            admin tooling promotes this to a PricingRule row.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.BlindElectricControlSurchargeMinor">
+            <summary>Tetri added on top of a blind's base + per-m² when the
+            requested control is Electric.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.PriceCalculator.BlindRemoteControlSurchargeMinor">
+            <summary>Tetri added when the requested control is Remote (motor +
+            handheld). Higher than Electric because the remote bundle includes
+            a paired transmitter.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.PriceLine">
+            <summary>
+            One line in a price breakdown. Code is machine-readable English
+            (matches docs/api/result-envelope.md code taxonomy: "material", "vat",
+            "glass", "color", "accessories"); label is Georgian for direct display.
+            AmountMinor is tetri/cents — never decimal in storage or transport.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Configurator.PriceLine.#ctor(System.String,System.String,System.Int64)">
+            <summary>
+            One line in a price breakdown. Code is machine-readable English
+            (matches docs/api/result-envelope.md code taxonomy: "material", "vat",
+            "glass", "color", "accessories"); label is Georgian for direct display.
+            AmountMinor is tetri/cents — never decimal in storage or transport.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Configurator.WarrantyEstimator">
+            <summary>
+            Maps a finished configuration to its warranty terms. The base months
+            come from <see cref="P:BEQSAN.Domain.Catalog.ProductType.WarrantyMonths"/>; certain premium
+            accessories add vendor-backed notes the FRONT surfaces below the
+            headline number.
+            </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Configurator.WarrantyEstimator.SmartLockVendorWarrantyMonths">
+            <summary>
+            Smart-lock manufacturer's own warranty layered on top of the BEQSAN
+            frame warranty. The caller of <see cref="M:BEQSAN.Domain.Configurator.WarrantyEstimator.For(BEQSAN.Domain.Catalog.ProductType,System.Boolean)"/> resolves
+            <c>hasSmartLock</c> from <c>LockGrade.Smart</c> in the accessory
+            selection.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.EncryptedToken">
+            <summary>
+            Symmetric-encrypted token at rest. Keep <see cref="P:BEQSAN.Domain.Social.EncryptedToken.Iv"/> + <see cref="P:BEQSAN.Domain.Social.EncryptedToken.Cipher"/>
+            together — the cipher is meaningless without its IV. Plaintext is never stored
+            nor logged; decryption happens at the edge of the Meta HTTP call site only.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.Social.EncryptedToken.#ctor(System.Byte[],System.Byte[],System.DateTime)">
+            <summary>
+            Symmetric-encrypted token at rest. Keep <see cref="P:BEQSAN.Domain.Social.EncryptedToken.Iv"/> + <see cref="P:BEQSAN.Domain.Social.EncryptedToken.Cipher"/>
+            together — the cipher is meaningless without its IV. Plaintext is never stored
+            nor logged; decryption happens at the edge of the Meta HTTP call site only.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.InboxMessage">
+            <summary>
+            One message inside an <see cref="T:BEQSAN.Domain.Social.InboxThread"/>. For comment-channel threads,
+            each <see cref="T:BEQSAN.Domain.Social.InboxMessage"/> is a comment (top-level or reply) on the
+            linked post. Meta-side id stays unique-per-page.
+            </summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Social.InboxChannel.InstagramDm">
+            <summary>Instagram direct message conversation.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Social.InboxChannel.FacebookMessenger">
+            <summary>Facebook Messenger conversation.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Social.InboxChannel.InstagramComment">
+            <summary>Comment thread under an Instagram post.</summary>
+        </member>
+        <member name="F:BEQSAN.Domain.Social.InboxChannel.FacebookComment">
+            <summary>Comment thread under a Facebook post.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.InboxThread">
+            <summary>
+            One conversation. For DMs that's a Messenger thread; for comments it's the
+            per-post comment list (we group all top-level comments + their replies into
+            a single thread keyed on the post). Last-message preview + unread flag are
+            denormalized off the message stream for cheap list rendering.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.InboxThread.ExternalThreadId">
+            <summary>Meta-side stable id for the thread (conversation id or post id).</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.InboxThread.ParticipantId">
+            <summary>The customer's Meta-side user id (PSID or IGSID).</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.SocialAccount">
+            <summary>
+            Meta user-level account connected by the workspace owner. Holds the long-lived
+            user access token. Pages and IG business accounts hang off this via
+            <see cref="T:BEQSAN.Domain.Social.SocialPage"/>. A workspace usually has 1-2 (one personal, one
+            business). Soft-delete via <see cref="P:BEQSAN.Domain.Social.SocialAccount.DisconnectedAtUtc"/> — we keep historic
+            posts after a disconnect so audit lookups still work.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.SocialAccount.MetaUserId">
+            <summary>Meta user id (numeric string returned by /me).</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.SocialAccount.DisplayName">
+            <summary>Display name returned by /me.</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.SocialAccount.UserToken">
+            <summary>Encrypted long-lived user access token.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.SocialPage">
+            <summary>
+            A Facebook Page (and its optional Instagram business account) connected via
+            <see cref="T:BEQSAN.Domain.Social.SocialAccount"/>. The page-scoped long-lived token is what we use
+            for all publish/inbox/comment calls — never the user token. <see cref="P:BEQSAN.Domain.Social.SocialPage.IgUserId"/>
+            is the Instagram business account id; if null, IG publishing is disabled for
+            this page.
+            </summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.SocialPage.MetaPageId">
+            <summary>Meta page id (numeric string).</summary>
+        </member>
+        <member name="P:BEQSAN.Domain.Social.SocialPage.PageToken">
+            <summary>Encrypted page-scoped long-lived access token.</summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.SocialPlatform">
+            <summary>
+            Outbound publishing target and inbox source platform. Stored as string in DB.
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.Social.SocialPost">
+            <summary>
+            Outbound publish record. One row per (page, platform) target — a single
+            composer submission that fans out to both FB + IG produces two rows that
+            share a <see cref="P:BEQSAN.Domain.Social.SocialPost.ComposerId"/>. <see cref="P:BEQSAN.Domain.Social.SocialPost.ExternalPostId"/> is the Meta
+            id we get back after publish (used to link comments + insights later).
+            </summary>
+        </member>
+        <member name="T:BEQSAN.Domain.ValueObjects.LocalizedText">
+            <summary>
+            Translated string with Georgian as the always-required primary and English/Russian optional.
+            Stored as JSON in SQLite (single TEXT column). The shape mirrors the FRONT i18next contract:
+            if en/ru is null, the UI falls back to ka.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.ValueObjects.LocalizedText.#ctor">
+            <summary>
+            Parameterless constructor for System.Text.Json. Use <see cref="M:BEQSAN.Domain.ValueObjects.LocalizedText.Create(System.String,System.String,System.String)"/> for production code.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.ValueObjects.Money.FromMinor(System.Int64,BEQSAN.Domain.ValueObjects.Currency)">
+            <summary>
+            Build a Money value from minor units (tetri for GEL, cents for USD/EUR).
+            63840 → 638.40 ₾. Use this whenever crossing the persistence boundary —
+            pricing storage is int minor-units only, see ADR-0002.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.ValueObjects.Money.ToMinor">
+            <summary>
+            Project to int minor units for storage / wire transport. Uses banker's
+            rounding so 0.5 tetri sums don't drift up systematically.
+            </summary>
+        </member>
+        <member name="M:BEQSAN.Domain.ValueObjects.PhoneNumber.NonDigitOrPlus">
+            <remarks>
+            Pattern:<br/>
+            <code>[^\\d+]</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match a character in the set [^+\d].<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="M:BEQSAN.Domain.ValueObjects.PhoneNumber.GeorgianMobile">
+            <remarks>
+            Pattern:<br/>
+            <code>^\\+9955\\d{8}$</code><br/>
+            Options:<br/>
+            <code>RegexOptions.CultureInvariant</code><br/>
+            Explanation:<br/>
+            <code>
+            ○ Match if at the beginning of the string.<br/>
+            ○ Match the string "+9955".<br/>
+            ○ Match a Unicode digit exactly 8 times.<br/>
+            ○ Match if at the end of the string or if before an ending newline.<br/>
+            </code>
+            </remarks>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.HexRegex_0">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the HexRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.HexRegex_0.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.HexRegex_0.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.HexRegex_0.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.RalRegex_1">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the RalRegex method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.RalRegex_1.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.RalRegex_1.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.RalRegex_1.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the NonDigitOrPlus method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.NonDigitOrPlus_2.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GeorgianMobile_3">
+            <summary>Custom <see cref="T:System.Text.RegularExpressions.Regex"/>-derived type for the GeorgianMobile method.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.GeorgianMobile_3.Instance">
+            <summary>Cached, thread-safe singleton instance.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GeorgianMobile_3.#ctor">
+            <summary>Initializes the instance.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory">
+            <summary>Provides a factory for creating <see cref="T:System.Text.RegularExpressions.RegexRunner"/> instances to be used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory.CreateInstance">
+            <summary>Creates an instance of a <see cref="T:System.Text.RegularExpressions.RegexRunner"/> used by methods on <see cref="T:System.Text.RegularExpressions.Regex"/>.</summary>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory.Runner">
+            <summary>Provides the runner that contains the custom logic implementing the specified regular expression.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory.Runner.Scan(System.ReadOnlySpan{System.Char})">
+            <summary>Scan the <paramref name="inputSpan"/> starting from base.runtextstart for the next match.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory.Runner.TryFindNextPossibleStartingPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Search <paramref name="inputSpan"/> starting from base.runtextpos for the next location a match could possibly start.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if a possible match was found; false if no more matches are possible.</returns>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.GeorgianMobile_3.RunnerFactory.Runner.TryMatchAtCurrentPosition(System.ReadOnlySpan{System.Char})">
+            <summary>Determine whether <paramref name="inputSpan"/> at base.runtextpos is a match for the regular expression.</summary>
+            <param name="inputSpan">The text being scanned by the regular expression.</param>
+            <returns>true if the regular expression matches at the current position; otherwise, false.</returns>
+        </member>
+        <member name="T:System.Text.RegularExpressions.Generated.Utilities">
+            <summary>Helper methods used by generated <see cref="T:System.Text.RegularExpressions.Regex"/>-derived implementations.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout">
+            <summary>Default timeout value set in <see cref="T:System.AppContext"/>, or <see cref="F:System.Text.RegularExpressions.Regex.InfiniteMatchTimeout"/> if none was set.</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_hasTimeout">
+            <summary>Whether <see cref="F:System.Text.RegularExpressions.Generated.Utilities.s_defaultTimeout"/> is non-infinite.</summary>
+        </member>
+        <member name="M:System.Text.RegularExpressions.Generated.Utilities.IndexOfNonAsciiOrAny_AD4D819CE816ED030B95777612CA443662191CF6908E9E44CA79CD9A7619053C(System.ReadOnlySpan{System.Char})">
+            <summary>Finds the next index of any character that matches a character in the set [^+\d].</summary>
+        </member>
+        <member name="F:System.Text.RegularExpressions.Generated.Utilities.s_ascii_8FF030000000000000000">
+            <summary>Supports searching for characters in or not in "+0123456789".</summary>
+        </member>
+    </members>
+</doc>

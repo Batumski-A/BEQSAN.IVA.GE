@@ -1,0 +1,1 @@
+Add hero-batumi.mp4 here (≤ 5 MB, 1080p, 15-30s loop of installed Batumi windows or workshop footage; mixkit/pexels licensed clips OK as interim). Source in <video src="/video/hero-batumi.mp4">.

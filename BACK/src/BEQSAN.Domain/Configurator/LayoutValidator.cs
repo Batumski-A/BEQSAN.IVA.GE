@@ -120,6 +120,36 @@ public static class LayoutValidator
                         .WithMetadata("position", pane.Position)
                         .WithMetadata("openingType", pane.OpeningType.ToString().ToLowerInvariant()));
             }
+
+            // Transom (Step 9) — same hinge matrix as the main opening.
+            // Transom cannot be Sliding (no horizontal-rail on a fanlight).
+            if (pane.HasTransom)
+            {
+                if (pane.TransomOpeningType == PaneOpeningType.Sliding)
+                {
+                    return Result.Failure(
+                        LayoutErrors.TransomSlidingForbidden
+                            .WithMetadata("position", pane.Position));
+                }
+
+                var transomNeedsHinge = pane.TransomOpeningType
+                    is PaneOpeningType.Casement or PaneOpeningType.TiltAndTurn;
+                if (transomNeedsHinge && pane.TransomHingeSide is null)
+                {
+                    return Result.Failure(
+                        LayoutErrors.TransomHingeRequired
+                            .WithMetadata("position", pane.Position)
+                            .WithMetadata("openingType", pane.TransomOpeningType.ToString().ToLowerInvariant()));
+                }
+
+                if (!transomNeedsHinge && pane.TransomHingeSide is not null)
+                {
+                    return Result.Failure(
+                        LayoutErrors.TransomHingeForbidden
+                            .WithMetadata("position", pane.Position)
+                            .WithMetadata("openingType", pane.TransomOpeningType.ToString().ToLowerInvariant()));
+                }
+            }
         }
 
         // Glass rules — skipped entirely when the caller hasn't supplied a
@@ -235,6 +265,7 @@ public static class LayoutValidator
             "sliding" => (2, 4),
             "panoramic" => (1, 6),
             "balcony" => (1, 8),
+            "veranda" => (3, 9),
             _ => (1, 4),
         };
 }
@@ -325,4 +356,19 @@ public static class LayoutErrors
         "configurator.color.ralCustomCodeInvalid",
         "RAL კოდის ფორმატი არასწორია — მაგ. RAL 9016.",
         field: "color");
+
+    public static readonly Error TransomHingeRequired = Error.Validation(
+        "configurator.layout.pane.transomHingeRequired",
+        "ფრამუგას მენტეშის მხარე უნდა მიეთითოს.",
+        field: "panes");
+
+    public static readonly Error TransomHingeForbidden = Error.Validation(
+        "configurator.layout.pane.transomHingeForbidden",
+        "ფრამუგისთვის მენტეშის მხარე არ უნდა მიეთითოს.",
+        field: "panes");
+
+    public static readonly Error TransomSlidingForbidden = Error.Validation(
+        "configurator.layout.pane.transomSlidingForbidden",
+        "ფრამუგა მცოცავი არ შეიძლება იყოს.",
+        field: "panes");
 }

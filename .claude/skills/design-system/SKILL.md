@@ -2,9 +2,52 @@
 
 **Trigger:** any UI/CSS/component work, any visual change to BEQSAN's public site or admin app.
 
-**Source:** [docs/kickoff.md §9](../../../docs/kickoff.md) — "Industrial Elegance". This skill is the operational distillation. When in doubt, the kickoff doc wins.
+**Status:** Pivoted **2026-05-19** to "Modern Studio" — Lasha prototyped the new visual in Gemini and asked to port it wholesale. The original "Industrial Elegance" rules below are kept for the pages that haven't been reskinned yet (`/about`, `/process`, `/materials`, `/warranty`, `/contact`, `/catalog`). New work (`/`, `/configurator`, admin pages going forward) follows the Modern Studio rules in this top section.
 
 ---
+
+## Modern Studio (active — 2026-05-19)
+
+### Surfaces
+- **Dark immersive** (configurator chrome, hero sections): `bg-studio-ink` (slate-900). Floating panels: `bg-studio-ink-2/80 backdrop-blur-md border border-studio-ink-3/50 rounded-2xl shadow-2xl`.
+- **Light documentary** (home below the fold, content pages later in the pivot): `bg-studio-paper` / white cards with `rounded-2xl` or `rounded-3xl`, `shadow-xl`, hairline `border-studio-paper-3`.
+- Cards lift on hover: `hover:-translate-y-2 transition-transform`.
+
+### Accent
+- **Studio Blue** (`bg-studio-brand` = `#2563eb`) is the single primary accent.
+- Allowed gradient: `bg-gradient-to-r from-studio-brand-soft to-indigo-400` on a single hero word, **once per page**.
+- No amber on Modern Studio surfaces (amber survives only on legacy Industrial-Elegance pages).
+- Glow allowed on the primary CTA via `shadow-studio-brand-glow`.
+
+### Typography
+- Use `font-studio` everywhere on new surfaces — puts `"BPG Glaho Sans"` first for Georgian glyphs, falls through to a modern system stack for Latin / numeric content.
+- Size scale: standard Tailwind (`text-5xl md:text-7xl` hero, `text-3xl md:text-4xl` section titles, `text-xl` lead, `text-sm` UI). The Industrial-Elegance custom scale (`text-display-1`/`text-h1`) is NOT used on Modern Studio surfaces.
+- Weights: hero/section titles `font-extrabold` or `font-bold`. UI labels `font-bold uppercase tracking-wider text-xs` on dark.
+- `tabular-nums` for prices and dimensions.
+
+### Motion
+- Card hover: `hover:-translate-y-2 transition-transform` (≤ 200ms).
+- CTA hover: `hover:scale-105 transition-transform`.
+- Page transitions: framer-motion fade/slide (already in config).
+- All motion respects `prefers-reduced-motion: reduce`.
+
+### Anti-patterns (auto-flag on Modern Studio surfaces)
+
+```
+❌ multiple blue accents competing (one primary CTA per view)
+❌ purple/pink/gradient anything except the single hero word
+❌ inline style attributes (use Tailwind utilities)
+❌ English or lorem ipsum copy — Georgian only
+❌ AM/PM time (24-hour only)
+❌ font-family override that bypasses font-studio
+❌ pricing logic in JSX (always from /api/v1/configurator/price — see ADR-0002)
+```
+
+---
+
+## Industrial Elegance (legacy — for unpivoted pages)
+
+When working on `/about`, `/process`, `/materials`, `/warranty`, `/contact`, or `/catalog` (not yet repainted), the rules below still apply. Otherwise use Modern Studio above.
 
 ## Direction (one sentence)
 

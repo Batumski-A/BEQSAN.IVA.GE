@@ -27,6 +27,11 @@ public sealed record DimensionConstraints(
             "sliding" => new(120, 600, 180, 280),
             "panoramic" => new(150, 800, 200, 350),
             "balcony" => new(80, 600, 80, 280),
+            // Veranda — U-shaped enclosure: total width includes the front
+            // span; depth is implied by per-side panes. Wider than balcony,
+            // shorter ceiling than panoramic since most verandas sit under a
+            // roof rather than full-height glass.
+            "veranda" => new(180, 800, 180, 280),
             _ => Default,
         };
 

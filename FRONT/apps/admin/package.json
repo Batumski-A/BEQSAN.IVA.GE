@@ -1,14 +1,15 @@
 {
-  "name": "@beqsan/admin",
+  "name": "@beqsan/admin-legacy",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "//": "DEPRECATED 2026-05-21 — admin consolidated into apps/web at /adminpanel/* (single deploy, single auth, see docs/deployment.md). This package is kept temporarily for reference; remove once the new flow is verified in production.",
   "scripts": {
-    "dev": "vite --port 5174",
-    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "dev": "echo 'apps/admin is deprecated — admin lives at apps/web/src/features/admin/ and is served from /adminpanel'; exit 1",
+    "build": "echo 'apps/admin build disabled — see /adminpanel in apps/web'; exit 0",
     "preview": "vite preview --port 4174",
     "lint": "echo skip",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "echo skip"
   },
   "dependencies": {
     "@beqsan/ui": "workspace:*",

@@ -165,7 +165,9 @@ internal sealed class ReviewHandler(
             l.Code.StartsWith("accessory.", StringComparison.Ordinal))
             .ToList();
         var installation = lines.Where(l =>
-            l.Code.StartsWith("installation.", StringComparison.Ordinal))
+            l.Code.StartsWith("installation.", StringComparison.Ordinal)
+            || l.Code.StartsWith("dismantling.", StringComparison.Ordinal)
+            || l.Code.StartsWith("carrying.", StringComparison.Ordinal))
             .ToList();
 
         var vatLine = lines.FirstOrDefault(l => l.Code == "vat");

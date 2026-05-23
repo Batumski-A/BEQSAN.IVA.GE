@@ -56,20 +56,25 @@
     "materialsTitle": "Only the highest-grade materials",
     "materialsSubtitle": "10-year warranty on aluminium systems",
     "materials": {
+      "pvc": {
+        "title": "German PVC",
+        "body": "Rehau Synego 7-chamber profiles. The ultimate sound damping and thermal insulation for your home.",
+        "badge": "Rehau Synego"
+      },
       "aluminum": {
-        "title": "Warm aluminium",
-        "body": "Alumil's premium profiles with a thermal break — for maximum thermal insulation in any season.",
+        "title": "Warm Aluminium",
+        "body": "Alumil's premium profiles with a thermal break. Maximum stability, slim sights, and life-long durability.",
         "badge": "10-year warranty"
       },
-      "glass": {
-        "title": "Low-E IGU",
-        "body": "Double- and triple-pane tempered glass. Holds the indoor temperature across all four seasons.",
-        "badge": "Energy-efficient"
+      "sliding": {
+        "title": "Sliding Portals",
+        "body": "Premium sliding roller and track mechanisms. Exceptionally smooth, quiet, and effortless gliding.",
+        "badge": "Low threshold"
       },
       "hardware": {
-        "title": "G-U hardware",
-        "body": "German mechanisms rated for 50,000+ open-and-close cycles — the highest tilt-and-turn standard.",
-        "badge": "Top-tier quality"
+        "title": "Euro Hardware",
+        "body": "German G-U and Hoppe handles and locks. Rated for a guaranteed 50,000+ open-and-close cycles.",
+        "badge": "G-U & Hoppe"
       }
     },
     "trust": {
@@ -94,6 +99,66 @@
       "title": "See your window's price in a minute",
       "lead": "The configurator shows you the design in 3D, then locks the price. After that — one phone number and a craftsman is on the way.",
       "cta": "Open the 3D studio"
+    },
+    "catalogTitle": "Product Catalog",
+    "catalogSubtitle": "Design and production from Batumi — handcrafted at the Salibauri factory",
+    "catalog": {
+      "pvc": {
+        "title": "PVC Windows & Doors",
+        "description": "German Rehau 5-chamber profiles. Ideal energy efficiency, best price for residential apartments.",
+        "badge": "German Rehau"
+      },
+      "aluminum": {
+        "title": "Aluminum Windows & Doors",
+        "description": "Thermally insulated Alumil premium profiles. Large structural spans, ultra-modern look, 10-year warranty.",
+        "badge": "Premium Alumil"
+      },
+      "sliding": {
+        "title": "Sliding & Portal Systems",
+        "description": "Panoramic sliding portals. Maximum space saving, effortless control, and high weather-tightness.",
+        "badge": "Space Saver"
+      },
+      "vitrages": {
+        "title": "Vitrages & Facades",
+        "description": "Thermally insulated aluminum panoramic glass packs. Perfect for commercial and residential facades, maximizing natural light.",
+        "badge": "Panoramic View"
+      },
+      "nets": {
+        "title": "Mosquito Nets & Accessories",
+        "description": "Integrated and standalone insect protection nets. Durable mechanisms tailored for any window configuration.",
+        "badge": "Integrated"
+      }
+    },
+    "estimatorTitle": "Interactive Price Estimator",
+    "estimatorSubtitle": "Configure your dimensions and get an instant price estimation without calling a sales representative",
+    "estimator": {
+      "productLabel": "Product Type",
+      "materialLabel": "Profile Material",
+      "widthLabel": "Width",
+      "heightLabel": "Height",
+      "materialAlu": "Warm Aluminum (Alumil)",
+      "materialPvc": "PVC (German Rehau)",
+      "priceLabel": "Estimated Price:",
+      "cta": "Open in 3D Configurator →",
+      "pvcWindow": "PVC Window",
+      "aluWindow": "Aluminum Window",
+      "slidingSystem": "Sliding Portal System",
+      "vitrage": "Glass Facade / Vitrage",
+      "mosquitoNet": "Mosquito Insect Net"
+    },
+    "calc": {
+      "productLabel": "Product Type",
+      "layoutLabel": "Number of Sashes",
+      "materialLabel": "Profile Material",
+      "colorLabel": "Color",
+      "glassLabel": "Glass Package",
+      "openingLabel": "Opening Type",
+      "qtyLabel": "Quantity",
+      "widthLabel": "Width",
+      "heightLabel": "Height",
+      "priceLabel": "Estimated Price",
+      "ctaPrimary": "Open in 3D Studio",
+      "ctaHint": "Your choices are preserved — review them in 3D"
     }
   },
   "about": {
@@ -515,6 +580,33 @@
             "other": "Somewhere else — we'll call you",
             "other.cities": "We'll quote the install separately",
             "other.cityInput": "City / village"
+          },
+          "banner": {
+            "title": "Delivery & Installation in Adjara",
+            "text": "Our company primarily operates in the Adjara region (delivery and installation in Batumi is free). For other regions, we calculate the installation fee based on distance and floor level."
+          },
+          "workScope": {
+            "title": "Work Scope",
+            "installOnly": "Installation Only",
+            "dismantlingAndInstall": "Dismantling & Installation",
+            "installOnlyHint": "Installation fee is included in the base cost.",
+            "dismantlingHint": "Dismantling fee is 30 GEL per pane."
+          },
+          "dwellingType": {
+            "title": "Dwelling Type",
+            "apartment": "Apartment",
+            "house": "Private House"
+          },
+          "floor": {
+            "title": "Floor",
+            "option": "Floor {{n}}"
+          },
+          "elevator": {
+            "label": "Passenger/freight elevator is working"
+          },
+          "carrying": {
+            "elevatorHint": "Carrying up by elevator is a flat 20 GEL fee.",
+            "stairsHint": "Carrying up by stairs: 5 GEL per pane per floor (above Floor 1)."
           }
         },
         "pricing": {
@@ -846,6 +938,14 @@
       "preview": "Clean",
       "exitPreview": "Show panels"
     },
+    "scene": {
+      "clickGlassHint": "Click on the glass to open it"
+    },
+    "background": {
+      "dark": "Dark",
+      "studio": "Studio",
+      "warm": "Warm"
+    },
     "panel": {
       "product": "Product",
       "templates": "Quick templates",
@@ -858,13 +958,15 @@
       "door": "Door",
       "sliding": "Sliding",
       "panoramic": "Panoramic",
-      "balcony": "Balcony"
+      "balcony": "Balcony",
+      "veranda": "Veranda"
     },
     "templates": {
       "standard2": "Standard · 2 sashes",
       "balcony": "Balcony block",
       "wide3": "Wide middle · 3 sashes",
-      "panoramic": "Panoramic · 4 sashes"
+      "panoramic": "Panoramic · 4 sashes",
+      "transom": "Glazing with transom"
     },
     "profile": {
       "alumil": {
@@ -886,7 +988,9 @@
       "equal3": "Equal (33-33-33)",
       "wideMiddle": "Wide middle (25-50-25)",
       "openings": "Opening direction",
-      "paneN": "Section {{n}}"
+      "paneN": "Section {{n}}",
+      "transom": "Transom",
+      "transomGroup": "Top transom (per section)"
     },
     "opening": {
       "fixed": "Fixed",

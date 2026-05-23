@@ -1,6 +1,10 @@
 using BEQSAN.Application.Common.Persistence;
+using BEQSAN.Domain.Admin;
 using BEQSAN.Domain.Catalog;
+using BEQSAN.Domain.Gallery;
+using BEQSAN.Domain.Orders;
 using BEQSAN.Domain.Social;
+using BEQSAN.Domain.Warranties;
 using Microsoft.EntityFrameworkCore;
 
 namespace BEQSAN.Infrastructure.Persistence;
@@ -21,6 +25,14 @@ public sealed class BeqsanDbContext(DbContextOptions<BeqsanDbContext> options)
     public DbSet<SocialPost> SocialPosts => Set<SocialPost>();
     public DbSet<InboxThread> InboxThreads => Set<InboxThread>();
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+
+    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
+
+    public DbSet<Order> Orders => Set<Order>();
+
+    public DbSet<Warranty> Warranties => Set<Warranty>();
+
+    public DbSet<GalleryItem> GalleryItems => Set<GalleryItem>();
 
     public Task<bool> CanConnectAsync(CancellationToken ct = default) =>
         Database.CanConnectAsync(ct);

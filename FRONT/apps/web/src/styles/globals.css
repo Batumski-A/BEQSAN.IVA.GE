@@ -114,4 +114,94 @@
     outline: 2px solid theme('colors.accent.amber');
     outline-offset: 4px;
   }
+
+  /* Touch-friendly slider thumb — used on all `<input type=range>` across the
+     configurator + admin. 28px thumb meets Apple HIG (44pt target with halo)
+     and Material guidance (24dp). Track stays slim. Desktop falls back to 20px
+     since precision pointing doesn't need the same hit area. */
+  .slider-touch {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+  }
+  .slider-touch::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: theme('colors.bg.elevated');
+    border: 1px solid theme('colors.hairline.DEFAULT');
+  }
+  .slider-touch::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: theme('colors.bg.elevated');
+    border: 1px solid theme('colors.hairline.DEFAULT');
+  }
+  .slider-touch::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: -12px;
+    border-radius: 9999px;
+    background: theme('colors.accent.amber');
+    border: 3px solid theme('colors.bg.base');
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    transition: transform 120ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .slider-touch::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+  }
+  .slider-touch::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: theme('colors.accent.amber');
+    border: 3px solid theme('colors.bg.base');
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .slider-touch:focus-visible {
+    outline: 2px solid theme('colors.accent.amber');
+    outline-offset: 4px;
+  }
+  @media (min-width: 768px) {
+    .slider-touch::-webkit-slider-thumb {
+      width: 20px;
+      height: 20px;
+      margin-top: -8px;
+      border-width: 2px;
+    }
+    .slider-touch::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-width: 2px;
+    }
+  }
+
+  /* iOS safe area utility helpers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-none {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+  }
 }

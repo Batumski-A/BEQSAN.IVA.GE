@@ -102,6 +102,10 @@ internal static class ProductTypeSeeder
         yield return Build("balcony", "აივნის შემინვა",
             "უტიხრო ან ჩარჩოიანი, ბათუმის ქარისთვის ნაგები.", 5,
             warrantyMonths: 24, leadMin: 7, leadMax: 12);
+
+        yield return Build("veranda", "ვერანდა",
+            "U-ფორმის ჩარჩო — ფრონტი + ორი გვერდითი კედელი ერთად.", 6,
+            warrantyMonths: 36, leadMin: 21, leadMax: 30);
     }
 
     private static ProductType Build(

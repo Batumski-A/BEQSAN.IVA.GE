@@ -144,10 +144,47 @@ internal sealed class ComputePriceHandler(
                     }
                 }
 
+                // Transom (Step 9): optional horizontal split with its own
+                // opening type + hinge. Defaults to Fixed when HasTransom=true
+                // and TransomOpeningType is omitted, so existing canary
+                // requests (which don't send transom fields) stay byte-for-byte.
+                var transomOpening = PaneOpeningType.Fixed;
+                if (p.HasTransom && p.TransomOpeningType is not null)
+                {
+                    if (!Enum.TryParse<PaneOpeningType>(p.TransomOpeningType, ignoreCase: false, out var parsedTransom))
+                    {
+                        return Result.Failure<PriceBreakdownDto>(
+                            Error.Validation(
+                                "configurator.layout.pane.transomOpeningTypeInvalid",
+                                "ფრამუგის გასაღების ტიპი არასწორია.",
+                                field: "panes")
+                                .WithMetadata("position", p.Position)
+                                .WithMetadata("got", p.TransomOpeningType));
+                    }
+                    transomOpening = parsedTransom;
+                }
+
+                HingeSide? transomHinge = null;
+                if (p.HasTransom && p.TransomHingeSide is not null)
+                {
+                    if (!Enum.TryParse<HingeSide>(p.TransomHingeSide, ignoreCase: false, out var parsedTransomHinge))
+                    {
+                        return Result.Failure<PriceBreakdownDto>(
+                            Error.Validation(
+                                "configurator.layout.pane.transomHingeSideInvalid",
+                                "ფრამუგის მენტეშის მხარე არასწორია.",
+                                field: "panes")
+                                .WithMetadata("position", p.Position)
+                                .WithMetadata("got", p.TransomHingeSide));
+                    }
+                    transomHinge = parsedTransomHinge;
+                }
+
                 var glassId = p.GlassTypeId ?? Guid.Empty;
                 domainPanes.Add(new ConfigurationPane(
                     p.Position, p.WidthRatio, opening, hinge, p.HasMosquitoNet,
-                    glassId, extras));
+                    glassId, extras,
+                    p.HasTransom, transomOpening, transomHinge, p.TransomHeightRatio));
             }
             panes = domainPanes;
         }
@@ -222,7 +259,13 @@ internal sealed class ComputePriceHandler(
                         field: "installation")
                         .WithMetadata("got", request.Installation.Region));
             }
-            installation = new InstallationOption(region, request.Installation.CityHint);
+            installation = new InstallationOption(
+                region,
+                request.Installation.CityHint,
+                request.Installation.Dismantling,
+                request.Installation.DwellingType,
+                request.Installation.Floor,
+                request.Installation.HasElevator);
         }
 
         // Cross-field, constraints, layout, math — all in the calculator.

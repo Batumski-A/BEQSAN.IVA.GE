@@ -20,7 +20,11 @@ namespace BEQSAN.Domain.Configurator;
 /// </summary>
 public sealed record InstallationOption(
     InstallationRegion Region,
-    string? CityHint = null);
+    string? CityHint = null,
+    bool Dismantling = false,
+    string? DwellingType = null,
+    int Floor = 1,
+    bool HasElevator = false);
 
 public enum InstallationRegion
 {

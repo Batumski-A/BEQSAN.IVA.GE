@@ -26,4 +26,8 @@ public sealed record ConfigurationPaneInput(
     string? HingeSide,
     bool HasMosquitoNet,
     Guid? GlassTypeId = null,
-    IReadOnlyList<string>? GlassExtras = null);
+    IReadOnlyList<string>? GlassExtras = null,
+    bool HasTransom = false,
+    string? TransomOpeningType = null,
+    string? TransomHingeSide = null,
+    decimal TransomHeightRatio = 0.3m);

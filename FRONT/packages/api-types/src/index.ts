@@ -42,6 +42,14 @@ export type ConfigurationPaneInput = {
   // populate this.
   glassTypeId?: string | null;
   glassExtras?: GlassExtra[];
+  // Transom (Step 9) — optional horizontal split with its own opening
+  // type + hinge. `hasTransom=false` (default) keeps every existing
+  // canary byte-for-byte; when true the BACK splits hardware surcharge
+  // between bottom + top sashes and adds a flat mullion fee.
+  hasTransom?: boolean;
+  transomOpeningType?: PaneOpeningType | null;
+  transomHingeSide?: HingeSide | null;
+  transomHeightRatio?: number;
 };
 
 // Step 6 — color/finish. Family is string for FRONT readability; the wire
@@ -105,6 +113,10 @@ export type InstallationRegion =
 export type InstallationOptionInput = {
   region: InstallationRegion;
   cityHint?: string | null;
+  dismantling?: boolean;
+  dwellingType?: 'apartment' | 'house';
+  floor?: number;
+  hasElevator?: boolean;
 };
 
 export type HealthChecks = {

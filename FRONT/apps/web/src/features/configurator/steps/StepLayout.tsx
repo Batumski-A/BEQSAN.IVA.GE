@@ -426,7 +426,7 @@ function PaneCard({
             aria-valuemax={maxPercent}
             aria-valuenow={Math.round(percent)}
             aria-valuetext={`${Math.round(percent)}%`}
-            className="dimension-slider mt-2 h-2 w-full cursor-ew-resize appearance-none rounded-full bg-bg-elevated"
+            className="slider-touch mt-2 w-full"
           />
         </div>
       )}

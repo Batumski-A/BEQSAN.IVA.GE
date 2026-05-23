@@ -1,0 +1,158 @@
+name: deploy
+
+# Manual deploy to BATUMSKI (or any SSH-reachable host).
+#
+# Required secrets (Settings → Secrets and variables → Actions):
+#   - DEPLOY_HOST:        e.g. beqsan.iva.ge or the BATUMSKI public IP
+#   - DEPLOY_USER:        ssh user with write access to /var/www and systemctl
+#   - DEPLOY_SSH_KEY:     private key (PEM) — counterpart added to ~/.ssh/authorized_keys
+#   - DEPLOY_SSH_PORT:    optional, defaults to 22
+#
+# Required variables (Settings → Variables → Actions):
+#   - DEPLOY_BACK_PATH:   server-side absolute path for the API,
+#                         e.g. /opt/beqsan/api
+#   - DEPLOY_FRONT_PATH:  server-side absolute path for the SPA,
+#                         e.g. /var/www/beqsan
+#   - VITE_API_BASE:      base URL the SPA will call,
+#                         e.g. https://api.beqsan.iva.ge
+#
+# Server prerequisites (one-time):
+#   1. systemd unit `beqsan-api.service` running BACK against /opt/beqsan/api/BEQSAN.Api.dll
+#      and pointing at /opt/beqsan/data/ for the SQLite DB + uploads + logs.
+#   2. nginx (or Caddy) virtual hosts:
+#        - beqsan.iva.ge      → serve $DEPLOY_FRONT_PATH (SPA, fallback to index.html)
+#        - api.beqsan.iva.ge  → reverse_proxy 127.0.0.1:5000
+#   3. environment file `/etc/beqsan/api.env` with at minimum:
+#        ASPNETCORE_ENVIRONMENT=Production
+#        ASPNETCORE_URLS=http://127.0.0.1:5000
+#        AdminAuth__Username=<admin username>
+#        AdminAuth__Password=<long random password>
+#        Social__AdminToken=<long random token>
+#        Social__Encryption__Key=<base64 32 bytes>
+#        # plus Meta/AI secrets when those features are turned on
+#
+# The deploy job streams the prepared artifacts to the host via rsync over SSH,
+# restarts the systemd unit, and waits for the /api/v1/health endpoint to
+# return 200 before declaring success.
+
+on:
+  workflow_dispatch:
+    inputs:
+      back:
+        description: 'Deploy BACK (.NET API)'
+        type: boolean
+        default: true
+      front:
+        description: 'Deploy FRONT (SPA)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: FRONT/pnpm-lock.yaml
+
+      - name: Build BACK
+        if: ${{ inputs.back }}
+        working-directory: BACK
+        run: |
+          dotnet publish src/BEQSAN.Api/BEQSAN.Api.csproj \
+            -c Release \
+            -o ./publish
+
+      - name: Build FRONT
+        if: ${{ inputs.front }}
+        working-directory: FRONT
+        env:
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @beqsan/web build
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.back }}
+        with:
+          name: back-publish
+          path: BACK/publish
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.front }}
+        with:
+          name: front-dist
+          path: FRONT/apps/web/dist
+
+  deploy:
+    name: Deploy to ${{ vars.DEPLOY_HOST || 'production' }}
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${{ secrets.DEPLOY_SSH_PORT || 22 }}" -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: rsync BACK
+        if: ${{ inputs.back }}
+        env:
+          PORT: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p $PORT" \
+            artifacts/back-publish/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ vars.DEPLOY_BACK_PATH }}/
+
+      - name: rsync FRONT
+        if: ${{ inputs.front }}
+        env:
+          PORT: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p $PORT" \
+            artifacts/front-dist/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ vars.DEPLOY_FRONT_PATH }}/
+
+      - name: Restart API + health check
+        if: ${{ inputs.back }}
+        env:
+          PORT: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+        run: |
+          ssh -p $PORT ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo systemctl restart beqsan-api && sleep 2 && systemctl is-active --quiet beqsan-api'
+          # Wait for health to come back green
+          for i in {1..30}; do
+            if curl -fsS "https://api.${{ vars.DEPLOY_HOST }}/api/v1/health" > /dev/null 2>&1; then
+              echo "API is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API health check failed after 60s." >&2
+          exit 1
