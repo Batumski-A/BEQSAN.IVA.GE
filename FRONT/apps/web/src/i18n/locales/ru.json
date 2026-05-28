@@ -946,13 +946,17 @@
       "studio": "Студия",
       "warm": "Тёплый"
     },
-    "roomContext": {
-      "show": "В контексте стены",
-      "hide": "Только окно",
-      "showAria": "Показать окно в контексте стены",
-      "hideAria": "Скрыть стену",
-      "announceOn": "Окно в контексте стены",
-      "announceOff": "Только окно"
+    "roomPreset": {
+      "none": "Только окно",
+      "apartment": "Квартира",
+      "exterior": "Дом",
+      "veranda": "Веранда",
+      "noneAria": "Скрыть контекст комнаты",
+      "apartmentAria": "Показать в интерьере квартиры",
+      "exteriorAria": "Показать на фасаде дома",
+      "verandaAria": "Показать на веранде",
+      "groupAria": "Контекст комнаты",
+      "announceChanged": "Контекст комнаты: {{name}}"
     },
     "panel": {
       "product": "Изделие",

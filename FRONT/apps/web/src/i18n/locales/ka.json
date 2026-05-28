@@ -949,13 +949,17 @@
       "studio": "სტუდია",
       "warm": "თბილი"
     },
-    "roomContext": {
-      "show": "ნახე ოთახში",
-      "hide": "მხოლოდ ფანჯარა",
-      "showAria": "ფანჯრის ჩვენება კედლის კონტექსტში",
-      "hideAria": "კედლის ფარვა",
-      "announceOn": "ფანჯარა კედლის კონტექსტშია",
-      "announceOff": "მხოლოდ ფანჯარა ჩანს"
+    "roomPreset": {
+      "none": "ფანჯარა მხოლოდ",
+      "apartment": "ბინა",
+      "exterior": "კერძო სახლი",
+      "veranda": "ვერანდა",
+      "noneAria": "ოთახის კონტექსტის ფარვა",
+      "apartmentAria": "ბინის ინტერიერში ჩვენება",
+      "exteriorAria": "სახლის ფასადზე ჩვენება",
+      "verandaAria": "ვერანდაზე ჩვენება",
+      "groupAria": "ოთახის კონტექსტი",
+      "announceChanged": "ოთახის კონტექსტი: {{name}}"
     },
     "panel": {
       "product": "პროდუქტი",

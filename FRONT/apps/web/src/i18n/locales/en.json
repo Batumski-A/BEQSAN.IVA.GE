@@ -946,13 +946,17 @@
       "studio": "Studio",
       "warm": "Warm"
     },
-    "roomContext": {
-      "show": "See in a room",
-      "hide": "Window only",
-      "showAria": "Show window in wall context",
-      "hideAria": "Hide wall",
-      "announceOn": "Window shown in wall context",
-      "announceOff": "Window only"
+    "roomPreset": {
+      "none": "Window only",
+      "apartment": "Apartment",
+      "exterior": "House",
+      "veranda": "Veranda",
+      "noneAria": "Hide room context",
+      "apartmentAria": "Show in apartment interior",
+      "exteriorAria": "Show on house facade",
+      "verandaAria": "Show on veranda",
+      "groupAria": "Room context",
+      "announceChanged": "Room context: {{name}}"
     },
     "panel": {
       "product": "Product",
