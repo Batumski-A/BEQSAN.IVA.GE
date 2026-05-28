@@ -17,8 +17,11 @@ import {
   Columns3,
   X,
   Building2,
+  Home,
+  Sunset,
 } from 'lucide-react';
 import type { ConfigurationPaneInput, HingeSide, PaneOpeningType } from '@beqsan/api-types';
+import type { PresetKind } from './3d/rooms/presets';
 
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { useProductTypes, type ProductType } from '@/features/catalog/api';
@@ -173,9 +176,10 @@ export default function LiveStudio() {
   const [materialKey, setMaterialKey] = useState<MaterialKey>('alumil');
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [bgPreset, setBgPreset] = useState<BackgroundPreset>('dark');
-  // ADR-0005 § Phase 2 — "ნახე ოთახში" toggle. Off by default so the user
-  // first sees the bare product against the studio backdrop, then opts in.
-  const [roomContextOpen, setRoomContextOpen] = useState<boolean>(false);
+  // Sprint A — Room-context preset (apartment / exterior / veranda / null).
+  // Null = bare studio backdrop (the prior "ფანჯარა მხოლოდ" state).
+  // Lasha confirmed local state is fine; persist is not needed.
+  const [roomPreset, setRoomPreset] = useState<PresetKind | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
   );
@@ -428,7 +432,7 @@ export default function LiveStudio() {
                 interactive={sceneInteractive}
                 isStudio={true}
                 background={bgPreset}
-                showRoomContext={roomContextOpen}
+                roomPreset={roomPreset}
               />
             </Suspense>
           )}
@@ -467,29 +471,51 @@ export default function LiveStudio() {
           </div>
         ) : null}
 
-        {/* Top-center: room-context toggle + background preset swatches.
-            Room toggle visible on both mobile and desktop (3D mode only —
-            CSG is meaningless against the 2D blueprint). Background swatches
-            stay desktop-only. */}
+        {/* Top-center: room-preset segmented control + background preset
+            swatches (3D mode only — both controls are meaningless against
+            the 2D blueprint). The segmented control implements the ARIA
+            radiogroup pattern so keyboard + screen-reader users get the
+            same options as the visual mouse path. */}
         {showPanels && viewMode === '3d' ? (
           <div className="absolute left-1/2 top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 flex -translate-x-1/2 items-center gap-2 md:top-6">
-            <button
-              type="button"
-              onClick={() => setRoomContextOpen((v) => !v)}
-              aria-pressed={roomContextOpen}
-              aria-label={roomContextOpen ? t('studio.roomContext.hideAria') : t('studio.roomContext.showAria')}
-              className={cn(
-                'inline-flex h-9 min-w-11 items-center gap-2 rounded-xl border bg-studio-ink-2/80 px-3 text-xs font-bold shadow-lg backdrop-blur-md transition-colors md:h-auto md:py-2',
-                roomContextOpen
-                  ? 'border-studio-brand text-studio-brand-soft'
-                  : 'border-studio-ink-3 text-studio-fg-inv-mute hover:bg-studio-ink-3 hover:text-white',
-              )}
+            <div
+              role="radiogroup"
+              aria-label={t('studio.roomPreset.groupAria')}
+              className="flex rounded-xl border border-studio-ink-3 bg-studio-ink-2/90 p-1 shadow-lg backdrop-blur-md"
             >
-              <Building2 className="h-4 w-4" aria-hidden />
-              <span className="hidden md:inline">
-                {roomContextOpen ? t('studio.roomContext.hide') : t('studio.roomContext.show')}
-              </span>
-            </button>
+              <RoomPresetChip
+                active={roomPreset === null}
+                onClick={() => setRoomPreset(null)}
+                ariaLabel={t('studio.roomPreset.noneAria')}
+                title={t('studio.roomPreset.none')}
+                icon={<EyeOff className="h-4 w-4" aria-hidden />}
+                label={t('studio.roomPreset.none')}
+              />
+              <RoomPresetChip
+                active={roomPreset === 'apartment'}
+                onClick={() => setRoomPreset('apartment')}
+                ariaLabel={t('studio.roomPreset.apartmentAria')}
+                title={t('studio.roomPreset.apartment')}
+                icon={<Building2 className="h-4 w-4" aria-hidden />}
+                label={t('studio.roomPreset.apartment')}
+              />
+              <RoomPresetChip
+                active={roomPreset === 'exterior'}
+                onClick={() => setRoomPreset('exterior')}
+                ariaLabel={t('studio.roomPreset.exteriorAria')}
+                title={t('studio.roomPreset.exterior')}
+                icon={<Home className="h-4 w-4" aria-hidden />}
+                label={t('studio.roomPreset.exterior')}
+              />
+              <RoomPresetChip
+                active={roomPreset === 'veranda'}
+                onClick={() => setRoomPreset('veranda')}
+                ariaLabel={t('studio.roomPreset.verandaAria')}
+                title={t('studio.roomPreset.veranda')}
+                icon={<Sunset className="h-4 w-4" aria-hidden />}
+                label={t('studio.roomPreset.veranda')}
+              />
+            </div>
 
             <div className="hidden items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-1 shadow-lg backdrop-blur-md md:flex">
               {(['dark', 'studio', 'warm'] as const).map((preset) => (
@@ -519,13 +545,14 @@ export default function LiveStudio() {
           </div>
         ) : null}
 
-        {/* SR live region — announces room-context state changes so screen
-            readers track the toggle even though the visual change is in the
-            3D canvas (which is aria-hidden). */}
+        {/* SR live region — announces preset changes so screen-reader users
+            track the visual change happening in the aria-hidden 3D canvas. */}
         <span aria-live="polite" className="sr-only">
-          {roomContextOpen
-            ? t('studio.roomContext.announceOn')
-            : t('studio.roomContext.announceOff')}
+          {t('studio.roomPreset.announceChanged', {
+            name: roomPreset === null
+              ? t('studio.roomPreset.none')
+              : t(`studio.roomPreset.${roomPreset}`),
+          })}
         </span>
 
         {/* Top-right: view mode toggle + price chip (price hidden on mobile, lives in bottom bar) */}
@@ -1352,6 +1379,43 @@ function TransomGroup({ panes, onToggle, onChange }: TransomGroupProps) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+type RoomPresetChipProps = {
+  active: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+  title: string;
+  icon: React.ReactNode;
+  label: string;
+};
+
+/**
+ * One option in the room-preset radiogroup. Icon-only on mobile (label
+ * hidden under `md:`) so all four chips fit at the top-center of the
+ * canvas; label appears on desktop. The aria-label carries the full
+ * description for screen readers in both cases.
+ */
+function RoomPresetChip({ active, onClick, ariaLabel, title, icon, label }: RoomPresetChipProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      aria-label={ariaLabel}
+      title={title}
+      onClick={onClick}
+      className={cn(
+        'flex h-9 min-w-11 items-center gap-2 rounded-lg px-2.5 text-xs font-bold transition-colors md:px-3',
+        active
+          ? 'bg-studio-brand text-white'
+          : 'text-studio-fg-inv-mute hover:bg-studio-ink-3 hover:text-white',
+      )}
+    >
+      {icon}
+      <span className="hidden md:inline">{label}</span>
+    </button>
   );
 }
 
