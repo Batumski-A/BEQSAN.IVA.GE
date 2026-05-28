@@ -397,6 +397,7 @@ function PaneDropdownBadge({
   onChange,
   bottomCenterY,
   frameDepth,
+  isHovered,
 }: {
   paneIndex: number;
   options: ReadonlyArray<{ value: string; label: string }>;
@@ -404,6 +405,13 @@ function PaneDropdownBadge({
   onChange: (paneIndex: number, value: string) => void;
   bottomCenterY: number;
   frameDepth: number;
+  /**
+   * True when the parent pane mesh is hovered (mouse over the glass).
+   * The chip is hidden by default and appears on hover so 4-pane systems
+   * don't stack 4 chips that obscure the model. Once the dropdown opens,
+   * it stays visible regardless of hover so the user can pick freely.
+   */
+  isHovered: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const currentOption = options.find((opt) => opt.value === currentValue) || options[0];
@@ -414,6 +422,11 @@ function PaneDropdownBadge({
     window.addEventListener('click', handleClose);
     return () => window.removeEventListener('click', handleClose);
   }, [isOpen]);
+
+  // Hidden by default — only render when the user is hovering the pane
+  // or has the dropdown explicitly open. Hover-only-chip is per Lasha's
+  // 2026-05-28 feedback ("წარწერები ფარავს ვიზუალს").
+  if (!isHovered && !isOpen) return null;
 
   return (
     <Html
@@ -429,10 +442,10 @@ function PaneDropdownBadge({
       >
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/60 px-3.5 py-1.5 text-[10px] font-bold text-white/90 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-all hover:border-white/40 hover:bg-slate-950/80 active:scale-95"
+          className="flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/70 px-2 py-0.5 text-[9px] font-bold text-white/90 shadow-md backdrop-blur transition-all hover:border-white/40 hover:bg-slate-950/85 active:scale-95"
         >
           <span>{currentOption?.label || currentValue}</span>
-          <ChevronDown className={`h-3 w-3 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`h-2.5 w-2.5 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
@@ -499,6 +512,10 @@ function Window({
   paneClickStates: Record<number, number>;
   onPaneClick: (paneIndex: number, opening: PaneOpeningType) => void;
 }) {
+  // 1-based pane position currently under the cursor. Null when nothing is
+  // hovered. Drives the hover-only PaneDropdownBadge visibility per Lasha's
+  // 2026-05-28 feedback — chips no longer stack for every pane.
+  const [hoveredPane, setHoveredPane] = useState<number | null>(null);
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
     void delta;
@@ -896,10 +913,23 @@ function Window({
                 </mesh>
                 {/* Double-glazing pack — a slim box giving the glass
                     visible depth, plus a clickable mesh on the front
-                    face for the open/close interaction. */}
+                    face for the open/close interaction. Pointer-over/out
+                    also drives the per-pane hover state so the opening-
+                    type chip appears only when the user is looking at
+                    that pane (Sprint A polish, 2026-05-28). */}
                 <mesh
                   receiveShadow={!mobile}
                   onClick={isOpenable ? (e) => { e.stopPropagation(); handleClick(); } : undefined}
+                  onPointerOver={(e) => {
+                    e.stopPropagation();
+                    setHoveredPane(paneIndex);
+                    document.body.style.cursor = isOpenable ? 'pointer' : 'default';
+                  }}
+                  onPointerOut={(e) => {
+                    e.stopPropagation();
+                    setHoveredPane((cur) => (cur === paneIndex ? null : cur));
+                    document.body.style.cursor = 'auto';
+                  }}
                 >
                   <boxGeometry
                     args={[
@@ -975,6 +1005,7 @@ function Window({
                 onChange={interactive.panes.onChange}
                 bottomCenterY={bottomCenterY}
                 frameDepth={frameDepth}
+                isHovered={hoveredPane === paneIndex}
               />
             ) : null}
           </group>
@@ -1011,8 +1042,10 @@ function Window({
               zIndexRange={[100, 0]}
               style={{ pointerEvents: 'auto' }}
             >
-              <div className="flex items-center gap-2 rounded-lg border border-studio-brand/60 bg-studio-ink/95 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
-                <span className="text-[10px] font-bold">W:</span>
+              {/* Compact dimension pill — number only, with extension lines
+                  carrying the architectural meaning. The full "W: 360 სმ"
+                  caption was obscuring the model (Lasha 2026-05-28). */}
+              <div className="flex items-center rounded-md border border-studio-brand/50 bg-studio-ink/85 px-1.5 py-0.5 text-studio-brand-soft shadow-md backdrop-blur">
                 <input
                   type="number"
                   value={interactive.dimensions.widthCm}
@@ -1030,9 +1063,9 @@ function Window({
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+                  className="w-10 bg-transparent text-center font-mono text-[11px] outline-none"
+                  aria-label="სიგანე სმ"
                 />
-                <span className="text-[10px]">სმ</span>
               </div>
             </Html>
             {/* H dimension extension lines — two horizontals from the right
@@ -1055,8 +1088,8 @@ function Window({
               zIndexRange={[100, 0]}
               style={{ pointerEvents: 'auto' }}
             >
-              <div className="flex items-center gap-2 rounded-lg border border-studio-brand/50 bg-studio-ink/90 px-3 py-1.5 text-studio-brand-soft shadow-xl backdrop-blur">
-                <span className="text-[10px] font-bold">H:</span>
+              {/* Compact height pill — same shrink as W chip. */}
+              <div className="flex items-center rounded-md border border-studio-brand/50 bg-studio-ink/85 px-1.5 py-0.5 text-studio-brand-soft shadow-md backdrop-blur">
                 <input
                   type="number"
                   value={interactive.dimensions.heightCm}
@@ -1074,9 +1107,9 @@ function Window({
                     }
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-12 bg-transparent text-center font-mono text-sm outline-none"
+                  className="w-10 bg-transparent text-center font-mono text-[11px] outline-none"
+                  aria-label="სიმაღლე სმ"
                 />
-                <span className="text-[10px]">სმ</span>
               </div>
             </Html>
           </>
