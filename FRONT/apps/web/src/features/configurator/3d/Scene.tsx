@@ -132,6 +132,15 @@ export function ConfiguratorScene({
    */
   const dragDeltaRef = useRef(0);
 
+  /**
+   * When non-zero, DragRotator skips its own pointerdown — used by
+   * child drags (mullion repartition, dim-chip scrub) to suppress the
+   * world-rotation gesture so the model stays still while the user is
+   * editing it. Backstop for when stopImmediatePropagation alone can't
+   * win the listener-ordering race.
+   */
+  const interactionLockRef = useRef(0);
+
   const onPaneClick = (paneIndex: number, opening: PaneOpeningType) => {
     if (opening === 'Fixed') return;
     if (dragDeltaRef.current > 5) return; // user was rotating the model
@@ -336,6 +345,7 @@ export function ConfiguratorScene({
               reducedMotion={reducedMotion}
               mobile={isMobile}
               interactive={interactive}
+              interactionLockRef={interactionLockRef}
               paneClickStates={paneClickStates}
               onPaneClick={onPaneClick}
             />
@@ -362,7 +372,7 @@ export function ConfiguratorScene({
             on the canvas DOM element directly — Y-axis (yaw) from dx, X-axis
             (pitch) from dy, clamped to ±45°. Cumulative drag delta is shared
             with onPaneClick so a long drag doesn't fire pane open/close. */}
-        <DragRotator targetRef={worldRef} dragDeltaRef={dragDeltaRef} />
+        <DragRotator targetRef={worldRef} dragDeltaRef={dragDeltaRef} interactionLockRef={interactionLockRef} />
       </Canvas>
 
       {/* HTML overlay labels (legacy wizard only — LiveStudio renders interactive
@@ -529,6 +539,7 @@ function Window({
   reducedMotion,
   mobile,
   interactive,
+  interactionLockRef,
   paneClickStates,
   onPaneClick,
 }: {
@@ -546,6 +557,10 @@ function Window({
   reducedMotion: boolean;
   mobile: boolean;
   interactive?: SceneInteractiveControls;
+  /** Reference-counted lock shared with DragRotator. Mullion + dim-chip
+      drag handlers increment on start and decrement on end so the model
+      doesn't rotate while the user is editing dimensions. */
+  interactionLockRef: React.MutableRefObject<number>;
   paneClickStates: Record<number, number>;
   onPaneClick: (paneIndex: number, opening: PaneOpeningType) => void;
 }) {
@@ -837,6 +852,13 @@ function Window({
               const startMullionDrag = (e: ThreeEvent<PointerEvent>) => {
                 if (!interactive?.panes.onRatiosChange) return;
                 e.stopPropagation();
+                // Block DragRotator's canvas-level pointerdown listener.
+                // R3F's e.stopPropagation only stops R3F-side propagation;
+                // the underlying DOM event still bubbles to DragRotator
+                // and the whole model spins in tandem with the mullion drag.
+                e.nativeEvent.stopImmediatePropagation();
+                e.nativeEvent.preventDefault();
+                interactionLockRef.current += 1;
                 const startPx = e.nativeEvent.clientX;
                 const startRatios = panes.map((p) => p.widthRatio);
                 mullionDragRef.current = { mullionIdx: i, startPx, startRatios };
@@ -864,6 +886,7 @@ function Window({
                 const onUp = () => {
                   mullionDragRef.current = null;
                   setDraggingMullion(null);
+                  interactionLockRef.current = Math.max(0, interactionLockRef.current - 1);
                   document.body.style.cursor = 'auto';
                   window.removeEventListener('pointermove', onMove);
                   window.removeEventListener('pointerup', onUp);
@@ -1134,6 +1157,22 @@ function Window({
               </AnimatedPane>
             </group>
 
+            {/* Live per-pane width label — shown only while the user is
+                actively dragging a mullion. Sits at the pane's vertical
+                centre forward of the glass so it stays readable against
+                whatever's behind. */}
+            {draggingMullion !== null ? (
+              <Html
+                position={[0, 0, frameDepth * 0.7]}
+                center
+                zIndexRange={[120, 0]}
+                style={{ pointerEvents: 'none' }}
+              >
+                <div className="select-none rounded-md border border-sky-300/60 bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.55)] backdrop-blur animate-in fade-in zoom-in-90 duration-150">
+                  {Math.round(pw * 100)} სმ
+                </div>
+              </Html>
+            ) : null}
             {/* Per-pane opening chip — small glassmorphic capsule
                 centered over the sash. Sits forward of the glass
                 (slightly toward the camera) so it reads on rotation.
@@ -1175,6 +1214,7 @@ function Window({
         const startDragWidth = (e: React.PointerEvent) => {
           e.preventDefault();
           e.stopPropagation();
+          interactionLockRef.current += 1;
           resizeStartRef.current = { axis: 'w', startPx: e.clientX, startCm: dims.widthCm };
           setIsResizing(true);
           const onMove = (ev: PointerEvent) => {
@@ -1188,6 +1228,7 @@ function Window({
           const onUp = () => {
             resizeStartRef.current = null;
             setIsResizing(false);
+            interactionLockRef.current = Math.max(0, interactionLockRef.current - 1);
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onUp);
@@ -1199,6 +1240,7 @@ function Window({
         const startDragHeight = (e: React.PointerEvent) => {
           e.preventDefault();
           e.stopPropagation();
+          interactionLockRef.current += 1;
           resizeStartRef.current = { axis: 'h', startPx: e.clientY, startCm: dims.heightCm };
           setIsResizing(true);
           const onMove = (ev: PointerEvent) => {
@@ -1213,6 +1255,7 @@ function Window({
           const onUp = () => {
             resizeStartRef.current = null;
             setIsResizing(false);
+            interactionLockRef.current = Math.max(0, interactionLockRef.current - 1);
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onUp);
@@ -2421,9 +2464,17 @@ function Ground() {
 function DragRotator({
   targetRef,
   dragDeltaRef,
+  interactionLockRef,
 }: {
   targetRef: React.RefObject<Group>;
   dragDeltaRef: React.MutableRefObject<number>;
+  /**
+   * Reference-counted lock. While > 0, the user is actively dragging a
+   * mullion or dim chip and the world rotation must stay suspended so
+   * the model holds still under their edits. Each child drag increments
+   * on start and decrements on end.
+   */
+  interactionLockRef: React.MutableRefObject<number>;
 }) {
   const { gl } = useThree();
   useEffect(() => {
@@ -2433,6 +2484,7 @@ function DragRotator({
     let lastY = 0;
 
     const onDown = (e: PointerEvent) => {
+      if (interactionLockRef.current > 0) return;
       isDragging = true;
       dragDeltaRef.current = 0;
       lastX = e.clientX;
@@ -2477,6 +2529,6 @@ function DragRotator({
       canvas.style.touchAction = '';
       canvas.style.cursor = '';
     };
-  }, [gl, targetRef, dragDeltaRef]);
+  }, [gl, targetRef, dragDeltaRef, interactionLockRef]);
   return null;
 }
