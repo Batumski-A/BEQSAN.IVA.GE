@@ -333,8 +333,11 @@ export function ConfiguratorScene({
             {isStudio || interactive ? null : <Ground />}
           </group>
 
-          {/* Apple-like soft ground shadow to anchor the floating model */}
-          {(isStudio || interactive) && (
+          {/* Apple-like soft ground shadow to anchor the floating model.
+              Skipped when a room preset is active — the preset's own floor
+              catches shadows, and a coplanar ContactShadows at y=0 z-fights
+              the floor + the window's bottom rail (Lasha flagged 2026-05-28). */}
+          {(isStudio || interactive) && roomPreset === null && (
             <ContactShadows
               position={[0, 0, 0]}
               opacity={0.55}

@@ -15,12 +15,16 @@ export type GroundPlaneProps = {
   sizeM?: number;
   /** Texture tile count across the plane. Default 4 (so each tile ≈ 3 m). */
   tile?: number;
+  /** World-Y position. Default -0.01 (1 cm below the window's bottom rail
+      at y=0) so the ground doesn't z-fight with the configurator frame. */
+  yOffset?: number;
 };
 
 export function GroundPlane({
   diffuseTexturePath,
   sizeM = 12,
   tile = 4,
+  yOffset = -0.01,
 }: GroundPlaneProps) {
   const texture = useTexture(diffuseTexturePath);
   // Configure tiling once per texture reference.
@@ -31,7 +35,7 @@ export function GroundPlane({
   }, [texture, tile]);
 
   return (
-    <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+    <mesh position={[0, yOffset, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
       <planeGeometry args={[sizeM, sizeM]} />
       <meshStandardMaterial map={texture} roughness={0.95} metalness={0} />
     </mesh>

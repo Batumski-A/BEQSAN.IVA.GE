@@ -83,9 +83,11 @@ export function ApartmentInterior({
         </mesh>
       </group>
 
-      {/* Floor */}
-      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[4, 4]} />
+      {/* Floor — dropped 1 cm below the window's bottom rail (y=0) so the
+          two coplanar surfaces don't z-fight. Real thresholds have a small
+          step anyway. Widened to 6×6 so it extends past the side walls. */}
+      <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[6, 6]} />
         <meshStandardMaterial
           map={floor.map ?? null}
           normalMap={floor.normalMap ?? null}

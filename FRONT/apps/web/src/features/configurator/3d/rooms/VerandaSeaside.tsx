@@ -84,8 +84,9 @@ export function VerandaSeaside({
         </mesh>
       </group>
 
-      {/* Deck floor — extended forward to meet the railing. */}
-      <mesh position={[0, 0, 1.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      {/* Deck floor — extended forward to meet the railing. Dropped 1 cm
+          below the window's bottom rail to avoid z-fighting with it. */}
+      <mesh position={[0, -0.01, 1.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[5, 5.5]} />
         <meshStandardMaterial
           map={deck.map ?? null}
