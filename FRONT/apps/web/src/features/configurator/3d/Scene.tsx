@@ -442,7 +442,7 @@ function PaneDropdownBadge({
       >
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1 whitespace-nowrap rounded-full border border-white/20 bg-slate-950/70 px-2 py-0.5 text-[9px] font-bold text-white/90 shadow-md backdrop-blur transition-all hover:border-white/40 hover:bg-slate-950/85 active:scale-95"
+          className="flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-400/40 bg-slate-950/75 px-2 py-0.5 text-[9px] font-bold text-white/90 shadow-[0_0_12px_rgba(77,163,255,0.35)] backdrop-blur transition-all duration-200 hover:border-sky-300/70 hover:bg-slate-950/90 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-1 zoom-in-95"
         >
           <span>{currentOption?.label || currentValue}</span>
           <ChevronDown className={`h-2.5 w-2.5 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
@@ -694,6 +694,7 @@ function Window({
         const clickState = paneClickStates[paneIndex] ?? 0;
         const isOpenable = pane.openingType !== 'Fixed';
         const handleClick = () => onPaneClick(paneIndex, pane.openingType);
+        const isPaneHovered = hoveredPane === paneIndex;
 
         // Transom (Step 9) — when present, the pane area is split by a
         // horizontal mullion. Bottom sash gets the existing AnimatedPane
@@ -814,22 +815,11 @@ function Window({
                   clearcoatRoughness={clearcoatRoughness}
                   mobile={mobile}
                 />
-                {/* Transom glass gasket outline */}
-                <mesh position={[0, 0, 0]}>
-                  <boxGeometry
-                    args={[
-                      Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012)),
-                      Math.max(0, topSashH - glassInset + (isAluminum ? 0.008 : 0.012)),
-                      0.024,
-                    ]}
-                  />
-                  <meshPhysicalMaterial
-                    color="#1A1A1A"
-                    metalness={0.0}
-                    roughness={0.9}
-                    envMapIntensity={0.2}
-                  />
-                </mesh>
+                {/* Transom glass gasket — 4 thin perimeter strips, not a solid panel. */}
+                <GlassEdgeBezel
+                  widthM={Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012))}
+                  heightM={Math.max(0, topSashH - glassInset + (isAluminum ? 0.008 : 0.012))}
+                />
                 <mesh receiveShadow={!mobile}>
                   <boxGeometry
                     args={[
@@ -849,7 +839,7 @@ function Window({
                     metalness={0.0}
                     clearcoat={1.0}
                     clearcoatRoughness={0.05}
-                    envMapIntensity={mobile ? 0.8 : 1.5}
+                    envMapIntensity={mobile ? 0.9 : 2.0}
                   />
                 </mesh>
               </group>
@@ -895,22 +885,11 @@ function Window({
                   clearcoatRoughness={clearcoatRoughness}
                   mobile={mobile}
                 />
-                {/* Glass gasket outline */}
-                <mesh position={[0, 0, 0]}>
-                  <boxGeometry
-                    args={[
-                      Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012)),
-                      Math.max(0, bottomSashH - glassInset + (isAluminum ? 0.008 : 0.012)),
-                      0.024,
-                    ]}
-                  />
-                  <meshPhysicalMaterial
-                    color="#1A1A1A"
-                    metalness={0.0}
-                    roughness={0.9}
-                    envMapIntensity={0.2}
-                  />
-                </mesh>
+                {/* Glass gasket — 4 thin perimeter strips, not a solid panel. */}
+                <GlassEdgeBezel
+                  widthM={Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012))}
+                  heightM={Math.max(0, bottomSashH - glassInset + (isAluminum ? 0.008 : 0.012))}
+                />
                 {/* Double-glazing pack — a slim box giving the glass
                     visible depth, plus a clickable mesh on the front
                     face for the open/close interaction. Pointer-over/out
@@ -949,7 +928,9 @@ function Window({
                     metalness={0.0}
                     clearcoat={1.0}
                     clearcoatRoughness={0.05}
-                    envMapIntensity={mobile ? 0.8 : 1.5}
+                    envMapIntensity={mobile ? 0.9 : 2.0}
+                    emissive={isPaneHovered && isOpenable ? '#4DA3FF' : '#000000'}
+                    emissiveIntensity={isPaneHovered && isOpenable ? 0.18 : 0}
                   />
                 </mesh>
                 {hasHandle && (
@@ -1745,6 +1726,48 @@ function SashFrame({
       >
         <boxGeometry args={[thickness, Math.max(0, paneHeightM - thickness * 2), depth]} />
         <meshPhysicalMaterial color={color} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Glass-edge bezel — four thin rubber-seal strips hugging the perimeter of
+ * a glass pane. Replaces the previous "solid black panel behind the glass"
+ * approach that bled darkness through high-transmission glass and made
+ * every pane read as opaque. The 4-strip form is what a real EPDM/silicone
+ * gasket looks like: a thin dark ring trimming the inner sash edge.
+ */
+function GlassEdgeBezel({
+  widthM,
+  heightM,
+  zOffset = 0.013,
+}: {
+  widthM: number;
+  heightM: number;
+  zOffset?: number;
+}) {
+  if (widthM <= 0 || heightM <= 0) return null;
+  const strip = 0.012;
+  const depth = 0.006;
+  const innerH = Math.max(0, heightM - strip * 2);
+  return (
+    <group position={[0, 0, zOffset]}>
+      <mesh position={[0, heightM / 2 - strip / 2, 0]}>
+        <boxGeometry args={[widthM, strip, depth]} />
+        <meshStandardMaterial color="#0E0E0E" roughness={0.85} metalness={0} />
+      </mesh>
+      <mesh position={[0, -heightM / 2 + strip / 2, 0]}>
+        <boxGeometry args={[widthM, strip, depth]} />
+        <meshStandardMaterial color="#0E0E0E" roughness={0.85} metalness={0} />
+      </mesh>
+      <mesh position={[-widthM / 2 + strip / 2, 0, 0]}>
+        <boxGeometry args={[strip, innerH, depth]} />
+        <meshStandardMaterial color="#0E0E0E" roughness={0.85} metalness={0} />
+      </mesh>
+      <mesh position={[widthM / 2 - strip / 2, 0, 0]}>
+        <boxGeometry args={[strip, innerH, depth]} />
+        <meshStandardMaterial color="#0E0E0E" roughness={0.85} metalness={0} />
       </mesh>
     </group>
   );
