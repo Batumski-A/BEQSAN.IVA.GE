@@ -1282,6 +1282,33 @@ function Window({
                 </div>
               </Html>
             ) : null}
+            {/* Live top + bottom sash height labels — shown while the
+                user is dragging this pane's transom. Anchored to each
+                sash centre so the cm value follows the geometry. */}
+            {hasTransom && draggingTransom === paneIndex ? (
+              <>
+                <Html
+                  position={[0, topCenterY, frameDepth * 0.7]}
+                  center
+                  zIndexRange={[120, 0]}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="select-none rounded-md border border-sky-300/60 bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.55)] backdrop-blur animate-in fade-in zoom-in-90 duration-150">
+                    {Math.round(topSashH * 100)} სმ
+                  </div>
+                </Html>
+                <Html
+                  position={[0, bottomCenterY, frameDepth * 0.7]}
+                  center
+                  zIndexRange={[120, 0]}
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <div className="select-none rounded-md border border-sky-300/60 bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.55)] backdrop-blur animate-in fade-in zoom-in-90 duration-150">
+                    {Math.round(bottomSashH * 100)} სმ
+                  </div>
+                </Html>
+              </>
+            ) : null}
             {/* Per-pane opening chip — small glassmorphic capsule
                 centered over the sash. Sits forward of the glass
                 (slightly toward the camera) so it reads on rotation.
