@@ -448,15 +448,25 @@ export default function LiveStudio() {
           )}
         </div>
 
-        {/* Top-left: back chip */}
+        {/* Top-left: back chip + BEQSAN brand badge so the header has
+            identity, not just a bare arrow on the desktop canvas. */}
         {showPanels ? (
-          <Link
-            to="/"
-            className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-2.5 text-studio-fg-inv-mute shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 md:left-6 md:top-6 md:p-3"
-            aria-label={t('studio.nav.back')}
-          >
-            <ArrowLeft className="h-5 w-5" aria-hidden />
-          </Link>
+          <div className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 flex items-center gap-2 md:left-6 md:top-6">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/85 p-2.5 text-studio-fg-inv-mute shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 hover:text-white md:p-3"
+              aria-label={t('studio.nav.back')}
+              title={t('studio.nav.back')}
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden />
+            </Link>
+            <div className="hidden items-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/85 px-3 py-2 shadow-lg backdrop-blur-md sm:flex">
+              <span className="text-sm font-bold tracking-[0.18em] text-white">BEQSAN</span>
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wider text-studio-fg-inv-soft">
+                3D სტუდია
+              </span>
+            </div>
+          </div>
         ) : (
           // Even in preview, show a subtle exit so the user isn't trapped.
           <button
@@ -527,30 +537,35 @@ export default function LiveStudio() {
               />
             </div>
 
-            <div className="hidden items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-1 shadow-lg backdrop-blur-md md:flex">
-              {(['dark', 'studio', 'warm'] as const).map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setBgPreset(preset)}
-                  aria-label={t(`studio.background.${preset}`)}
-                  title={t(`studio.background.${preset}`)}
-                  className={cn(
-                    'h-7 w-7 rounded-lg border transition-all',
-                    bgPreset === preset
-                      ? 'border-studio-brand ring-1 ring-studio-brand'
-                      : 'border-studio-ink-3 hover:border-studio-fg-inv-mute',
-                  )}
-                  style={{
-                    background:
-                      preset === 'studio'
-                        ? '#E8ECF2'
-                        : preset === 'warm'
-                          ? '#2A1F18'
-                          : '#0B1220',
-                  }}
-                />
-              ))}
+            <div className="hidden items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/85 p-1 shadow-lg backdrop-blur-md lg:flex">
+              {(['dark', 'studio', 'warm'] as const).map((preset) => {
+                const isActive = bgPreset === preset;
+                const swatchColor =
+                  preset === 'studio' ? '#E8ECF2' : preset === 'warm' ? '#2A1F18' : '#0B1220';
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setBgPreset(preset)}
+                    aria-label={t(`studio.background.${preset}`)}
+                    aria-pressed={isActive}
+                    title={t(`studio.background.${preset}`)}
+                    className={cn(
+                      'flex h-9 items-center gap-1.5 rounded-lg px-2 text-[11px] font-bold transition-all',
+                      isActive
+                        ? 'bg-studio-brand text-white shadow-[0_0_12px_rgba(37,99,235,0.35)]'
+                        : 'text-studio-fg-inv-mute hover:bg-studio-ink-3 hover:text-white',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="inline-block h-3.5 w-3.5 rounded-full border border-white/20"
+                      style={{ background: swatchColor }}
+                    />
+                    <span>{t(`studio.background.${preset}`)}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -1222,9 +1237,13 @@ function ViewToggle({ active, onClick, label, icon }: ViewToggleProps) {
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
+      title={label}
       className={cn(
-        'flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-bold transition-colors md:px-3',
-        active ? 'bg-studio-brand text-white' : 'text-studio-fg-inv-mute hover:text-white',
+        'flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-bold transition-colors md:px-3 md:py-2',
+        active
+          ? 'bg-studio-brand text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]'
+          : 'text-studio-fg-inv-mute hover:text-white',
       )}
     >
       {icon}
@@ -1245,13 +1264,18 @@ function MobileTab({ icon, label, onClick, active }: MobileTabProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
       className={cn(
-        'flex flex-1 flex-col items-center justify-center gap-1 py-2.5 transition-colors hover:bg-studio-ink-3 active:bg-studio-ink-3',
-        active ? 'bg-studio-ink-3/40 font-semibold text-studio-brand' : 'text-studio-fg-inv-mute',
+        'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors active:bg-studio-ink-3',
+        active ? 'font-semibold text-studio-brand' : 'text-studio-fg-inv-mute hover:text-white',
       )}
     >
+      {active ? (
+        <span aria-hidden className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-studio-brand shadow-[0_0_8px_rgba(37,99,235,0.6)]" />
+      ) : null}
       {icon}
-      <span className="max-w-full truncate text-[9px] font-medium leading-none">{label}</span>
+      <span className="max-w-full truncate text-[10px] font-medium leading-none">{label}</span>
     </button>
   );
 }
@@ -1417,9 +1441,9 @@ function RoomPresetChip({ active, onClick, ariaLabel, title, icon, label }: Room
       title={title}
       onClick={onClick}
       className={cn(
-        'flex h-9 min-w-11 items-center gap-2 rounded-lg px-2.5 text-xs font-bold transition-colors md:px-3',
+        'flex h-8 min-w-9 items-center gap-2 rounded-lg px-2 text-xs font-bold transition-colors md:h-9 md:min-w-11 md:px-3',
         active
-          ? 'bg-studio-brand text-white'
+          ? 'bg-studio-brand text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]'
           : 'text-studio-fg-inv-mute hover:bg-studio-ink-3 hover:text-white',
       )}
     >
