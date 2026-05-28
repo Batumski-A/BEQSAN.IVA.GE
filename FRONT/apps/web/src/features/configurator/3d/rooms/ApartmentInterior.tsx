@@ -107,33 +107,43 @@ export function ApartmentInterior({
             <planeGeometry args={[2, wallHeightM]} />
             <meshPhysicalMaterial color={wallColor} metalness={0} roughness={0.9} side={2} />
           </mesh>
-          {/* Ceiling */}
+          {/* Ceiling — pulled back a hair past the back wall (z=-0.04) so the
+              ceiling/back-wall corner closes cleanly without a visible seam. */}
           <mesh position={[0, wallHeightM - sillHeightM, 0.4]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-            <planeGeometry args={[6, 2]} />
-            <meshPhysicalMaterial color="#FFFFFF" metalness={0} roughness={0.95} />
+            <planeGeometry args={[6, 2.1]} />
+            <meshPhysicalMaterial color="#FAFAF7" metalness={0} roughness={0.95} />
           </mesh>
           {/* Plinth along the front of the back wall */}
           <group position={[0, 0, -0.02]}>
             <Plinth lengthM={6} />
           </group>
-          {/* Plant — tucked behind+offset so it frames rather than blocks the view cone. */}
-          <group position={[2.2, 0, -0.3]}>
-            <PlantSilhouette scale={0.8} />
+          {/* Plant — tucked into the corner so it frames rather than blocks
+              the view cone. Sits against the right wall at z behind the window. */}
+          <group position={[2.4, 0, -0.4]}>
+            <PlantSilhouette scale={0.75} />
           </group>
         </>
       ) : null}
 
-      {/* Chandelier — emissive even on mobile, point light only on desktop. */}
-      <Chandelier lowDetail={isMobile} />
+      {/* Chandelier — hangs from the ceiling that ApartmentInterior just
+          declared. Cord length is generous on tall rooms; capped on short ones. */}
+      <Chandelier
+        lowDetail={isMobile}
+        ceilingY={wallHeightM - sillHeightM - 0.02}
+        cordLength={Math.min(0.7, Math.max(0.25, (wallHeightM - sillHeightM) * 0.28))}
+      />
 
       {/* Daylight bleed through the window — soft cool key from +z. */}
       <directionalLight
-        position={[0, 1.5, 3]}
-        intensity={0.5}
-        color="#A8C8FF"
+        position={[0, 1.8, 3]}
+        intensity={0.55}
+        color="#B8D2FF"
         castShadow={!isMobile}
       />
-      <ambientLight color="#FFE8B5" intensity={0.25} />
+      {/* Warm ambient bounce, slightly stronger so corners don't fall to black. */}
+      <ambientLight color="#FFE8B5" intensity={0.35} />
+      {/* Subtle rim from the back — separates the model from the back wall. */}
+      <directionalLight position={[0, 1.6, -1.5]} intensity={0.18} color="#FFD9A0" />
     </>
   );
 }

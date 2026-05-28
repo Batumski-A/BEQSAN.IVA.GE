@@ -8,7 +8,7 @@ import type { PresetKind } from './rooms/presets';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Group, PerspectiveCamera } from 'three';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, Settings2 } from 'lucide-react';
 
 import type {
   AccessorySelectionInput,
@@ -441,11 +441,12 @@ function PaneDropdownBadge({
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-1 whitespace-nowrap rounded-full border border-sky-400/40 bg-slate-950/75 px-2 py-0.5 text-[9px] font-bold text-white/90 shadow-[0_0_12px_rgba(77,163,255,0.35)] backdrop-blur transition-all duration-200 hover:border-sky-300/70 hover:bg-slate-950/90 hover:scale-105 active:scale-95 animate-in fade-in slide-in-from-bottom-1 zoom-in-95"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+          title={currentOption?.label || currentValue}
+          aria-label={`გახსენი პარამეტრები: ${currentOption?.label || currentValue}`}
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-sky-400/45 bg-slate-950/80 text-sky-200 shadow-[0_0_14px_rgba(77,163,255,0.45)] backdrop-blur transition-all duration-200 hover:border-sky-300/75 hover:bg-slate-900/95 hover:text-white hover:scale-110 active:scale-95 animate-in fade-in zoom-in-90"
         >
-          <span>{currentOption?.label || currentValue}</span>
-          <ChevronDown className={`h-2.5 w-2.5 opacity-60 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+          <Settings2 className={`h-3.5 w-3.5 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
         </button>
 
         {isOpen && (
