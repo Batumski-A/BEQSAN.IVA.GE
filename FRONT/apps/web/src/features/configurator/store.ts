@@ -88,6 +88,13 @@ export type ConfiguratorActions = {
   setPaneOpening: (position: number, opening: PaneOpeningType) => void;
   setPaneHinge: (position: number, hinge: HingeSide | null) => void;
   setPaneRatios: (ratios: number[]) => void;
+  /**
+   * Split a pane in half at the given 1-based position. The new pane
+   * inherits the original's opening type, glass selection, etc. Both
+   * halves get the original's widthRatio / 2. No-op if adding another
+   * pane would exceed the product's max pane count.
+   */
+  splitPaneAt: (position: number) => void;
   /** Step 9 — toggle the horizontal transom split on/off for a pane. */
   setPaneTransom: (position: number, hasTransom: boolean) => void;
   /** Step 9 — set the transom sash opening type + hinge in one call. */
@@ -325,6 +332,34 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
             widthRatio: Number(ratios[i]!.toFixed(4)),
           }));
           return { panes: normalize(next) };
+        }),
+
+      splitPaneAt: (position) =>
+        set((prev) => {
+          const range = paneRangeFor(prev.productType?.slug);
+          if (prev.panes.length >= range.max) return prev;
+          const idx = prev.panes.findIndex((p) => p.position === position);
+          if (idx < 0) return prev;
+          const target = prev.panes[idx]!;
+          const halfRatio = Number((target.widthRatio / 2).toFixed(4));
+          const updatedTarget: ConfigurationPaneInput = {
+            ...target,
+            widthRatio: halfRatio,
+          };
+          // New pane inherits the target's properties so the user sees
+          // a continuation of the same opening/glass selection — they
+          // can re-pick afterwards via the gear dropdown.
+          const newPane: ConfigurationPaneInput = {
+            ...target,
+            widthRatio: halfRatio,
+          };
+          const nextPanes = [
+            ...prev.panes.slice(0, idx),
+            updatedTarget,
+            newPane,
+            ...prev.panes.slice(idx + 1),
+          ];
+          return { panes: normalize(nextPanes) };
         }),
 
       setPaneTransom: (position, hasTransom) =>

@@ -26,7 +26,7 @@ import type { PresetKind } from './3d/rooms/presets';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { useProductTypes, type ProductType } from '@/features/catalog/api';
 import { useMaterialsByProductType, useConfiguratorPrice } from './api';
-import { useConfiguratorStore } from './store';
+import { paneRangeFor, useConfiguratorStore } from './store';
 import { Blueprint2DViewer } from './blueprint/Blueprint2DViewer';
 
 const Scene = lazy(() =>
@@ -211,6 +211,7 @@ export default function LiveStudio() {
   const setPaneOpening = useConfiguratorStore((s) => s.setPaneOpening);
   const setPaneHinge = useConfiguratorStore((s) => s.setPaneHinge);
   const setPaneRatios = useConfiguratorStore((s) => s.setPaneRatios);
+  const splitPaneAt = useConfiguratorStore((s) => s.splitPaneAt);
   const setPaneTransom = useConfiguratorStore((s) => s.setPaneTransom);
   const setPaneTransomOpening = useConfiguratorStore((s) => s.setPaneTransomOpening);
 
@@ -397,6 +398,9 @@ export default function LiveStudio() {
           setPaneOpening(paneIndex, mapped.openingType);
           setPaneHinge(paneIndex, mapped.hingeSide);
         },
+        onRatiosChange: (ratios: number[]) => setPaneRatios(ratios),
+        onSplit: (paneIndex: number) => splitPaneAt(paneIndex),
+        canSplit: panes.length < paneRangeFor(productType?.slug).max,
       },
       dimensions: {
         widthCm: dimensions.widthCm,
@@ -410,7 +414,7 @@ export default function LiveStudio() {
       },
       background: bgPreset,
     };
-  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, bgPreset]);
+  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, setPaneRatios, splitPaneAt, panes.length, bgPreset]);
 
   return (
     <>

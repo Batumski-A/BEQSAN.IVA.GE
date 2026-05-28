@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line, Environment, ContactShadows } from '@react-three/drei';
 import { MathUtils } from 'three';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
@@ -34,6 +34,15 @@ export type SceneInteractiveControls = {
     valueFor: (pane: ConfigurationPaneInput) => string;
     /** Fires when the user picks a new opening type for a pane. */
     onChange: (paneIndex: number, value: string) => void;
+    /**
+     * Bulk-set every pane's widthRatio, e.g. while the user drags a
+     * mullion. The array length must match the current pane count.
+     */
+    onRatiosChange?: (ratios: number[]) => void;
+    /** Split a pane in two at the given 1-based position. */
+    onSplit?: (paneIndex: number) => void;
+    /** True when adding another pane would exceed the product's max. */
+    canSplit?: boolean;
   };
   dimensions: {
     widthCm: number;
@@ -398,6 +407,8 @@ function PaneDropdownBadge({
   options,
   currentValue,
   onChange,
+  onSplit,
+  canSplit,
   bottomCenterY,
   frameDepth,
   isHovered,
@@ -406,6 +417,9 @@ function PaneDropdownBadge({
   options: ReadonlyArray<{ value: string; label: string }>;
   currentValue: string;
   onChange: (paneIndex: number, value: string) => void;
+  /** Optional: split this pane in two. Hidden if undefined or canSplit=false. */
+  onSplit?: () => void;
+  canSplit?: boolean;
   bottomCenterY: number;
   frameDepth: number;
   /**
@@ -457,7 +471,7 @@ function PaneDropdownBadge({
         </button>
 
         {isOpen && (
-          <div className="absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 min-w-[130px] overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 min-w-[140px] overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
             {options.map((opt) => {
               const isSelected = opt.value === currentValue;
               return (
@@ -478,6 +492,21 @@ function PaneDropdownBadge({
                 </button>
               );
             })}
+            {onSplit && canSplit ? (
+              <>
+                <div className="my-1 h-px bg-white/10" />
+                <button
+                  onClick={() => {
+                    onSplit();
+                    setIsOpen(false);
+                  }}
+                  className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
+                >
+                  <span aria-hidden className="text-base leading-none">+</span>
+                  <span>ტიხრის დამატება</span>
+                </button>
+              </>
+            ) : null}
           </div>
         )}
       </div>
@@ -555,6 +584,21 @@ function Window({
   // and the wireframe ring overlay that pulses around the model bounds.
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ axis: 'w' | 'h'; startPx: number; startCm: number } | null>(null);
+  /**
+   * Index of the mullion currently under the cursor (0..panesCount-2),
+   * or null when none. Drives the hover glow and the col-resize cursor.
+   */
+  const [hoveredMullion, setHoveredMullion] = useState<number | null>(null);
+  /**
+   * True while the user is mid-drag on a mullion. The active mullion
+   * gets a stronger glow + the rest of the scene dims slightly.
+   */
+  const [draggingMullion, setDraggingMullion] = useState<number | null>(null);
+  const mullionDragRef = useRef<{
+    mullionIdx: number;
+    startPx: number;
+    startRatios: number[];
+  } | null>(null);
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
     void delta;
@@ -781,16 +825,95 @@ function Window({
           <group key={pane.position} position={[cx, 0, 0]}>
             {/* Mullion sits at the frame-fixed boundary, so it's outside
                 the AnimatedPane wrapper — it shouldn't swing with the
-                glass. */}
-            {i < paneRects.length - 1 && (
-              <mesh
-                position={[pw / 2, 0, 0]}
-                castShadow={!mobile}
-              >
-                <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameDepth]} />
-                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
-              </mesh>
-            )}
+                glass. Interactive mode lets the user grab it and drag
+                horizontally to repartition the adjacent panes. The
+                invisible thicker pick mesh is a separate sibling so the
+                visible mullion still casts a clean shadow at its slim
+                geometric size. */}
+            {i < paneRects.length - 1 && (() => {
+              const isMullionHovered = hoveredMullion === i;
+              const isMullionDragging = draggingMullion === i;
+              const isActive = isMullionHovered || isMullionDragging;
+              const startMullionDrag = (e: ThreeEvent<PointerEvent>) => {
+                if (!interactive?.panes.onRatiosChange) return;
+                e.stopPropagation();
+                const startPx = e.nativeEvent.clientX;
+                const startRatios = panes.map((p) => p.widthRatio);
+                mullionDragRef.current = { mullionIdx: i, startPx, startRatios };
+                setDraggingMullion(i);
+                document.body.style.cursor = 'col-resize';
+                const onMove = (ev: PointerEvent) => {
+                  const drag = mullionDragRef.current;
+                  if (drag === null || !interactive?.panes.onRatiosChange) return;
+                  // 1 px ≈ 1 cm direct correspondence with the dim chip
+                  // scrubbing. Shift slows to 4 px/cm for precision.
+                  const scale = ev.shiftKey ? 0.25 : 1;
+                  const deltaCm = (ev.clientX - drag.startPx) * scale;
+                  const deltaRatio = deltaCm / Math.max(1, widthCm);
+                  const minRatio = 0.08;
+                  const next = drag.startRatios.slice();
+                  const left = drag.startRatios[drag.mullionIdx]!;
+                  const right = drag.startRatios[drag.mullionIdx + 1]!;
+                  const total = left + right;
+                  const newLeft = Math.min(total - minRatio, Math.max(minRatio, left + deltaRatio));
+                  const newRight = total - newLeft;
+                  next[drag.mullionIdx] = newLeft;
+                  next[drag.mullionIdx + 1] = newRight;
+                  interactive.panes.onRatiosChange(next);
+                };
+                const onUp = () => {
+                  mullionDragRef.current = null;
+                  setDraggingMullion(null);
+                  document.body.style.cursor = 'auto';
+                  window.removeEventListener('pointermove', onMove);
+                  window.removeEventListener('pointerup', onUp);
+                  window.removeEventListener('pointercancel', onUp);
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
+                window.addEventListener('pointercancel', onUp);
+              };
+              return (
+                <group position={[pw / 2, 0, 0]}>
+                  {/* Visible mullion — colour shifts to a sky accent when
+                      grabbed/hovered so the user reads it as draggable. */}
+                  <mesh castShadow={!mobile}>
+                    <boxGeometry args={[mullionThickness, h - frameThickness * 2, frameDepth]} />
+                    <meshPhysicalMaterial
+                      color={isActive ? '#7DD3FC' : frameColor}
+                      metalness={metalness}
+                      roughness={roughness}
+                      clearcoat={clearcoat}
+                      clearcoatRoughness={clearcoatRoughness}
+                      envMapIntensity={envIntensity}
+                      emissive={isActive ? '#4DA3FF' : '#000000'}
+                      emissiveIntensity={isMullionDragging ? 0.35 : isMullionHovered ? 0.2 : 0}
+                    />
+                  </mesh>
+                  {/* Invisible pick volume — ~6 cm wide centred on the
+                      mullion. Gives the user a generous grab zone without
+                      bloating the rendered mullion. */}
+                  {interactive?.panes.onRatiosChange ? (
+                    <mesh
+                      onPointerOver={(e) => {
+                        e.stopPropagation();
+                        setHoveredMullion(i);
+                        document.body.style.cursor = 'col-resize';
+                      }}
+                      onPointerOut={(e) => {
+                        e.stopPropagation();
+                        setHoveredMullion((cur) => (cur === i ? null : cur));
+                        if (draggingMullion === null) document.body.style.cursor = 'auto';
+                      }}
+                      onPointerDown={startMullionDrag}
+                    >
+                      <boxGeometry args={[0.06, h - frameThickness * 2, frameDepth * 1.2]} />
+                      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                    </mesh>
+                  ) : null}
+                </group>
+              );
+            })()}
             {/* Hinges live on the frame (static axis) — outside AnimatedPane
                 so they don't swing with the glass. Sits forward of the frame
                 so it reads against the dark window opening. */}
@@ -1023,6 +1146,12 @@ function Window({
                 options={interactive.panes.options}
                 currentValue={interactive.panes.valueFor(pane)}
                 onChange={interactive.panes.onChange}
+                onSplit={
+                  interactive.panes.onSplit
+                    ? () => interactive.panes.onSplit!(paneIndex)
+                    : undefined
+                }
+                canSplit={interactive.panes.canSplit}
                 bottomCenterY={bottomCenterY}
                 frameDepth={frameDepth}
                 isHovered={hoveredPane === paneIndex}
