@@ -8,7 +8,7 @@ import type { PresetKind } from './rooms/presets';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Group, PerspectiveCamera } from 'three';
-import { Check, Settings2 } from 'lucide-react';
+import { Check, GripHorizontal, GripVertical, Settings2 } from 'lucide-react';
 
 import type {
   AccessorySelectionInput,
@@ -417,6 +417,7 @@ function PaneDropdownBadge({
   isHovered: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isChipHovered, setIsChipHovered] = useState(false);
   const currentOption = options.find((opt) => opt.value === currentValue) || options[0];
 
   useEffect(() => {
@@ -426,10 +427,11 @@ function PaneDropdownBadge({
     return () => window.removeEventListener('click', handleClose);
   }, [isOpen]);
 
-  // Hidden by default — only render when the user is hovering the pane
-  // or has the dropdown explicitly open. Hover-only-chip is per Lasha's
-  // 2026-05-28 feedback ("წარწერები ფარავს ვიზუალს").
-  if (!isHovered && !isOpen) return null;
+  // Hidden by default — render while the user is hovering the pane,
+  // hovering the chip itself, or has the dropdown open. The chip-hover
+  // bit eliminates the flicker that happened when the mouse crossed the
+  // gap between the glass mesh and the Html overlay (Lasha 2026-05-28).
+  if (!isHovered && !isChipHovered && !isOpen) return null;
 
   return (
     <Html
@@ -442,6 +444,8 @@ function PaneDropdownBadge({
         style={{ pointerEvents: 'auto' }}
         className="relative select-none font-studio"
         onClick={(e) => e.stopPropagation()}
+        onMouseEnter={() => setIsChipHovered(true)}
+        onMouseLeave={() => setIsChipHovered(false)}
       >
         <button
           onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
@@ -520,6 +524,37 @@ function Window({
   // hovered. Drives the hover-only PaneDropdownBadge visibility per Lasha's
   // 2026-05-28 feedback — chips no longer stack for every pane.
   const [hoveredPane, setHoveredPane] = useState<number | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
+  /**
+   * Setter for hoveredPane that delays clearing by 220 ms. The chip's
+   * `<Html>` overlay floats above the glass mesh, so the mouse briefly
+   * exits the mesh's bounds while transitioning onto the chip — without
+   * the grace window, the chip flickered open/closed on every cross.
+   */
+  const setHoverPane = (idx: number | null) => {
+    if (hoverTimeoutRef.current !== null) {
+      window.clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    if (idx === null) {
+      hoverTimeoutRef.current = window.setTimeout(() => {
+        setHoveredPane(null);
+        hoverTimeoutRef.current = null;
+      }, 220);
+    } else {
+      setHoveredPane(idx);
+    }
+  };
+  useEffect(() => () => {
+    if (hoverTimeoutRef.current !== null) {
+      window.clearTimeout(hoverTimeoutRef.current);
+    }
+  }, []);
+  // Drag-to-resize state for the W/H dimension chips. Drives both the
+  // value change (via interactive.dimensions.onWidthChange/onHeightChange)
+  // and the wireframe ring overlay that pulses around the model bounds.
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartRef = useRef<{ axis: 'w' | 'h'; startPx: number; startCm: number } | null>(null);
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
     void delta;
@@ -905,12 +940,12 @@ function Window({
                   onClick={isOpenable ? (e) => { e.stopPropagation(); handleClick(); } : undefined}
                   onPointerOver={(e) => {
                     e.stopPropagation();
-                    setHoveredPane(paneIndex);
+                    setHoverPane(paneIndex);
                     document.body.style.cursor = isOpenable ? 'pointer' : 'default';
                   }}
                   onPointerOut={(e) => {
                     e.stopPropagation();
-                    setHoveredPane((cur) => (cur === paneIndex ? null : cur));
+                    setHoverPane(null);
                     document.body.style.cursor = 'auto';
                   }}
                 >
@@ -1004,8 +1039,84 @@ function Window({
           vertically (architectural-blueprint convention). */}
       {interactive ? (() => {
         const offsetDistance = mobile ? 0.45 : 0.75;
+        const dims = interactive.dimensions;
+        // Pixels-per-centimetre for drag scrubbing. 1 px ≈ 1 cm gives the
+        // user a direct sense of touch: a 100 px drag changes the
+        // dimension by 1 m. Holding Shift slows to 4 px/cm for precision.
+        const startDragWidth = (e: React.PointerEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          resizeStartRef.current = { axis: 'w', startPx: e.clientX, startCm: dims.widthCm };
+          setIsResizing(true);
+          const onMove = (ev: PointerEvent) => {
+            const s = resizeStartRef.current;
+            if (s === null) return;
+            const scale = ev.shiftKey ? 0.25 : 1;
+            const delta = (ev.clientX - s.startPx) * scale;
+            const v = Math.round(s.startCm + delta);
+            dims.onWidthChange(Math.min(dims.maxWidthCm, Math.max(dims.minWidthCm, v)));
+          };
+          const onUp = () => {
+            resizeStartRef.current = null;
+            setIsResizing(false);
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+          };
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+          window.addEventListener('pointercancel', onUp);
+        };
+        const startDragHeight = (e: React.PointerEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          resizeStartRef.current = { axis: 'h', startPx: e.clientY, startCm: dims.heightCm };
+          setIsResizing(true);
+          const onMove = (ev: PointerEvent) => {
+            const s = resizeStartRef.current;
+            if (s === null) return;
+            const scale = ev.shiftKey ? 0.25 : 1;
+            // Drag UP increases height (matches screen-space intuition).
+            const delta = (s.startPx - ev.clientY) * scale;
+            const v = Math.round(s.startCm + delta);
+            dims.onHeightChange(Math.min(dims.maxHeightCm, Math.max(dims.minHeightCm, v)));
+          };
+          const onUp = () => {
+            resizeStartRef.current = null;
+            setIsResizing(false);
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+          };
+          window.addEventListener('pointermove', onMove);
+          window.addEventListener('pointerup', onUp);
+          window.addEventListener('pointercancel', onUp);
+        };
+        const chipBaseClass = 'flex items-center gap-0.5 rounded-md border bg-studio-ink/85 shadow-md backdrop-blur transition-all duration-150';
+        const chipActiveClass = isResizing
+          ? 'border-sky-300 shadow-[0_0_22px_rgba(96,165,250,0.65)] scale-110 text-white'
+          : 'border-studio-brand/50 text-studio-brand-soft';
         return (
           <>
+            {/* Live wireframe ring around the model bounds — pulses only
+                while the user is mid-resize, providing the architectural
+                "ghost outline" cue. Drawn just behind the frame plane so
+                it reads as a halo, not an obstruction. */}
+            {isResizing ? (
+              <Line
+                points={[
+                  [-w / 2, -h / 2, frameDepth / 2 + 0.05],
+                  [w / 2, -h / 2, frameDepth / 2 + 0.05],
+                  [w / 2, h / 2, frameDepth / 2 + 0.05],
+                  [-w / 2, h / 2, frameDepth / 2 + 0.05],
+                  [-w / 2, -h / 2, frameDepth / 2 + 0.05],
+                ]}
+                color="#7DD3FC"
+                lineWidth={3}
+                transparent
+                opacity={0.9}
+              />
+            ) : null}
             {/* W dimension extension lines — two short verticals from the
                 frame corners up to the chip's y, then a horizontal across.
                 Rendered as a single polyline so they orbit with the model. */}
@@ -1016,10 +1127,10 @@ function Window({
                 [w / 2, h / 2 + offsetDistance, 0],
                 [w / 2, h / 2, 0],
               ]}
-              color="#60A5FA"
-              lineWidth={1}
+              color={isResizing ? '#7DD3FC' : '#60A5FA'}
+              lineWidth={isResizing ? 1.5 : 1}
               transparent
-              opacity={0.4}
+              opacity={isResizing ? 0.8 : 0.4}
             />
             <Html
               position={[0, h / 2 + offsetDistance, 0]}
@@ -1027,23 +1138,28 @@ function Window({
               zIndexRange={[100, 0]}
               style={{ pointerEvents: 'auto' }}
             >
-              {/* Compact dimension pill — number only, with extension lines
-                  carrying the architectural meaning. The full "W: 360 სმ"
-                  caption was obscuring the model (Lasha 2026-05-28). */}
-              <div className="flex items-center rounded-md border border-studio-brand/50 bg-studio-ink/85 px-1.5 py-0.5 text-studio-brand-soft shadow-md backdrop-blur">
+              {/* W chip — drag the GripHorizontal handle on the left to
+                  scrub width live. Click the input to type. */}
+              <div className={`${chipBaseClass} ${chipActiveClass} px-1 py-0.5`}>
+                <button
+                  onPointerDown={startDragWidth}
+                  style={{ cursor: 'ew-resize', touchAction: 'none' }}
+                  className="flex items-center justify-center px-0.5 opacity-70 hover:opacity-100 hover:text-sky-200 transition-opacity"
+                  title="ჩაიჭირე და გადაიყვანე ზომის შესაცვლელად (Shift = ნელი)"
+                  aria-label="გადატანით სიგანის შეცვლა"
+                >
+                  <GripHorizontal className="h-2.5 w-3" />
+                </button>
                 <input
                   type="number"
-                  value={interactive.dimensions.widthCm}
-                  min={interactive.dimensions.minWidthCm}
-                  max={interactive.dimensions.maxWidthCm}
+                  value={dims.widthCm}
+                  min={dims.minWidthCm}
+                  max={dims.maxWidthCm}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
                     if (!Number.isNaN(v)) {
-                      interactive.dimensions.onWidthChange(
-                        Math.min(
-                          interactive.dimensions.maxWidthCm,
-                          Math.max(interactive.dimensions.minWidthCm, v),
-                        ),
+                      dims.onWidthChange(
+                        Math.min(dims.maxWidthCm, Math.max(dims.minWidthCm, v)),
                       );
                     }
                   }}
@@ -1062,10 +1178,10 @@ function Window({
                 [w / 2 + offsetDistance, -h / 2, 0],
                 [w / 2, -h / 2, 0],
               ]}
-              color="#60A5FA"
-              lineWidth={1}
+              color={isResizing ? '#7DD3FC' : '#60A5FA'}
+              lineWidth={isResizing ? 1.5 : 1}
               transparent
-              opacity={0.4}
+              opacity={isResizing ? 0.8 : 0.4}
             />
             <Html
               position={[w / 2 + offsetDistance, 0, 0]}
@@ -1073,21 +1189,28 @@ function Window({
               zIndexRange={[100, 0]}
               style={{ pointerEvents: 'auto' }}
             >
-              {/* Compact height pill — same shrink as W chip. */}
-              <div className="flex items-center rounded-md border border-studio-brand/50 bg-studio-ink/85 px-1.5 py-0.5 text-studio-brand-soft shadow-md backdrop-blur">
+              {/* H chip — drag the GripVertical handle to scrub height
+                  live (drag up = taller). Click input to type. */}
+              <div className={`${chipBaseClass} ${chipActiveClass} px-1 py-0.5`}>
+                <button
+                  onPointerDown={startDragHeight}
+                  style={{ cursor: 'ns-resize', touchAction: 'none' }}
+                  className="flex items-center justify-center px-0.5 opacity-70 hover:opacity-100 hover:text-sky-200 transition-opacity"
+                  title="ჩაიჭირე და გადაიყვანე ზომის შესაცვლელად (Shift = ნელი)"
+                  aria-label="გადატანით სიმაღლის შეცვლა"
+                >
+                  <GripVertical className="h-3 w-2.5" />
+                </button>
                 <input
                   type="number"
-                  value={interactive.dimensions.heightCm}
-                  min={interactive.dimensions.minHeightCm}
-                  max={interactive.dimensions.maxHeightCm}
+                  value={dims.heightCm}
+                  min={dims.minHeightCm}
+                  max={dims.maxHeightCm}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
                     if (!Number.isNaN(v)) {
-                      interactive.dimensions.onHeightChange(
-                        Math.min(
-                          interactive.dimensions.maxHeightCm,
-                          Math.max(interactive.dimensions.minHeightCm, v),
-                        ),
+                      dims.onHeightChange(
+                        Math.min(dims.maxHeightCm, Math.max(dims.minHeightCm, v)),
                       );
                     }
                   }}
