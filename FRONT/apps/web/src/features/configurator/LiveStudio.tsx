@@ -214,6 +214,7 @@ export default function LiveStudio() {
   const splitPaneAt = useConfiguratorStore((s) => s.splitPaneAt);
   const setPaneTransom = useConfiguratorStore((s) => s.setPaneTransom);
   const setPaneTransomOpening = useConfiguratorStore((s) => s.setPaneTransomOpening);
+  const setPaneTransomHeightRatio = useConfiguratorStore((s) => s.setPaneTransomHeightRatio);
 
   // Catalog
   const productTypesQuery = useProductTypes();
@@ -401,6 +402,11 @@ export default function LiveStudio() {
         onRatiosChange: (ratios: number[]) => setPaneRatios(ratios),
         onSplit: (paneIndex: number) => splitPaneAt(paneIndex),
         canSplit: panes.length < paneRangeFor(productType?.slug).max,
+        onSetTransom: (paneIndex: number, hasTransom: boolean) =>
+          setPaneTransom(paneIndex, hasTransom),
+        onTransomRatioChange: (paneIndex: number, ratio: number) =>
+          setPaneTransomHeightRatio(paneIndex, ratio),
+        isTransomOn: (p: ConfigurationPaneInput) => p.hasTransom === true,
       },
       dimensions: {
         widthCm: dimensions.widthCm,
@@ -414,7 +420,7 @@ export default function LiveStudio() {
       },
       background: bgPreset,
     };
-  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, setPaneRatios, splitPaneAt, panes.length, bgPreset]);
+  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, setPaneRatios, splitPaneAt, setPaneTransom, setPaneTransomHeightRatio, panes.length, bgPreset]);
 
   return (
     <>

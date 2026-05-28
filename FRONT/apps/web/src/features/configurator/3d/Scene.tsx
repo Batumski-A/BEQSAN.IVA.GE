@@ -43,6 +43,12 @@ export type SceneInteractiveControls = {
     onSplit?: (paneIndex: number) => void;
     /** True when adding another pane would exceed the product's max. */
     canSplit?: boolean;
+    /** Toggle the horizontal transom mullion on/off for a pane. */
+    onSetTransom?: (paneIndex: number, hasTransom: boolean) => void;
+    /** Drag-adjust the transom height ratio (0.1..0.5). */
+    onTransomRatioChange?: (paneIndex: number, ratio: number) => void;
+    /** Reading "is this pane's transom currently on" from outside. */
+    isTransomOn?: (pane: ConfigurationPaneInput) => boolean;
   };
   dimensions: {
     widthCm: number;
@@ -419,6 +425,8 @@ function PaneDropdownBadge({
   onChange,
   onSplit,
   canSplit,
+  onSetTransom,
+  hasTransom,
   bottomCenterY,
   frameDepth,
   isHovered,
@@ -430,6 +438,10 @@ function PaneDropdownBadge({
   /** Optional: split this pane in two. Hidden if undefined or canSplit=false. */
   onSplit?: () => void;
   canSplit?: boolean;
+  /** Optional: toggle the horizontal transom on/off. */
+  onSetTransom?: (hasTransom: boolean) => void;
+  /** Current transom state — drives "add" vs "remove" label. */
+  hasTransom?: boolean;
   bottomCenterY: number;
   frameDepth: number;
   /**
@@ -502,20 +514,32 @@ function PaneDropdownBadge({
                 </button>
               );
             })}
+            {(onSplit && canSplit) || onSetTransom ? (
+              <div className="my-1 h-px bg-white/10" />
+            ) : null}
             {onSplit && canSplit ? (
-              <>
-                <div className="my-1 h-px bg-white/10" />
-                <button
-                  onClick={() => {
-                    onSplit();
-                    setIsOpen(false);
-                  }}
-                  className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
-                >
-                  <span aria-hidden className="text-base leading-none">+</span>
-                  <span>ტიხრის დამატება</span>
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  onSplit();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
+              >
+                <span aria-hidden className="text-base leading-none">+</span>
+                <span>ვერტიკალური ტიხარი</span>
+              </button>
+            ) : null}
+            {onSetTransom ? (
+              <button
+                onClick={() => {
+                  onSetTransom(!hasTransom);
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
+              >
+                <span aria-hidden className="text-base leading-none">{hasTransom ? '−' : '+'}</span>
+                <span>{hasTransom ? 'მოაშორე ჰორიზონტალური' : 'ჰორიზონტალური ტიხარი'}</span>
+              </button>
             ) : null}
           </div>
         )}
@@ -613,6 +637,18 @@ function Window({
     mullionIdx: number;
     startPx: number;
     startRatios: number[];
+  } | null>(null);
+  /**
+   * Same hover/drag pair as the vertical mullion, but for the
+   * horizontal transom bar. Keyed by the pane's 1-based position.
+   */
+  const [hoveredTransom, setHoveredTransom] = useState<number | null>(null);
+  const [draggingTransom, setDraggingTransom] = useState<number | null>(null);
+  const transomDragRef = useRef<{
+    paneIdx: number;
+    startPxY: number;
+    startRatio: number;
+    innerPaneHCm: number;
   } | null>(null);
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
@@ -948,16 +984,89 @@ function Window({
               frameDepth={frameDepth}
               mobile={mobile}
             />
-            {/* Horizontal transom mullion — static bar at the split. */}
-            {hasTransom && (
-              <mesh
-                position={[0, bottomCenterY + bottomSashH / 2 + transomMullionThickness / 2, 0]}
-                castShadow={!mobile}
-              >
-                <boxGeometry args={[pw, transomMullionThickness, frameDepth]} />
-                <meshPhysicalMaterial color={frameColor} metalness={metalness} roughness={roughness} clearcoat={clearcoat} clearcoatRoughness={clearcoatRoughness} envMapIntensity={envIntensity} />
-              </mesh>
-            )}
+            {/* Horizontal transom mullion — draggable along Y to adjust
+                the top-sash height ratio. Same hover-glow + pick volume
+                pattern as the vertical mullion. */}
+            {hasTransom && (() => {
+              const transomY = bottomCenterY + bottomSashH / 2 + transomMullionThickness / 2;
+              const isTransomHov = hoveredTransom === paneIndex;
+              const isTransomDrag = draggingTransom === paneIndex;
+              const isTransomActive = isTransomHov || isTransomDrag;
+              const startTransomDrag = (e: ThreeEvent<PointerEvent>) => {
+                if (!interactive?.panes.onTransomRatioChange) return;
+                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
+                e.nativeEvent.preventDefault();
+                interactionLockRef.current += 1;
+                const startRatio = pane.transomHeightRatio ?? 0.3;
+                transomDragRef.current = {
+                  paneIdx: paneIndex,
+                  startPxY: e.nativeEvent.clientY,
+                  startRatio,
+                  innerPaneHCm: innerPaneH * 100,
+                };
+                setDraggingTransom(paneIndex);
+                document.body.style.cursor = 'ns-resize';
+                const onMove = (ev: PointerEvent) => {
+                  const drag = transomDragRef.current;
+                  if (drag === null || !interactive?.panes.onTransomRatioChange) return;
+                  const scale = ev.shiftKey ? 0.25 : 1;
+                  // Drag down = mouse-Y increases = top sash gets larger
+                  // (ratio increases). Drag up = top sash shrinks.
+                  const deltaY = (ev.clientY - drag.startPxY) * scale;
+                  const deltaRatio = deltaY / Math.max(1, drag.innerPaneHCm);
+                  const newRatio = Math.min(0.5, Math.max(0.1, drag.startRatio + deltaRatio));
+                  interactive.panes.onTransomRatioChange(drag.paneIdx, newRatio);
+                };
+                const onUp = () => {
+                  transomDragRef.current = null;
+                  setDraggingTransom(null);
+                  interactionLockRef.current = Math.max(0, interactionLockRef.current - 1);
+                  document.body.style.cursor = 'auto';
+                  window.removeEventListener('pointermove', onMove);
+                  window.removeEventListener('pointerup', onUp);
+                  window.removeEventListener('pointercancel', onUp);
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
+                window.addEventListener('pointercancel', onUp);
+              };
+              return (
+                <group position={[0, transomY, 0]}>
+                  <mesh castShadow={!mobile}>
+                    <boxGeometry args={[pw, transomMullionThickness, frameDepth]} />
+                    <meshPhysicalMaterial
+                      color={isTransomActive ? '#7DD3FC' : frameColor}
+                      metalness={metalness}
+                      roughness={roughness}
+                      clearcoat={clearcoat}
+                      clearcoatRoughness={clearcoatRoughness}
+                      envMapIntensity={envIntensity}
+                      emissive={isTransomActive ? '#4DA3FF' : '#000000'}
+                      emissiveIntensity={isTransomDrag ? 0.35 : isTransomHov ? 0.2 : 0}
+                    />
+                  </mesh>
+                  {interactive?.panes.onTransomRatioChange ? (
+                    <mesh
+                      onPointerOver={(e) => {
+                        e.stopPropagation();
+                        setHoveredTransom(paneIndex);
+                        document.body.style.cursor = 'ns-resize';
+                      }}
+                      onPointerOut={(e) => {
+                        e.stopPropagation();
+                        setHoveredTransom((cur) => (cur === paneIndex ? null : cur));
+                        if (draggingTransom === null) document.body.style.cursor = 'auto';
+                      }}
+                      onPointerDown={startTransomDrag}
+                    >
+                      <boxGeometry args={[pw, 0.08, frameDepth * 1.2]} />
+                      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                    </mesh>
+                  ) : null}
+                </group>
+              );
+            })()}
             {/* Balcony insulated bottom panel — sits below the window
                 sash on the second pane of a balcony block. Renders as a
                 solid frame-colored box with a horizontal divider rail
@@ -1191,6 +1300,12 @@ function Window({
                     : undefined
                 }
                 canSplit={interactive.panes.canSplit}
+                onSetTransom={
+                  interactive.panes.onSetTransom
+                    ? (v: boolean) => interactive.panes.onSetTransom!(paneIndex, v)
+                    : undefined
+                }
+                hasTransom={hasTransom}
                 bottomCenterY={bottomCenterY}
                 frameDepth={frameDepth}
                 isHovered={hoveredPane === paneIndex}
@@ -2496,6 +2611,11 @@ function DragRotator({
     };
     const onMove = (e: PointerEvent) => {
       if (!isDragging) return;
+      // Belt to the pointerdown lock's braces: a child drag may have
+      // taken the lock AFTER we started (listener-ordering race on
+      // touch). Bail out for the remaining moves so the model holds
+      // still even if onDown got past us.
+      if (interactionLockRef.current > 0) return;
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
       dragDeltaRef.current += Math.abs(dx) + Math.abs(dy);

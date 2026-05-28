@@ -103,6 +103,8 @@ export type ConfiguratorActions = {
     opening: PaneOpeningType,
     hinge: HingeSide | null,
   ) => void;
+  /** Adjust the transom height ratio (0.1..0.5 = top sash fraction of inner pane). */
+  setPaneTransomHeightRatio: (position: number, ratio: number) => void;
   togglePaneMosquito: (position: number) => void;
   setPaneGlass: (position: number, glassTypeId: string) => void;
   togglePaneGlassExtra: (position: number, extra: GlassExtra) => void;
@@ -386,6 +388,20 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
               transomHeightRatio: p.transomHeightRatio ?? 0.3,
             };
           }),
+        })),
+
+      setPaneTransomHeightRatio: (position, ratio) =>
+        set((prev) => ({
+          panes: prev.panes.map((p) =>
+            p.position === position
+              ? {
+                  ...p,
+                  transomHeightRatio: Number(
+                    Math.min(0.5, Math.max(0.1, ratio)).toFixed(4),
+                  ),
+                }
+              : p,
+          ),
         })),
 
       setPaneTransomOpening: (position, opening, hinge) =>
