@@ -1,7 +1,9 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, Line, Environment, ContactShadows } from '@react-three/drei';
-import { MathUtils } from 'three';
+import { DoubleSide, MathUtils } from 'three';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+
+import { buildFallbackWallGeometry, buildWallCutoutGeometry } from './csg/wallCutout';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { Group, PerspectiveCamera } from 'three';
@@ -50,6 +52,13 @@ type ConfiguratorSceneProps = {
   interactive?: SceneInteractiveControls;
   isStudio?: boolean;
   background?: SceneBackgroundPreset;
+  /**
+   * LiveStudio "ნახე ოთახში" toggle — when true, wraps the window in a
+   * parametric wall slab with a CSG-cut opening (desktop) or a plain plane
+   * backdrop (mobile, per ADR-0005 fallback). When false, the LiveStudio
+   * surface stays empty around the window. Ignored by the legacy wizard.
+   */
+  showRoomContext?: boolean;
 };
 
 /**
@@ -60,7 +69,12 @@ type ConfiguratorSceneProps = {
  * Mobile detection turns shadows off and clamps dpr to keep iPhone 12-class
  * devices at 60fps per .claude/skills/3d-scene-design.
  */
-export function ConfiguratorScene({ interactive, isStudio, background }: ConfiguratorSceneProps = {}) {
+export function ConfiguratorScene({
+  interactive,
+  isStudio,
+  background,
+  showRoomContext = false,
+}: ConfiguratorSceneProps = {}) {
   const { t } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
@@ -288,8 +302,14 @@ export function ConfiguratorScene({ interactive, isStudio, background }: Configu
             {isStudio || interactive ? null : (
               <Wall widthCm={dimensions.widthCm} heightCm={dimensions.heightCm} />
             )}
+            {showRoomContext ? (
+              <RoomContextWall
+                widthCm={dimensions.widthCm}
+                heightCm={dimensions.heightCm}
+                isMobile={isMobile}
+              />
+            ) : null}
             <Window
-              isStudio={isStudio}
               family={material?.family ?? 'aluminum'}
               productSlug={productType?.slug ?? 'window'}
               widthCm={dimensions.widthCm}
@@ -442,7 +462,6 @@ function PaneDropdownBadge({
 }
 
 function Window({
-  isStudio,
   family,
   productSlug,
   widthCm,
@@ -460,7 +479,6 @@ function Window({
   paneClickStates,
   onPaneClick,
 }: {
-  isStudio?: boolean;
   family: 'aluminum' | 'pvc';
   productSlug: string;
   widthCm: number;
@@ -583,22 +601,22 @@ function Window({
       {panes.some((p) => p.openingType === 'Sliding') && (
         <group>
           {/* Bottom Track 1 */}
-          <mesh position={[0, -h / 2 + frameThickness + 0.0025, frameDepth * 0.18]} castShadow={!mobile}>
+          <mesh position={[0, -h / 2 + frameThickness + 0.0025, frameDepth * 0.28]} castShadow={!mobile}>
             <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
             <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
           </mesh>
           {/* Bottom Track 2 */}
-          <mesh position={[0, -h / 2 + frameThickness + 0.0025, -frameDepth * 0.18]} castShadow={!mobile}>
+          <mesh position={[0, -h / 2 + frameThickness + 0.0025, -frameDepth * 0.28]} castShadow={!mobile}>
             <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
             <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
           </mesh>
           {/* Top Track 1 */}
-          <mesh position={[0, h / 2 - frameThickness - 0.0025, frameDepth * 0.18]} castShadow={!mobile}>
+          <mesh position={[0, h / 2 - frameThickness - 0.0025, frameDepth * 0.28]} castShadow={!mobile}>
             <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
             <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
           </mesh>
           {/* Top Track 2 */}
-          <mesh position={[0, h / 2 - frameThickness - 0.0025, -frameDepth * 0.18]} castShadow={!mobile}>
+          <mesh position={[0, h / 2 - frameThickness - 0.0025, -frameDepth * 0.28]} castShadow={!mobile}>
             <boxGeometry args={[w - frameThickness * 2, 0.005, 0.008]} />
             <meshPhysicalMaterial color="#BCBCBC" metalness={1.0} roughness={0.08} />
           </mesh>
@@ -651,8 +669,7 @@ function Window({
         const visual = glassVisualFor(opening, pane.glassExtras ?? [], glass?.paneCount ?? 2, mobile);
         // Handle: rendered on openable panes only. Per-product compat is
         // enforced by the validator; here we just need the geometry.
-        const hasHandle = (accessories?.handleStyleId != null || isStudio)
-          && pane.openingType !== 'Fixed';
+        const hasHandle = pane.openingType !== 'Fixed';
         const paneIndex = pane.position ?? i + 1;
         const clickState = paneClickStates[paneIndex] ?? 0;
         const isOpenable = pane.openingType !== 'Fixed';
@@ -818,13 +835,13 @@ function Window({
               </group>
             )}
             {/* Sliding sashes run on staggered Z tracks (lasaks) to prevent clipping.
-                Track Z positions align with the guide tracks (frameDepth * 0.18). */}
+                Track Z positions align with the guide tracks (frameDepth * 0.28). */}
             <group
               position={[
                 0,
                 bottomCenterY,
                 pane.openingType === 'Sliding'
-                  ? (i % 2 === 0 ? frameDepth * 0.18 : -frameDepth * 0.18)
+                  ? (i % 2 === 0 ? frameDepth * 0.28 : -frameDepth * 0.28)
                   : 0,
               ]}
             >
@@ -850,7 +867,7 @@ function Window({
                   paneWidthM={pw}
                   paneHeightM={bottomSashH}
                   thickness={sashThickness}
-                  depth={frameDepth * 0.9}
+                  depth={pane.openingType === 'Sliding' ? frameDepth * 0.45 : frameDepth * 0.9}
                   color={frameColor}
                   metalness={metalness}
                   roughness={roughness}
@@ -915,6 +932,9 @@ function Window({
                       frameDepth={frameDepth}
                       mobile={mobile}
                       isExterior={false}
+                      sashThickness={sashThickness}
+                      paneIndex={i}
+                      panesCount={paneRects.length}
                     />
                     {/* Exterior handle — rendered only for doors (door slug or first section of balcony) */}
                     {(productSlug === 'door' || (productSlug === 'balcony' && i === 0)) && (
@@ -928,6 +948,9 @@ function Window({
                         frameDepth={frameDepth}
                         mobile={mobile}
                         isExterior={true}
+                        sashThickness={sashThickness}
+                        paneIndex={i}
+                        panesCount={paneRects.length}
                       />
                     )}
                   </>
@@ -1355,7 +1378,7 @@ function Hinges({
           <mesh
             key={i}
             position={p}
-            rotation={[0, 0, Math.PI / 2]}
+            rotation={[0, 0, 0]}
             castShadow={!mobile}
           >
             <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
@@ -1370,11 +1393,11 @@ function Hinges({
   const y = -paneHeightM / 2;
   return (
     <>
-      <mesh position={[-paneWidthM / 2 + inset, y, z]} castShadow={!mobile}>
+      <mesh position={[-paneWidthM / 2 + inset, y, z]} rotation={[0, 0, Math.PI / 2]} castShadow={!mobile}>
         <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
         <meshPhysicalMaterial color="#9A9A9A" metalness={1} roughness={0.2} />
       </mesh>
-      <mesh position={[paneWidthM / 2 - inset, y, z]} castShadow={!mobile}>
+      <mesh position={[paneWidthM / 2 - inset, y, z]} rotation={[0, 0, Math.PI / 2]} castShadow={!mobile}>
         <cylinderGeometry args={[radiusM, radiusM, lengthM, 16]} />
         <meshPhysicalMaterial color="#9A9A9A" metalness={1} roughness={0.2} />
       </mesh>
@@ -1706,6 +1729,88 @@ function Wall({ widthCm, heightCm }: { widthCm: number; heightCm: number }) {
 }
 
 /**
+ * LiveStudio "ნახე ოთახში" backdrop — a parametric interior wall slab with
+ * the window opening cut out. Adopted per ADR-0005 § "Parametric 3D room
+ * context (CSG path)".
+ *
+ * Desktop path: real CSG Boolean subtraction via three-bvh-csg. The slab is a
+ * solid box with a rectangular hole the size of the configured window — the
+ * user reads the window as mounted IN the wall, not stamped ON it.
+ *
+ * Mobile path: plain plane (DoubleSide so it's visible whether the user
+ * orbits in front of or behind it). The CSG build cost is non-trivial on
+ * iPhone-12-class devices; the plane keeps frame time inside the 60 FPS
+ * budget set by 3d-scene-design while still conveying the "window against a
+ * wall" idea, even though the cut isn't there.
+ */
+function RoomContextWall({
+  widthCm,
+  heightCm,
+  isMobile,
+}: {
+  widthCm: number;
+  heightCm: number;
+  isMobile: boolean;
+}) {
+  const widthM = widthCm / 100;
+  const heightM = heightCm / 100;
+
+  // Wall sizing rules — keep at least residential-room proportions so the
+  // window doesn't fill the entire wall awkwardly. Min 4×2.7m (typical
+  // Batumi apartment living-room wall), expanding when the window itself is
+  // bigger (panoramic/balcony products can push past 3m wide).
+  const wallWidthM = Math.max(4, widthM + 2);
+  const wallHeightM = Math.max(2.7, heightM + 0.9);
+  const wallDepthM = 0.18;
+  // Sill height — Roman's residential default. The helper builds the slab
+  // with its base at slab-local y=0; the parent <group> below shifts it
+  // down by sillHeightM in world coordinates so the cut opening lands at
+  // the window's vertical span (the window in Scene.tsx occupies
+  // world-y in [0, heightM]).
+  const sillHeightM = 0.9;
+
+  const geometry = useMemo(() => {
+    if (isMobile) {
+      return buildFallbackWallGeometry({ wallWidthM, wallHeightM });
+    }
+    return buildWallCutoutGeometry({
+      wallWidthM,
+      wallHeightM,
+      wallDepthM,
+      openingWidthM: widthM,
+      openingHeightM: heightM,
+      sillHeightM,
+    });
+  }, [isMobile, wallWidthM, wallHeightM, wallDepthM, widthM, heightM, sillHeightM]);
+
+  // Dispose old BufferGeometry when dimensions change — three.js doesn't
+  // GC GPU buffers automatically.
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
+
+  // Z position: slab front face sits just behind the window's back face
+  // (frame depth ≈ 0.06, plus a small air gap so we don't z-fight with the
+  // glass). Y offset = -sillHeightM aligns the cut opening with the window.
+  const zPosition = isMobile ? -wallDepthM / 2 - 0.04 : -wallDepthM / 2 - 0.04;
+
+  return (
+    <group position={[0, -sillHeightM, zPosition]}>
+      <mesh geometry={geometry} receiveShadow castShadow={!isMobile}>
+        <meshPhysicalMaterial
+          color="#C9C3B8"
+          metalness={0}
+          roughness={0.92}
+          side={isMobile ? DoubleSide : undefined}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
  * Studio-mode backdrop — a small, window-tracked plate at z=-0.4 that
  * exists solely to give the dark aluminum frame contrast in LiveStudio.
  * Sized to window+margin so it reads as a stage backdrop, not a wall.
@@ -1730,6 +1835,9 @@ function Handle({
   frameDepth,
   mobile,
   isExterior = false,
+  sashThickness = 0.04,
+  paneIndex,
+  panesCount,
 }: {
   paneWidthM: number;
   paneHeightM: number;
@@ -1740,45 +1848,74 @@ function Handle({
   frameDepth: number;
   mobile: boolean;
   isExterior?: boolean;
+  sashThickness?: number;
+  paneIndex?: number;
+  panesCount?: number;
 }) {
-  const stemLength = 0.02; // 2 cm out
-  const stemRadius = 0.005; // 5 mm radius
-  const baseWidth = 0.016; // base plate width
-  const baseHeight = 0.038; // base plate height
-  const baseThickness = 0.005; // base thickness
-  const leverLength = 0.11; // 11 cm lever handle
-  const leverRadius = 0.007; // 7 mm lever thickness
-
   const isSliding = opening === 'Sliding';
   const isTilt = opening === 'Tilt';
-  const inset = 0.05;
 
-  // Horizontal position: center for Sliding and Tilt, hinge-opposite for Casement
-  const offsetX = isSliding || isTilt
-    ? 0
-    : hingeSide === 'Left'
-      ? paneWidthM / 2 - inset
-      : -(paneWidthM / 2 - inset);
+  // For sliding: place handle on the outer stile.
+  // Left-sliding pane (index < count/2) -> left stile.
+  // Right-sliding pane (index >= count/2) -> right stile.
+  const idx = paneIndex ?? 0;
+  const count = panesCount ?? 2;
+  const isLeftSash = idx < count / 2;
 
-  // Vertical position: top center for Tilt, centered vertically for Casement
+  const offsetX = isSliding
+    ? (isLeftSash ? -paneWidthM / 2 + sashThickness / 2 : paneWidthM / 2 - sashThickness / 2)
+    : isTilt
+      ? 0
+      : hingeSide === 'Left'
+        ? paneWidthM / 2 - sashThickness / 2
+        : -(paneWidthM / 2 - sashThickness / 2);
+
+  // Vertical position: top center for Tilt, centered vertically for Casement/Sliding
   const offsetY = isTilt
-    ? paneHeightM / 2 - inset
+    ? paneHeightM / 2 - sashThickness / 2
     : 0;
 
-  // Located flush on the interior face (-depth * 0.65) or exterior face (depth * 0.35) of the sash
-  const depth = frameDepth * 0.9;
+  // Depth of sash depends on opening type
+  const depth = frameDepth * (isSliding ? 0.45 : 0.9);
   const offsetZ = isExterior ? depth * 0.35 : -depth * 0.65;
 
   if (paneWidthM < 0.2 || paneHeightM < 0.3) return null;
 
+  if (isSliding) {
+    // Return a modern, sleek recessed flush pull plate (to avoid collision)
+    return (
+      <group
+        position={[offsetX, offsetY, offsetZ]}
+        rotation={isExterior ? [0, 0, 0] : [0, Math.PI, 0]}
+        castShadow={!mobile}
+      >
+        {/* Outer metallic faceplate */}
+        <mesh castShadow={!mobile} receiveShadow={!mobile}>
+          <boxGeometry args={[0.02, 0.15, 0.003]} />
+          <meshPhysicalMaterial color="#9E9E9E" metalness={0.9} roughness={0.2} />
+        </mesh>
+        {/* Inner recessed cup slot */}
+        <mesh position={[0, 0, 0.001]} castShadow={!mobile}>
+          <boxGeometry args={[0.008, 0.11, 0.002]} />
+          <meshPhysicalMaterial color="#1A1A1A" metalness={0.0} roughness={0.9} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Refined modern rectangular lever handle design for non-sliding configurations
+  const stemLength = 0.02; // 2 cm out
+  const stemRadius = 0.005; // 5 mm radius
+  const baseWidth = 0.015; // base plate width
+  const baseHeight = 0.035; // base plate height
+  const baseThickness = 0.004; // base thickness
+  const leverLength = 0.11; // 11 cm lever handle
+  const leverWidth = 0.015; // 1.5 cm lever width
+  const leverThickness = 0.008; // 8 mm lever thickness
+
   // Determine handle rotation angle based on state:
   // - Closed (open = false and clickState = 0): points straight down (rotZ = 0)
   // - Open/Turned (open = true or clickState = 1): points horizontally toward the hinge side.
-  //   - If handle is on the right (hingeSide === 'Left'), it should point left.
-  //     Due to the [0, Math.PI, 0] group rotation, local +X is world -X (left).
-  //     So rotZ = Math.PI / 2 points to local +X (world left).
-  //   - If handle is on the left (hingeSide === 'Right'), it should point right.
-  //     Local -X is world +X (right). So rotZ = -Math.PI / 2 points to local -X (world right).
   // - Tilted (clickState === 2): points straight up (rotZ = Math.PI)
   let rotZ = 0;
   const isCurrentlyOpen = open || clickState === 1;
@@ -1787,15 +1924,11 @@ function Handle({
   if (isCurrentlyTilted) {
     rotZ = Math.PI; // Pointing up
   } else if (isCurrentlyOpen) {
-    if (isSliding) {
-      rotZ = isExterior ? Math.PI / 2 : -Math.PI / 2; // Sliding handle rotates when open
+    // Points toward the center (hinge side)
+    if (isExterior) {
+      rotZ = hingeSide === 'Left' ? -Math.PI / 2 : Math.PI / 2;
     } else {
-      // Points toward the center (hinge side)
-      if (isExterior) {
-        rotZ = hingeSide === 'Left' ? -Math.PI / 2 : Math.PI / 2;
-      } else {
-        rotZ = hingeSide === 'Left' ? Math.PI / 2 : -Math.PI / 2;
-      }
+      rotZ = hingeSide === 'Left' ? Math.PI / 2 : -Math.PI / 2;
     }
   }
 
@@ -1809,30 +1942,36 @@ function Handle({
   });
 
   return (
-    <group position={[offsetX, offsetY, offsetZ]} rotation={isExterior ? [0, 0, 0] : [0, Math.PI, 0]} castShadow={!mobile}>
+    <group
+      position={[offsetX, offsetY, offsetZ]}
+      rotation={isExterior ? [0, 0, 0] : [0, Math.PI, 0]}
+      castShadow={!mobile}
+    >
       {/* 1. Base Plate (Escutcheon) */}
       <mesh castShadow={!mobile} receiveShadow={!mobile}>
         <boxGeometry args={[baseWidth, baseHeight, baseThickness]} />
         <meshPhysicalMaterial color="#9E9E9E" metalness={0.9} roughness={0.2} />
       </mesh>
 
-      {/* 2. Stem/Neck extending outwards (along +Z in local coordinates) */}
-      <mesh position={[0, 0, baseThickness / 2 + stemLength / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow={!mobile}>
+      {/* 2. Stem/Neck extending outwards */}
+      <mesh
+        position={[0, 0, baseThickness / 2 + stemLength / 2]}
+        rotation={[Math.PI / 2, 0, 0]}
+        castShadow={!mobile}
+      >
         <cylinderGeometry args={[stemRadius, stemRadius, stemLength, 12]} />
         <meshPhysicalMaterial color="#A5A5A5" metalness={0.9} roughness={0.2} />
       </mesh>
 
       {/* 3. Rotating Lever Group */}
-      <group ref={leverGroupRef} position={[0, 0, baseThickness / 2 + stemLength]} rotation={[0, 0, rotZ]}>
-        {/* We place the lever cylinder offset so it pivots from one of its ends, not the center */}
-        {/* Lever points DOWN by default when group rotation is 0 */}
-        <mesh position={[0, -leverLength / 2 + 0.01, 0.008]} castShadow={!mobile}>
-          <cylinderGeometry args={[leverRadius, leverRadius, leverLength, 12]} />
-          <meshPhysicalMaterial color="#BCBCBC" metalness={0.9} roughness={0.15} />
-        </mesh>
-        {/* Handle end-cap curve */}
-        <mesh position={[0, -leverLength + 0.01, 0.008]} rotation={[Math.PI / 2, 0, 0]} castShadow={!mobile}>
-          <sphereGeometry args={[leverRadius, 12, 12]} />
+      <group
+        ref={leverGroupRef}
+        position={[0, 0, baseThickness / 2 + stemLength]}
+        rotation={[0, 0, rotZ]}
+      >
+        {/* Sleek rectangular modern lever - pivots from its top end */}
+        <mesh position={[0, -leverLength / 2 + 0.01, leverThickness / 2]} castShadow={!mobile}>
+          <boxGeometry args={[leverWidth, leverLength, leverThickness]} />
           <meshPhysicalMaterial color="#BCBCBC" metalness={0.9} roughness={0.15} />
         </mesh>
       </group>

@@ -173,6 +173,9 @@ export default function LiveStudio() {
   const [materialKey, setMaterialKey] = useState<MaterialKey>('alumil');
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [bgPreset, setBgPreset] = useState<BackgroundPreset>('dark');
+  // ADR-0005 § Phase 2 — "ნახე ოთახში" toggle. Off by default so the user
+  // first sees the bare product against the studio backdrop, then opts in.
+  const [roomContextOpen, setRoomContextOpen] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches,
   );
@@ -421,7 +424,12 @@ export default function LiveStudio() {
             </div>
           ) : (
             <Suspense fallback={null}>
-              <Scene interactive={sceneInteractive} isStudio={true} background={bgPreset} />
+              <Scene
+                interactive={sceneInteractive}
+                isStudio={true}
+                background={bgPreset}
+                showRoomContext={roomContextOpen}
+              />
             </Suspense>
           )}
         </div>
@@ -459,34 +467,66 @@ export default function LiveStudio() {
           </div>
         ) : null}
 
-        {/* Top-center: background preset swatches — desktop only, 3D mode only */}
+        {/* Top-center: room-context toggle + background preset swatches.
+            Room toggle visible on both mobile and desktop (3D mode only —
+            CSG is meaningless against the 2D blueprint). Background swatches
+            stay desktop-only. */}
         {showPanels && viewMode === '3d' ? (
-          <div className="absolute left-1/2 top-4 z-30 hidden -translate-x-1/2 items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-1 shadow-lg backdrop-blur-md md:flex md:top-6">
-            {(['dark', 'studio', 'warm'] as const).map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setBgPreset(preset)}
-                aria-label={t(`studio.background.${preset}`)}
-                title={t(`studio.background.${preset}`)}
-                className={cn(
-                  'h-7 w-7 rounded-lg border transition-all',
-                  bgPreset === preset
-                    ? 'border-studio-brand ring-1 ring-studio-brand'
-                    : 'border-studio-ink-3 hover:border-studio-fg-inv-mute',
-                )}
-                style={{
-                  background:
-                    preset === 'studio'
-                      ? '#E8ECF2'
-                      : preset === 'warm'
-                        ? '#2A1F18'
-                        : '#0B1220',
-                }}
-              />
-            ))}
+          <div className="absolute left-1/2 top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 flex -translate-x-1/2 items-center gap-2 md:top-6">
+            <button
+              type="button"
+              onClick={() => setRoomContextOpen((v) => !v)}
+              aria-pressed={roomContextOpen}
+              aria-label={roomContextOpen ? t('studio.roomContext.hideAria') : t('studio.roomContext.showAria')}
+              className={cn(
+                'inline-flex h-9 min-w-11 items-center gap-2 rounded-xl border bg-studio-ink-2/80 px-3 text-xs font-bold shadow-lg backdrop-blur-md transition-colors md:h-auto md:py-2',
+                roomContextOpen
+                  ? 'border-studio-brand text-studio-brand-soft'
+                  : 'border-studio-ink-3 text-studio-fg-inv-mute hover:bg-studio-ink-3 hover:text-white',
+              )}
+            >
+              <Building2 className="h-4 w-4" aria-hidden />
+              <span className="hidden md:inline">
+                {roomContextOpen ? t('studio.roomContext.hide') : t('studio.roomContext.show')}
+              </span>
+            </button>
+
+            <div className="hidden items-center gap-1 rounded-xl border border-studio-ink-3 bg-studio-ink-2/80 p-1 shadow-lg backdrop-blur-md md:flex">
+              {(['dark', 'studio', 'warm'] as const).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setBgPreset(preset)}
+                  aria-label={t(`studio.background.${preset}`)}
+                  title={t(`studio.background.${preset}`)}
+                  className={cn(
+                    'h-7 w-7 rounded-lg border transition-all',
+                    bgPreset === preset
+                      ? 'border-studio-brand ring-1 ring-studio-brand'
+                      : 'border-studio-ink-3 hover:border-studio-fg-inv-mute',
+                  )}
+                  style={{
+                    background:
+                      preset === 'studio'
+                        ? '#E8ECF2'
+                        : preset === 'warm'
+                          ? '#2A1F18'
+                          : '#0B1220',
+                  }}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
+
+        {/* SR live region — announces room-context state changes so screen
+            readers track the toggle even though the visual change is in the
+            3D canvas (which is aria-hidden). */}
+        <span aria-live="polite" className="sr-only">
+          {roomContextOpen
+            ? t('studio.roomContext.announceOn')
+            : t('studio.roomContext.announceOff')}
+        </span>
 
         {/* Top-right: view mode toggle + price chip (price hidden on mobile, lives in bottom bar) */}
         <div className="absolute right-[calc(1rem+env(safe-area-inset-right,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-40 flex items-center gap-3 md:right-6 md:top-6">

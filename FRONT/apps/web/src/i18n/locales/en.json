@@ -946,6 +946,14 @@
       "studio": "Studio",
       "warm": "Warm"
     },
+    "roomContext": {
+      "show": "See in a room",
+      "hide": "Window only",
+      "showAria": "Show window in wall context",
+      "hideAria": "Hide wall",
+      "announceOn": "Window shown in wall context",
+      "announceOff": "Window only"
+    },
     "panel": {
       "product": "Product",
       "templates": "Quick templates",
