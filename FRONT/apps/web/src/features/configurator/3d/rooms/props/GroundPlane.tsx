@@ -1,6 +1,6 @@
 import { useTexture } from '@react-three/drei';
 import { RepeatWrapping } from 'three';
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 
 /**
  * GroundPlane — large textured horizontal plane used by HouseExterior
@@ -24,7 +24,7 @@ export function GroundPlane({
 }: GroundPlaneProps) {
   const texture = useTexture(diffuseTexturePath);
   // Configure tiling once per texture reference.
-  useMemo(() => {
+  useEffect(() => {
     texture.wrapS = RepeatWrapping;
     texture.wrapT = RepeatWrapping;
     texture.repeat.set(tile, tile);

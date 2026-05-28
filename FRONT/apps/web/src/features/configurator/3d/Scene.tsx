@@ -291,7 +291,7 @@ export function ConfiguratorScene({
         ) : null}
 
         <Suspense fallback={null}>
-          <Environment preset="city" />
+          {roomPreset === null ? <Environment preset="city" /> : null}
           {/* World group — rotated by DragRotator on pointer-move. Everything
               inside spins together while the camera stays still, matching
               Lasha's mockup interaction (model spins, not the camera). */}

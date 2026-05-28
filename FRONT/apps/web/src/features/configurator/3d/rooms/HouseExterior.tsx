@@ -58,7 +58,7 @@ export function HouseExterior({
     normalMap: '/textures/exterior/painted_plaster_wall_nor_gl_1k.jpg',
     aoMap: '/textures/exterior/painted_plaster_wall_arm_1k.jpg',
   });
-  useMemo(() => {
+  useEffect(() => {
     [facade.map, facade.normalMap, facade.aoMap].forEach((t) => {
       if (t === null) return;
       t.wrapS = RepeatWrapping;
@@ -106,11 +106,11 @@ export function HouseExterior({
       {/* Two flanking trees on desktop only. */}
       {!isMobile ? (
         <>
-          <group position={[-2.5, 0, 0.8]}>
-            <TreeSilhouette scale={1.2} />
+          <group position={[-4, 0, -0.6]}>
+            <TreeSilhouette scale={1.1} />
           </group>
-          <group position={[2.5, 0, 0.8]}>
-            <TreeSilhouette scale={1.0} />
+          <group position={[4, 0, -0.6]}>
+            <TreeSilhouette scale={0.9} />
           </group>
         </>
       ) : null}

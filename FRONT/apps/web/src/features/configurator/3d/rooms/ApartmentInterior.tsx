@@ -60,7 +60,7 @@ export function ApartmentInterior({
     normalMap: '/textures/apartment/wood_floor_nor_gl_1k.jpg',
     aoMap: '/textures/apartment/wood_floor_arm_1k.jpg',
   });
-  useMemo(() => {
+  useEffect(() => {
     [floor.map, floor.normalMap, floor.aoMap].forEach((t) => {
       if (t === null) return;
       t.wrapS = RepeatWrapping;
@@ -98,27 +98,27 @@ export function ApartmentInterior({
       {!isMobile ? (
         <>
           {/* Left wall — plane perpendicular to back wall. */}
-          <mesh position={[-2, wallHeightM / 2 - sillHeightM, 0.4]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+          <mesh position={[-3, wallHeightM / 2 - sillHeightM, 0.4]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
             <planeGeometry args={[2, wallHeightM]} />
             <meshPhysicalMaterial color={wallColor} metalness={0} roughness={0.9} side={2} />
           </mesh>
           {/* Right wall — symmetric. */}
-          <mesh position={[2, wallHeightM / 2 - sillHeightM, 0.4]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+          <mesh position={[3, wallHeightM / 2 - sillHeightM, 0.4]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
             <planeGeometry args={[2, wallHeightM]} />
             <meshPhysicalMaterial color={wallColor} metalness={0} roughness={0.9} side={2} />
           </mesh>
           {/* Ceiling */}
           <mesh position={[0, wallHeightM - sillHeightM, 0.4]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-            <planeGeometry args={[4, 2]} />
+            <planeGeometry args={[6, 2]} />
             <meshPhysicalMaterial color="#FFFFFF" metalness={0} roughness={0.95} />
           </mesh>
           {/* Plinth along the front of the back wall */}
           <group position={[0, 0, -0.02]}>
-            <Plinth lengthM={4} />
+            <Plinth lengthM={6} />
           </group>
-          {/* Plant — to the right of the window */}
-          <group position={[1.4, 0, 0.5]}>
-            <PlantSilhouette scale={1.1} />
+          {/* Plant — tucked behind+offset so it frames rather than blocks the view cone. */}
+          <group position={[2.2, 0, -0.3]}>
+            <PlantSilhouette scale={0.8} />
           </group>
         </>
       ) : null}

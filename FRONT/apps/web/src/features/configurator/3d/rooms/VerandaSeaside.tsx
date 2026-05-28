@@ -60,7 +60,7 @@ export function VerandaSeaside({
     normalMap: '/textures/veranda/wood_floor_deck_nor_gl_1k.jpg',
     aoMap: '/textures/veranda/wood_floor_deck_arm_1k.jpg',
   });
-  useMemo(() => {
+  useEffect(() => {
     [deck.map, deck.normalMap, deck.aoMap].forEach((t) => {
       if (t === null) return;
       t.wrapS = RepeatWrapping;
@@ -84,9 +84,9 @@ export function VerandaSeaside({
         </mesh>
       </group>
 
-      {/* Deck floor — runs forward from the back wall. */}
-      <mesh position={[0, 0, 1]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[5, 4]} />
+      {/* Deck floor — extended forward to meet the railing. */}
+      <mesh position={[0, 0, 1.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[5, 5.5]} />
         <meshStandardMaterial
           map={deck.map ?? null}
           normalMap={deck.normalMap ?? null}
@@ -97,11 +97,13 @@ export function VerandaSeaside({
       </mesh>
 
       {/* Pergola vault — desktop only. */}
-      {!isMobile ? <WoodVault widthM={5} depthM={4} heightM={2.8} /> : null}
+      {!isMobile ? <WoodVault widthM={5} depthM={4} heightM={3.2} /> : null}
 
-      {/* Glass railing at front edge of deck. */}
-      <group position={[0, 0, 2.8]}>
-        <GlassRailing lengthM={4} heightM={1} lowDetail={isMobile} />
+      {/* Glass railing at the deck's far front edge — pushed past the
+          camera's typical orbit distance so it frames the scene from
+          outside rather than intersecting the product's view cone. */}
+      <group position={[0, 0, 4.5]}>
+        <GlassRailing lengthM={5} heightM={1} lowDetail={isMobile} />
       </group>
 
       {/* Bright daylight key + warm bounce. */}

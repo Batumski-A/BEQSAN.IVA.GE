@@ -79,5 +79,10 @@ export function buildFallbackWallGeometry(spec: {
   wallWidthM: number;
   wallHeightM: number;
 }): BufferGeometry {
-  return new PlaneGeometry(spec.wallWidthM, spec.wallHeightM);
+  const plane = new PlaneGeometry(spec.wallWidthM, spec.wallHeightM);
+  // Translate so the plane's base sits at local y=0, matching the CSG box
+  // convention. Without this, the parent `<group position={[0, -sillHeightM, ...]}>`
+  // wrapper in each preset puts half the wall below the floor on mobile.
+  plane.translate(0, spec.wallHeightM / 2, 0);
+  return plane;
 }
