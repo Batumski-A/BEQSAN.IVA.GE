@@ -85,6 +85,40 @@ return confidence < 0.4 and explain in notes.
 4. On success: stores result in MinIO, records `OrderAttachment` (or `Visualization` entity), sends SMS/push: `„შენი ფანჯრის ვიზუალიზაცია მზადაა → link"`.
 5. On failure after 3 retries: alerts admin, surfaces graceful fallback to user.
 
+## Parametric 3D room context (CSG path)
+
+Complement — not replacement — for the Replicate path above. Adopted per [ADR-0005](../../../docs/adr/0005-pascal-editor-rejected-csg-adopted.md).
+
+**When to use the CSG path vs. the Replicate path:**
+
+| Intent | Best path | Why |
+|---|---|---|
+| "Show me a sharable, photorealistic image of my window in my actual room" | Replicate (FLUX) | Photoreal, looks like a marketing render, async OK because the output is a shareable artifact. |
+| "Let me drag, resize, and visually judge proportions of my window against my wall before I commit to ordering" | CSG | Instant, interactive, free, no AI cost ceiling, runs on the same R3F canvas as the configurator. |
+| "Let me see arched / trapezoidal opening shapes" | CSG (always) | Replicate models hallucinate non-rectangular hardware; CSG renders the exact parametric shape Roman manufactures. |
+| Offline / poor network | CSG | No backend call. Replicate path requires network + Hangfire + Replicate uptime. |
+
+**Implementation (frontend-only, no backend changes):**
+
+- Library: `three-bvh-csg` (MIT). Already a transitive dep of nothing — added per ADR-0005.
+- Mount path: `FRONT/apps/web/src/features/configurator/3d/csg/wallCutout.ts` — builds a wall slab `Brush`, subtracts the window opening `Brush`, returns a `BufferGeometry`.
+- Wired into Scene.tsx via a `useMemo` keyed on `(widthCm, heightCm, openingShape)` so the BVH build only re-runs on actual dimension change, not per frame.
+- Mobile fallback: if `isMobile` (already detected in Scene.tsx via `matchMedia('(max-width: 768px)')`), the helper returns a plain `planeGeometry` with no cutout — the wall reads as solid behind the window, which is a graceful degradation for iPhone 12-class devices that can't afford the BVH build cost.
+
+**What the user sees:**
+
+The LiveStudio surface gets an optional **"ნახე ოთახში"** toggle (Phase 2) that shows the window mounted in a stylized wall slab, with subtle interior lighting (warm tungsten from the left, daylight through the window from the right) so the user can judge silhouette and proportion against a wall. No room photo upload required for this path — it's the cheap, instant option.
+
+**Anti-patterns specific to CSG:**
+
+```
+❌ Running CSG inside useFrame                    → memoize per dimension change
+❌ Doing CSG on every keystroke of width input    → debounce the input or only recut on blur
+❌ Letting CSG operations bring iPhone < 60 FPS   → fallback to plane on isMobile
+❌ Re-creating Brushes on every render            → useMemo against the dependency set
+❌ CSG on glass (transmissive) materials          → frame only; glass is a separate transparent mesh
+```
+
 ## Rate limiting
 
 | Audience | `/estimate-dimensions` | `/visualize-in-room` | `/chat` |
