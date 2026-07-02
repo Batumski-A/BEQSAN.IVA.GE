@@ -606,7 +606,9 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
         {/* Carousel Wrapper */}
         <div className="relative w-full overflow-hidden flex-grow flex items-center">
           {/* Navigation arrows */}
-          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 z-20 flex justify-between pointer-events-none px-2 sm:px-4">
+          {/* Hidden on phones — the 85vw cards peek and swipe naturally;
+              the centered arrows used to overlap the card titles. */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 z-20 hidden sm:flex justify-between pointer-events-none px-2 sm:px-4">
             <button
               onClick={() => scrollCarousel('left')}
               className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/80 hover:bg-white text-slate-800 shadow-md backdrop-blur-sm border border-slate-200 transition-all active:scale-95"
@@ -727,8 +729,9 @@ function Materials({ t }: { t: TFunction }) {
 
         {/* Carousel Wrapper */}
         <div className="relative w-full overflow-hidden flex-grow flex items-center">
-          {/* Navigation arrows (hidden on desktop lg) */}
-          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 z-20 flex justify-between pointer-events-none px-2 lg:hidden">
+          {/* Tablet-only arrows — phones swipe (arrows overlapped card
+              titles), desktop lg shows the full grid. */}
+          <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 z-20 hidden sm:flex justify-between pointer-events-none px-2 lg:hidden">
             <button
               onClick={() => scrollCarousel('left')}
               className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/80 hover:bg-white text-slate-800 shadow-md backdrop-blur-sm border border-slate-200 transition-all active:scale-95"
