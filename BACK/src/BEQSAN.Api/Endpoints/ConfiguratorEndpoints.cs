@@ -1,6 +1,7 @@
 using BEQSAN.Api.Common;
 using BEQSAN.Application.Configurator.ComputePrice;
 using BEQSAN.Application.Configurator.Review;
+using BEQSAN.Application.Configurator.SaveSnapshot;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,6 +41,19 @@ public static class ConfiguratorEndpoints
             .Produces<ApiResponse<object>>(StatusCodes.Status422UnprocessableEntity)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
+        group.MapPost("snapshot", async (
+                SaveSnapshotCommand command, ISender sender, CancellationToken ct) =>
+            {
+                var result = await sender.Send(command, ct).ConfigureAwait(false);
+                return result.ToHttpResult();
+            })
+            .WithName("SaveConfiguratorSnapshot")
+            .WithSummary("Store a PNG/JPEG snapshot of the configurator drawing (base64 data-URL) and return its public URL")
+            .Produces<ApiResponse<SnapshotDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<object>>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse<object>>(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
+
         return app;
     }
 }
@@ -50,4 +64,5 @@ internal sealed class ConfiguratorSchemaAnchor
 {
     public ApiResponse<PriceBreakdownDto>? PriceResponse { get; init; }
     public ApiResponse<ReviewResponseDto>? ReviewResponse { get; init; }
+    public ApiResponse<SnapshotDto>? SnapshotResponse { get; init; }
 }

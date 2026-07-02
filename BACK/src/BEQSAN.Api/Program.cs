@@ -3,6 +3,7 @@ using BEQSAN.Api.Endpoints;
 using BEQSAN.Api.Middleware;
 using BEQSAN.Application;
 using BEQSAN.Infrastructure;
+using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -82,6 +83,25 @@ app.UseExceptionHandler();
 app.UseCorrelationId();
 app.UseSerilogRequestLogging();
 app.UseCors(app.Environment.IsDevelopment() ? ViteDevCorsPolicy : ProductionCorsPolicy);
+
+// Public read access to stored uploads (configurator snapshots, gallery images).
+// Root resolution mirrors LocalFileStorage.GetRootAbsolute: Storage:LocalRoot,
+// combined with the content root's CWD when relative. PhysicalFileProvider
+// throws on a nonexistent root, so create it up front.
+var storageOptions = app.Configuration
+    .GetSection(StorageOptions.SectionName)
+    .Get<StorageOptions>() ?? new StorageOptions();
+var uploadsRoot = Path.IsPathRooted(storageOptions.LocalRoot)
+    ? storageOptions.LocalRoot
+    : Path.Combine(Directory.GetCurrentDirectory(), storageOptions.LocalRoot);
+Directory.CreateDirectory(uploadsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/api/v1/files",
+    ServeUnknownFileTypes = false, // png/jpg covered by the default content-type map
+});
+
 app.UseMiddleware<AdminTokenAuthMiddleware>();
 
 if (app.Environment.IsDevelopment())

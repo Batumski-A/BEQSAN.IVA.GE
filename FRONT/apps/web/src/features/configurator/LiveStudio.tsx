@@ -493,7 +493,10 @@ export default function LiveStudio() {
           ) : (
             <Suspense fallback={null}>
               <Scene
-                interactive={sceneInteractive}
+                // drei <Html> overlays (W/H chips, pane dropdowns) sit at a
+                // huge z-index and would float over the handoff modal —
+                // hide them while it's open.
+                interactive={orderOpen ? undefined : sceneInteractive}
                 isStudio={true}
                 background={bgPreset}
                 roomPreset={roomPreset}
