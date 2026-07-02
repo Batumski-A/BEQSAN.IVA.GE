@@ -170,6 +170,14 @@ function formatGel(amount: number): string {
   return new Intl.NumberFormat('ka-GE', { maximumFractionDigits: 0 }).format(amount);
 }
 
+/** Opening subset offered for a TOP transom sash (panel + in-scene chip). */
+const TRANSOM_OPENING_OPTIONS: ReadonlyArray<{ key: OpeningKey; labelKey: string }> = [
+  { key: 'fixed', labelKey: 'studio.opening.fixed' },
+  { key: 'tilt', labelKey: 'studio.opening.tilt' },
+  { key: 'turn-left', labelKey: 'studio.opening.turnLeft' },
+  { key: 'turn-right', labelKey: 'studio.opening.turnRight' },
+];
+
 type MobileSheet = 'product' | 'templates' | 'profile' | 'params' | 'distribution' | null;
 
 export type BackgroundPreset = 'dark' | 'studio' | 'warm';
@@ -499,6 +507,22 @@ export default function LiveStudio() {
         onTransomRatioChange: (paneIndex: number, ratio: number) =>
           setPaneTransomHeightRatio(paneIndex, ratio),
         isTransomOn: (p: ConfigurationPaneInput) => p.hasTransom === true,
+        // In-scene chip for the TOP transom sash — same subset the right
+        // panel's TransomGroup offers.
+        transomOptions: TRANSOM_OPENING_OPTIONS.map((o) => ({
+          value: o.key,
+          label: t(o.labelKey),
+        })),
+        transomValueFor: (p: ConfigurationPaneInput) =>
+          storeToOpeningKey(
+            (p.transomOpeningType ?? 'Fixed') as PaneOpeningType,
+            p.transomHingeSide ?? null,
+          ),
+        onTransomOpeningChange: (paneIndex: number, value: string) => {
+          const mapped = OPENING_TO_STORE[value as OpeningKey];
+          if (!mapped) return;
+          setPaneTransomOpening(paneIndex, mapped.openingType, mapped.hingeSide);
+        },
       },
       dimensions: {
         widthCm: dimensions.widthCm,
@@ -512,7 +536,7 @@ export default function LiveStudio() {
       },
       background: bgPreset,
     };
-  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, setPaneRatios, splitPaneAt, setPaneTransom, setPaneTransomHeightRatio, panes.length, bgPreset]);
+  }, [showPanels, isMobile, t, dimensions.widthCm, dimensions.heightCm, productType, setDimensions, setPaneOpening, setPaneHinge, setPaneRatios, splitPaneAt, setPaneTransom, setPaneTransomHeightRatio, setPaneTransomOpening, panes.length, bgPreset]);
 
   return (
     <>

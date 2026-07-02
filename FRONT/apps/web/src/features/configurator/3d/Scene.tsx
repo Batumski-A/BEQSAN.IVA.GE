@@ -49,6 +49,12 @@ export type SceneInteractiveControls = {
     onTransomRatioChange?: (paneIndex: number, ratio: number) => void;
     /** Reading "is this pane's transom currently on" from outside. */
     isTransomOn?: (pane: ConfigurationPaneInput) => boolean;
+    /** Opening options offered for the TOP transom sash (subset of panes). */
+    transomOptions?: ReadonlyArray<{ value: string; label: string }>;
+    /** Read the transom sash's current opening as a dropdown value. */
+    transomValueFor?: (pane: ConfigurationPaneInput) => string;
+    /** Change the transom sash's opening type. paneIndex is 1-based. */
+    onTransomOpeningChange?: (paneIndex: number, value: string) => void;
   };
   dimensions: {
     widthCm: number;
@@ -419,6 +425,7 @@ export function ConfiguratorScene({
               mobile={isMobile}
               interactive={interactive}
               interactionLockRef={interactionLockRef}
+              dragDeltaRef={dragDeltaRef}
               paneClickStates={paneClickStates}
               onPaneClick={onPaneClick}
             />
@@ -482,6 +489,37 @@ export function ConfiguratorScene({
           : t('configurator.steps.review.scene.announceClose')}
       </span>
     </div>
+  );
+}
+
+/**
+ * Bottom-hung tilt animation for the TOP transom sash. Pivot sits at the
+ * sash's bottom rail; positive X rotation leans the top edge into the room.
+ * Damped per the "mechanical" motion language — heavy, no bounce.
+ */
+function AnimatedTransomGroup({
+  open,
+  sashHeightM,
+  centerY,
+  children,
+}: {
+  open: boolean;
+  sashHeightM: number;
+  centerY: number;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<Group>(null);
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    const target = open ? 0.32 : 0;
+    ref.current.rotation.x = MathUtils.damp(ref.current.rotation.x, target, 5.5, delta);
+  });
+  return (
+    <group position={[0, centerY - sashHeightM / 2, 0]}>
+      <group ref={ref}>
+        <group position={[0, sashHeightM / 2, 0]}>{children}</group>
+      </group>
+    </group>
   );
 }
 
@@ -669,6 +707,7 @@ function Window({
   mobile,
   interactive,
   interactionLockRef,
+  dragDeltaRef,
   paneClickStates,
   onPaneClick,
 }: {
@@ -690,6 +729,8 @@ function Window({
       drag handlers increment on start and decrement on end so the model
       doesn't rotate while the user is editing dimensions. */
   interactionLockRef: React.MutableRefObject<number>;
+  /** Cumulative rotate-drag distance — suppresses accidental sash toggles. */
+  dragDeltaRef: React.MutableRefObject<number>;
   paneClickStates: Record<number, number>;
   onPaneClick: (paneIndex: number, opening: PaneOpeningType) => void;
 }) {
@@ -749,6 +790,8 @@ function Window({
    */
   const [hoveredTransom, setHoveredTransom] = useState<number | null>(null);
   const [draggingTransom, setDraggingTransom] = useState<number | null>(null);
+  /** Per-pane "is the top transom sash tilted open" — 1-based position. */
+  const [openTransoms, setOpenTransoms] = useState<Record<number, boolean>>({});
   const transomDragRef = useRef<{
     paneIdx: number;
     startPxY: number;
@@ -1198,51 +1241,79 @@ function Window({
                 </mesh>
               </>
             )}
-            {/* Static top transom sash — sash frame + glass pack. No
-                click-to-open animation in v1; the bottom sash animates. */}
-            {hasTransom && transomVisual && (
-              <group position={[0, topCenterY, 0]}>
-                <SashFrame
-                  paneWidthM={pw}
-                  paneHeightM={topSashH}
-                  thickness={sashThickness}
-                  depth={frameDepth * 0.9}
-                  color={frameColor}
-                  metalness={metalness}
-                  roughness={roughness}
-                  clearcoat={clearcoat}
-                  clearcoatRoughness={clearcoatRoughness}
-                  mobile={mobile}
-                />
-                {/* Transom glass gasket — 4 thin perimeter strips, not a solid panel. */}
-                <GlassEdgeBezel
-                  widthM={Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012))}
-                  heightM={Math.max(0, topSashH - glassInset + (isAluminum ? 0.008 : 0.012))}
-                />
-                <mesh receiveShadow={!mobile}>
-                  <boxGeometry
-                    args={[
-                      Math.max(0, pw - glassInset),
-                      Math.max(0, topSashH - glassInset),
-                      0.025,
-                    ]}
+            {/* Top transom sash — sash frame + glass pack. Openable types
+                (tilt & co.) animate bottom-hung on click, like the real
+                hardware would. */}
+            {hasTransom && transomVisual && (() => {
+              const transomOpenable = (pane.transomOpeningType ?? 'Fixed') !== 'Fixed';
+              const isTransomOpen = openTransoms[paneIndex] === true;
+              return (
+                <AnimatedTransomGroup
+                  open={transomOpenable && isTransomOpen}
+                  sashHeightM={topSashH}
+                  centerY={topCenterY}
+                >
+                  <SashFrame
+                    paneWidthM={pw}
+                    paneHeightM={topSashH}
+                    thickness={sashThickness}
+                    depth={frameDepth * 0.9}
+                    color={frameColor}
+                    metalness={metalness}
+                    roughness={roughness}
+                    clearcoat={clearcoat}
+                    clearcoatRoughness={clearcoatRoughness}
+                    mobile={mobile}
                   />
-                  <meshPhysicalMaterial
-                    color={transomVisual.color}
-                    transparent
-                    opacity={transomVisual.opacity}
-                    transmission={transomVisual.transmission}
-                    ior={1.52}
-                    thickness={0.05}
-                    roughness={transomVisual.roughness}
-                    metalness={0.0}
-                    clearcoat={1.0}
-                    clearcoatRoughness={0.05}
-                    envMapIntensity={mobile ? 0.9 : 2.0}
+                  {/* Transom glass gasket — 4 thin perimeter strips, not a solid panel. */}
+                  <GlassEdgeBezel
+                    widthM={Math.max(0, pw - glassInset + (isAluminum ? 0.008 : 0.012))}
+                    heightM={Math.max(0, topSashH - glassInset + (isAluminum ? 0.008 : 0.012))}
                   />
-                </mesh>
-              </group>
-            )}
+                  <mesh
+                    receiveShadow={!mobile}
+                    onClick={(e) => {
+                      if (!transomOpenable) return;
+                      e.stopPropagation();
+                      // Same drag-suppression rule as pane sashes: a rotate
+                      // gesture ending on the glass must not toggle it.
+                      if (dragDeltaRef.current > 5) return;
+                      setOpenTransoms((cur) => ({ ...cur, [paneIndex]: !cur[paneIndex] }));
+                    }}
+                    onPointerOver={(e) => {
+                      if (!transomOpenable) return;
+                      e.stopPropagation();
+                      document.body.style.cursor = 'pointer';
+                    }}
+                    onPointerOut={() => {
+                      if (!transomOpenable) return;
+                      document.body.style.cursor = 'auto';
+                    }}
+                  >
+                    <boxGeometry
+                      args={[
+                        Math.max(0, pw - glassInset),
+                        Math.max(0, topSashH - glassInset),
+                        0.025,
+                      ]}
+                    />
+                    <meshPhysicalMaterial
+                      color={transomVisual.color}
+                      transparent
+                      opacity={transomVisual.opacity}
+                      transmission={transomVisual.transmission}
+                      ior={1.52}
+                      thickness={0.05}
+                      roughness={transomVisual.roughness}
+                      metalness={0.0}
+                      clearcoat={1.0}
+                      clearcoatRoughness={0.05}
+                      envMapIntensity={mobile ? 0.9 : 2.0}
+                    />
+                  </mesh>
+                </AnimatedTransomGroup>
+              );
+            })()}
             {/* Sliding sashes run on staggered Z tracks (lasaks) to prevent clipping.
                 Track Z positions align with the guide tracks (frameDepth * 0.28). */}
             <group
@@ -1387,28 +1458,38 @@ function Window({
                 </div>
               </Html>
             ) : null}
-            {/* Live top + bottom sash height labels — shown while the
-                user is dragging this pane's transom. Anchored to each
-                sash centre so the cm value follows the geometry. */}
-            {hasTransom && draggingTransom === paneIndex ? (
+            {/* Top + bottom sash height labels — ALWAYS visible on transom
+                panes (they used to appear only mid-drag, so the split sizes
+                were invisible in the model). Anchored inside each sash's
+                left edge so the transom chip keeps the sash centre. Brighter
+                while dragging. */}
+            {hasTransom ? (
               <>
                 <Html
-                  position={[0, topCenterY, frameDepth * 0.7]}
+                  position={[-pw / 2 + 0.12, topCenterY, frameDepth * 0.7]}
                   center
                   zIndexRange={[120, 0]}
                   style={{ pointerEvents: 'none' }}
                 >
-                  <div className="select-none rounded-md border border-sky-300/60 bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.55)] backdrop-blur animate-in fade-in zoom-in-90 duration-150">
+                  <div className={`select-none rounded-md border bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 backdrop-blur ${
+                    draggingTransom === paneIndex
+                      ? 'border-sky-300/60 shadow-[0_0_18px_rgba(125,211,252,0.55)]'
+                      : 'border-sky-400/30 shadow-[0_0_10px_rgba(125,211,252,0.25)]'
+                  }`}>
                     {Math.round(topSashH * 100)} სმ
                   </div>
                 </Html>
                 <Html
-                  position={[0, bottomCenterY, frameDepth * 0.7]}
+                  position={[-pw / 2 + 0.12, bottomCenterY, frameDepth * 0.7]}
                   center
                   zIndexRange={[120, 0]}
                   style={{ pointerEvents: 'none' }}
                 >
-                  <div className="select-none rounded-md border border-sky-300/60 bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.55)] backdrop-blur animate-in fade-in zoom-in-90 duration-150">
+                  <div className={`select-none rounded-md border bg-slate-950/85 px-1.5 py-0.5 font-mono text-[11px] font-bold text-sky-100 backdrop-blur ${
+                    draggingTransom === paneIndex
+                      ? 'border-sky-300/60 shadow-[0_0_18px_rgba(125,211,252,0.55)]'
+                      : 'border-sky-400/30 shadow-[0_0_10px_rgba(125,211,252,0.25)]'
+                  }`}>
                     {Math.round(bottomSashH * 100)} სმ
                   </div>
                 </Html>
@@ -1439,6 +1520,24 @@ function Window({
                 }
                 hasTransom={hasTransom}
                 bottomCenterY={bottomCenterY}
+                frameDepth={frameDepth}
+                isHovered={hoveredPane === paneIndex}
+                isMobile={mobile}
+              />
+            ) : null}
+            {/* Transom sash chip — same control for the TOP sash, so the
+                user can change its opening without leaving the scene. */}
+            {hasTransom &&
+            interactive?.panes.transomOptions &&
+            interactive.panes.transomValueFor &&
+            interactive.panes.onTransomOpeningChange &&
+            (pw > 0.35 || mobile) ? (
+              <PaneDropdownBadge
+                paneIndex={paneIndex}
+                options={interactive.panes.transomOptions}
+                currentValue={interactive.panes.transomValueFor(pane)}
+                onChange={interactive.panes.onTransomOpeningChange}
+                bottomCenterY={topCenterY}
                 frameDepth={frameDepth}
                 isHovered={hoveredPane === paneIndex}
                 isMobile={mobile}
