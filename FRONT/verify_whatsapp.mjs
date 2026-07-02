@@ -9,6 +9,12 @@ const BASE = process.env.VERIFY_BASE ?? 'http://localhost:5173';
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  page.on('response', (r) => {
+    if (r.url().includes('/configurator/snapshot')) console.log('[snapshot resp]', r.status());
+  });
+  page.on('requestfailed', (r) => {
+    if (r.url().includes('/configurator/snapshot')) console.log('[snapshot REQ FAILED]', r.failure()?.errorText);
+  });
 
   // ── Home: no prices, Georgian eyebrow, no carousel arrows on phone ──
   await page.goto(BASE + '/', { waitUntil: 'networkidle', timeout: 40000 });

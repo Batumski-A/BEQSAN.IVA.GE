@@ -208,6 +208,15 @@ export default function LiveStudio() {
     return () => mq.removeEventListener('change', update);
   }, []);
 
+  // With public prices off the studio makes zero API calls until the user
+  // hits "send" — by then an idle backend would cold-start and the snapshot
+  // upload could time out. Warm it up as soon as the studio opens.
+  useEffect(() => {
+    void fetch('/api/v1/health').catch(() => {
+      // Best-effort warmup; failures are irrelevant here.
+    });
+  }, []);
+
   // Store reads
   const productType = useConfiguratorStore((s) => s.productType);
   const material = useConfiguratorStore((s) => s.material);
@@ -439,8 +448,16 @@ export default function LiveStudio() {
         return;
       }
       try {
-        const r = await uploadSnapshot(shot);
-        if (!cancelled) setHandoffLink(new URL(r.url, window.location.origin).toString());
+        let uploaded;
+        try {
+          uploaded = await uploadSnapshot(shot);
+        } catch {
+          // One retry — the first request after a backend cold start can
+          // exceed the client timeout; by the retry the app is warm.
+          await new Promise((r) => setTimeout(r, 1500));
+          uploaded = await uploadSnapshot(shot);
+        }
+        if (!cancelled) setHandoffLink(new URL(uploaded.url, window.location.origin).toString());
       } catch {
         // Text-only handoff is still useful; no error UI needed.
       } finally {
