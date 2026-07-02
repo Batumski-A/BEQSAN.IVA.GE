@@ -461,6 +461,7 @@ function PaneDropdownBadge({
   bottomCenterY,
   frameDepth,
   isHovered,
+  isMobile,
 }: {
   paneIndex: number;
   options: ReadonlyArray<{ value: string; label: string }>;
@@ -477,11 +478,13 @@ function PaneDropdownBadge({
   frameDepth: number;
   /**
    * True when the parent pane mesh is hovered (mouse over the glass).
-   * The chip is hidden by default and appears on hover so 4-pane systems
-   * don't stack 4 chips that obscure the model. Once the dropdown opens,
-   * it stays visible regardless of hover so the user can pick freely.
+   * The chip is ALWAYS visible (Lasha 2026-07-02: hover-only was
+   * undiscoverable on touch — phones have no hover and the target was
+   * tiny). Hover now only brightens it; on mobile the hit area grows
+   * to the 44px touch minimum.
    */
   isHovered: boolean;
+  isMobile: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isChipHovered, setIsChipHovered] = useState(false);
@@ -494,11 +497,7 @@ function PaneDropdownBadge({
     return () => window.removeEventListener('click', handleClose);
   }, [isOpen]);
 
-  // Hidden by default — render while the user is hovering the pane,
-  // hovering the chip itself, or has the dropdown open. The chip-hover
-  // bit eliminates the flicker that happened when the mouse crossed the
-  // gap between the glass mesh and the Html overlay (Lasha 2026-05-28).
-  if (!isHovered && !isChipHovered && !isOpen) return null;
+  const emphasized = isHovered || isChipHovered || isOpen;
 
   return (
     <Html
@@ -518,13 +517,19 @@ function PaneDropdownBadge({
           onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
           title={currentOption?.label || currentValue}
           aria-label={`გახსენი პარამეტრები: ${currentOption?.label || currentValue}`}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-sky-400/45 bg-slate-950/80 text-sky-200 shadow-[0_0_14px_rgba(77,163,255,0.45)] backdrop-blur transition-all duration-200 hover:border-sky-300/75 hover:bg-slate-900/95 hover:text-white hover:scale-110 active:scale-95 animate-in fade-in zoom-in-90"
+          className={`flex items-center justify-center rounded-full border backdrop-blur transition-all duration-200 active:scale-95 ${
+            isMobile ? 'h-11 w-11' : 'h-8 w-8 hover:scale-110'
+          } ${
+            emphasized
+              ? 'border-sky-300/75 bg-slate-900/95 text-white shadow-[0_0_18px_rgba(77,163,255,0.6)]'
+              : 'border-sky-400/45 bg-slate-950/80 text-sky-200 shadow-[0_0_14px_rgba(77,163,255,0.45)]'
+          }`}
         >
-          <Settings2 className={`h-3.5 w-3.5 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
+          <Settings2 className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
         </button>
 
         {isOpen && (
-          <div className="absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 min-w-[140px] overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className={`absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200 ${isMobile ? 'min-w-[180px]' : 'min-w-[140px]'}`}>
             {options.map((opt) => {
               const isSelected = opt.value === currentValue;
               return (
@@ -534,7 +539,9 @@ function PaneDropdownBadge({
                     onChange(paneIndex, opt.value);
                     setIsOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold transition-all ${
+                  className={`flex w-full items-center justify-between rounded-lg text-left font-semibold transition-all ${
+                    isMobile ? 'px-3 py-2.5 text-xs' : 'px-2.5 py-1.5 text-[10px]'
+                  } ${
                     isSelected
                       ? 'bg-studio-brand text-white shadow-[0_4px_12px_rgba(37,99,235,0.3)]'
                       : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -554,7 +561,9 @@ function PaneDropdownBadge({
                   onSplit();
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
+                className={`flex w-full items-center gap-1.5 rounded-lg text-left font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100 ${
+                  isMobile ? 'px-3 py-2.5 text-xs' : 'px-2.5 py-1.5 text-[10px]'
+                }`}
               >
                 <span aria-hidden className="text-base leading-none">+</span>
                 <span>ვერტიკალური ტიხარი</span>
@@ -566,7 +575,9 @@ function PaneDropdownBadge({
                   onSetTransom(!hasTransom);
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100"
+                className={`flex w-full items-center gap-1.5 rounded-lg text-left font-semibold text-sky-300 transition-all hover:bg-sky-500/15 hover:text-sky-100 ${
+                  isMobile ? 'px-3 py-2.5 text-xs' : 'px-2.5 py-1.5 text-[10px]'
+                }`}
               >
                 <span aria-hidden className="text-base leading-none">{hasTransom ? '−' : '+'}</span>
                 <span>{hasTransom ? 'მოაშორე ჰორიზონტალური' : 'ჰორიზონტალური ტიხარი'}</span>
@@ -1367,6 +1378,7 @@ function Window({
                 bottomCenterY={bottomCenterY}
                 frameDepth={frameDepth}
                 isHovered={hoveredPane === paneIndex}
+                isMobile={mobile}
               />
             ) : null}
           </group>
