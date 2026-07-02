@@ -96,20 +96,23 @@ export function HouseExterior({
         </mesh>
       </group>
 
-      {/* Ground */}
+      {/* Ground — at the BASE of the facade (sill height below the window's
+          bottom rail), so the window sits 1.1 m above the lawn like a real
+          first-floor window instead of touching the grass. */}
       <GroundPlane
         diffuseTexturePath={'/textures/exterior/aerial_grass_rock_diff_1k.jpg'}
         sizeM={isMobile ? 8 : 12}
         tile={isMobile ? 2 : 4}
+        yOffset={-sillHeightM - 0.01}
       />
 
-      {/* Two flanking trees on desktop only. */}
+      {/* Two flanking trees on desktop only — standing on the ground. */}
       {!isMobile ? (
         <>
-          <group position={[-4, 0, -0.6]}>
+          <group position={[-4, -sillHeightM, -0.6]}>
             <TreeSilhouette scale={1.1} />
           </group>
-          <group position={[4, 0, -0.6]}>
+          <group position={[4, -sillHeightM, -0.6]}>
             <TreeSilhouette scale={0.9} />
           </group>
         </>

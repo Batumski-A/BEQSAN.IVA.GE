@@ -84,9 +84,10 @@ export function VerandaSeaside({
         </mesh>
       </group>
 
-      {/* Deck floor — extended forward to meet the railing. Dropped 1 cm
-          below the window's bottom rail to avoid z-fighting with it. */}
-      <mesh position={[0, -0.01, 1.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      {/* Deck floor — extended forward to meet the railing. Sits at the
+          BASE of the back wall (sill height below the window's bottom
+          rail) so the window reads mounted at real sill height. */}
+      <mesh position={[0, -sillHeightM - 0.01, 1.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[5, 5.5]} />
         <meshStandardMaterial
           map={deck.map ?? null}
@@ -97,13 +98,17 @@ export function VerandaSeaside({
         />
       </mesh>
 
-      {/* Pergola vault — desktop only. */}
-      {!isMobile ? <WoodVault widthM={5} depthM={4} heightM={3.2} /> : null}
+      {/* Pergola vault — desktop only, anchored to the deck level. */}
+      {!isMobile ? (
+        <group position={[0, -sillHeightM, 0]}>
+          <WoodVault widthM={5} depthM={4} heightM={3.2} />
+        </group>
+      ) : null}
 
-      {/* Glass railing at the deck's far front edge — pushed past the
-          camera's typical orbit distance so it frames the scene from
-          outside rather than intersecting the product's view cone. */}
-      <group position={[0, 0, 4.5]}>
+      {/* Glass railing at the deck's far front edge — standing ON the deck,
+          pushed past the camera's typical orbit distance so it frames the
+          scene from outside rather than intersecting the product's view cone. */}
+      <group position={[0, -sillHeightM, 4.5]}>
         <GlassRailing lengthM={5} heightM={1} lowDetail={isMobile} />
       </group>
 

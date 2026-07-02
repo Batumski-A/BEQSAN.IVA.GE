@@ -76,6 +76,16 @@ export function ApartmentInterior({
       {/* Image-based lighting */}
       <Environment preset="city" background={false} />
 
+      {/* Daylight backdrop behind the window opening — without it the glass
+          shows the dark studio void and the window reads like a wall-mounted
+          TV. Sized just past the opening so the studio backdrop around the
+          room stays dark. toneMapped=false keeps the sky bright under the
+          renderer's tone mapping. */}
+      <mesh position={[0, heightM / 2, -1.4]}>
+        <planeGeometry args={[widthM + 2.4, heightM + 2]} />
+        <meshBasicMaterial color="#D6E9FF" toneMapped={false} />
+      </mesh>
+
       {/* Back wall with CSG-cut opening, positioned per ADR-0005 convention. */}
       <group position={[0, -sillHeightM, -wallDepthM / 2 - 0.04]}>
         <mesh geometry={backWallGeometry} receiveShadow castShadow={!isMobile}>
@@ -83,10 +93,12 @@ export function ApartmentInterior({
         </mesh>
       </group>
 
-      {/* Floor — dropped 1 cm below the window's bottom rail (y=0) so the
-          two coplanar surfaces don't z-fight. Real thresholds have a small
-          step anyway. Widened to 6×6 so it extends past the side walls. */}
-      <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      {/* Floor — at the BASE of the wall (sill height below the window's
+          bottom rail), so the window reads as mounted 90 cm above the floor
+          like a real window, not sitting on the parquet. The 1 cm drop
+          avoids z-fighting with the wall slab's bottom edge. Widened to
+          6×6 so it extends past the side walls. */}
+      <mesh position={[0, -sillHeightM - 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[6, 6]} />
         <meshStandardMaterial
           map={floor.map ?? null}
@@ -115,25 +127,28 @@ export function ApartmentInterior({
             <planeGeometry args={[6, 2.1]} />
             <meshPhysicalMaterial color="#FAFAF7" metalness={0} roughness={0.95} />
           </mesh>
-          {/* Plinth along the front of the back wall */}
-          <group position={[0, 0, -0.02]}>
+          {/* Plinth along the front of the back wall — on the floor. */}
+          <group position={[0, -sillHeightM, -0.02]}>
             <Plinth lengthM={6} />
           </group>
           {/* Plant — tucked into the corner so it frames rather than blocks
-              the view cone. Sits against the right wall at z behind the window. */}
-          <group position={[2.4, 0, -0.4]}>
+              the view cone. Stands on the floor against the right wall. */}
+          <group position={[2.4, -sillHeightM, -0.4]}>
             <PlantSilhouette scale={0.75} />
           </group>
         </>
       ) : null}
 
-      {/* Chandelier — hangs from the ceiling that ApartmentInterior just
-          declared. Cord length is generous on tall rooms; capped on short ones. */}
-      <Chandelier
-        lowDetail={isMobile}
-        ceilingY={wallHeightM - sillHeightM - 0.02}
-        cordLength={Math.min(0.7, Math.max(0.25, (wallHeightM - sillHeightM) * 0.28))}
-      />
+      {/* Chandelier — hangs from the ceiling, pulled INTO the room and off
+          the window axis so it never overlaps the model in the default
+          front view (it used to hang at z=0, right over the top sash). */}
+      <group position={[-1.35, 0, 1.05]}>
+        <Chandelier
+          lowDetail={isMobile}
+          ceilingY={wallHeightM - sillHeightM - 0.02}
+          cordLength={Math.min(0.7, Math.max(0.25, (wallHeightM - sillHeightM) * 0.28))}
+        />
+      </group>
 
       {/* Daylight bleed through the window — soft cool key from +z. */}
       <directionalLight
