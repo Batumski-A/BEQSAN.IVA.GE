@@ -14,6 +14,10 @@ _(none currently — all blocking infra calls were delegated to Claude on 2026-0
 
 ## 🟡 Should-decide-soon (before Phase 1 polish)
 
+### 12. Real WhatsApp number for the drawing handoff
+
+- 2026-07-02 (Claude → Roman/Lasha): public prices are now off; the configurator CTA sends the customer's drawing + config summary into a WhatsApp chat. `FRONT/apps/web/src/shared/config/contact.ts` still holds the placeholder `+995595000000` — swap for the workshop's real WhatsApp-enabled number before this hits customers. One constant, used by both the configurator handoff and the contact page.
+
 ### 5. SMS provider: SMSOffice.ge or Magti?
 
 - 2026-05-17 (Claude → Lasha): both listed. Need API access + tested deliverability before Phase 1 ships.

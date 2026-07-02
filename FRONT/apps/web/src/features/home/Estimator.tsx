@@ -529,7 +529,7 @@ export function Estimator({ t, isActive = false }: { t: TFunction; isActive?: bo
           className="grid grid-cols-1 overflow-visible rounded-3xl border border-studio-ink-3/60 bg-studio-ink-2/40 shadow-2xl backdrop-blur-xl lg:grid-cols-12"
         >
           {/* ── LEFT: Preview + dimensions + layout ───────────────── */}
-          <div className="p-4 sm:p-5 lg:p-5 border-studio-ink-3/60 lg:border-r pb-40 lg:pb-5 flex flex-col justify-between min-h-[320px] lg:min-h-0 col-span-12 lg:col-span-6 overflow-visible">
+          <div className="p-4 sm:p-5 lg:p-5 border-studio-ink-3/60 lg:border-r pb-28 lg:pb-5 flex flex-col justify-between min-h-[320px] lg:min-h-0 col-span-12 lg:col-span-6 overflow-visible">
             {/* Product type tabs */}
             <div className="mb-5 hidden lg:block">
               <SectionLabel>{t('home.calc.productLabel')}</SectionLabel>
