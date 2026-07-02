@@ -506,10 +506,15 @@ export default function LiveStudio() {
           )}
         </div>
 
-        {/* Top-left: back chip + BEQSAN brand badge so the header has
+        {/* Top header row — ONE flex container for the left / center /
+            right clusters so they can never overlap (they used to be three
+            independent absolutes that collided on mid-width desktops); on
+            tight widths the center cluster wraps to a second row. */}
+        <div className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-40 flex items-start justify-between gap-2 md:left-6 md:right-6 md:top-6">
+        {/* Left: back chip + BEQSAN brand badge so the header has
             identity, not just a bare arrow on the desktop canvas. */}
         {showPanels ? (
-          <div className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 flex items-center gap-2 md:left-6 md:top-6">
+          <div className="flex shrink-0 items-center gap-2">
             <Link
               to="/"
               className="inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/85 p-2.5 text-studio-fg-inv-mute shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 hover:text-white md:p-3"
@@ -530,32 +535,20 @@ export default function LiveStudio() {
           <button
             type="button"
             onClick={() => setViewMode('3d')}
-            className="absolute left-[calc(1rem+env(safe-area-inset-left,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 inline-flex items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/60 p-2.5 text-studio-fg-inv-soft shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 md:left-6 md:top-6 md:p-3"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-studio-ink-3 bg-studio-ink-2/60 p-2.5 text-studio-fg-inv-soft shadow-lg backdrop-blur-md transition-colors hover:bg-studio-ink-3 md:p-3"
             aria-label={t('studio.viewMode.exitPreview')}
           >
             <Eye className="h-5 w-5" aria-hidden />
           </button>
         )}
 
-        {/* 3D interaction helper — anchored just above the bottom edge of
-            the canvas, centered. Desktop-only (mobile toolbar covers the
-            bottom). Visible only in 3D mode. */}
-        {showPanels && viewMode === '3d' ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 hidden justify-center md:flex">
-            <div className="inline-flex items-center gap-2 rounded-full border border-studio-ink-3 bg-studio-ink-2/80 px-4 py-2 text-xs text-studio-fg-inv-soft shadow-lg backdrop-blur-md">
-              <span aria-hidden>👆</span>
-              <span>{t('studio.scene.clickGlassHint')}</span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Top-center: room-preset segmented control + background preset
+        {/* Center: room-preset segmented control + background preset
             swatches (3D mode only — both controls are meaningless against
             the 2D blueprint). The segmented control implements the ARIA
             radiogroup pattern so keyboard + screen-reader users get the
             same options as the visual mouse path. */}
         {showPanels && viewMode === '3d' ? (
-          <div className="absolute left-1/2 top-[calc(1rem+env(safe-area-inset-top,0px))] z-30 flex -translate-x-1/2 items-center gap-2 md:top-6">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-2">
             <div
               role="radiogroup"
               aria-label={t('studio.roomPreset.groupAria')}
@@ -626,7 +619,11 @@ export default function LiveStudio() {
               })}
             </div>
           </div>
-        ) : null}
+        ) : (
+          // Spacer keeps justify-between pushing the right cluster to the
+          // edge when the center controls are hidden (2D / preview mode).
+          <div className="min-w-0 flex-1" aria-hidden />
+        )}
 
         {/* SR live region — announces preset changes so screen-reader users
             track the visual change happening in the aria-hidden 3D canvas. */}
@@ -638,8 +635,8 @@ export default function LiveStudio() {
           })}
         </span>
 
-        {/* Top-right: view mode toggle + price chip (price hidden on mobile, lives in bottom bar) */}
-        <div className="absolute right-[calc(1rem+env(safe-area-inset-right,0px))] top-[calc(1rem+env(safe-area-inset-top,0px))] z-40 flex items-center gap-3 md:right-6 md:top-6">
+        {/* Right: view mode toggle + price chip (price hidden on mobile, lives in bottom bar) */}
+        <div className="flex shrink-0 items-center gap-3">
           <div className="flex rounded-xl border border-studio-ink-3 bg-studio-ink-2/90 p-1 shadow-xl backdrop-blur-md">
             <ViewToggle
               active={viewMode === '3d'}
@@ -674,7 +671,7 @@ export default function LiveStudio() {
                   </p>
                 </div>
               ) : (
-                <p className="mr-6 max-w-[13rem] text-xs leading-snug text-studio-fg-inv-soft">
+                <p className="mr-6 hidden max-w-[13rem] text-xs leading-snug text-studio-fg-inv-soft xl:block">
                   {t('studio.whatsapp.eyebrow')}
                 </p>
               )}
@@ -689,6 +686,19 @@ export default function LiveStudio() {
             </div>
           ) : null}
         </div>
+        </div>
+
+        {/* 3D interaction helper — anchored just above the bottom edge of
+            the canvas, centered. Desktop-only (mobile toolbar covers the
+            bottom). Visible only in 3D mode. */}
+        {showPanels && viewMode === '3d' ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-8 z-10 hidden justify-center md:flex">
+            <div className="inline-flex items-center gap-2 rounded-full border border-studio-ink-3 bg-studio-ink-2/80 px-4 py-2 text-xs text-studio-fg-inv-soft shadow-lg backdrop-blur-md">
+              <span aria-hidden>👆</span>
+              <span>{t('studio.scene.clickGlassHint')}</span>
+            </div>
+          </div>
+        ) : null}
 
         {/* Left panel: product / templates / material — desktop only */}
         {showPanels ? (
@@ -1354,7 +1364,9 @@ function ViewToggle({ active, onClick, label, icon }: ViewToggleProps) {
       )}
     >
       {icon}
-      <span className="hidden md:inline">{label}</span>
+      {/* xl+ only — shares the top row with the preset chips; text labels
+          on mid-width desktops made the two clusters collide. */}
+      <span className="hidden whitespace-nowrap xl:inline">{label}</span>
     </button>
   );
 }
@@ -1555,7 +1567,9 @@ function RoomPresetChip({ active, onClick, ariaLabel, title, icon, label }: Room
       )}
     >
       {icon}
-      <span className="hidden md:inline">{label}</span>
+      {/* Labels only on xl+ — between md and xl the centered preset group
+          collided with the right-side view toggle + WhatsApp chip. */}
+      <span className="hidden whitespace-nowrap xl:inline">{label}</span>
     </button>
   );
 }
