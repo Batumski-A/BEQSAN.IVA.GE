@@ -178,8 +178,7 @@ export default function LiveStudio() {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [orderOpen, setOrderOpen] = useState(false);
-  // WhatsApp handoff — captured drawing + its uploaded public link.
-  const snapshotRef = useRef<(() => string) | null>(null);
+  // WhatsApp handoff — rasterized blueprint + its uploaded share link.
   const blueprintShotRef = useRef<HTMLDivElement>(null);
   const [handoffShot, setHandoffShot] = useState<string | null>(null);
   const [handoffLink, setHandoffLink] = useState<string | null>(null);
@@ -407,46 +406,34 @@ export default function LiveStudio() {
     return lines.join('\n');
   }, [t, selectedProductSlug, materialKey, dimensions.widthCm, dimensions.heightCm, panes.length, handoffLink]);
 
-  /** CTA: grab the 3D shot if the canvas is live, open the handoff sheet.
-      The rest (blueprint fallback + upload) runs in the effect below. */
+  /** CTA: open the handoff sheet; the effect below builds + uploads the
+      drawing. Roman's call (2026-07-02): the message always carries the 2D
+      dimensioned blueprint — it's the workshop-usable drawing; the 3D shot
+      was also blank on some mobile GPUs. */
   const openHandoff = () => {
-    let shot: string | null = null;
-    if (viewMode !== '2d' && snapshotRef.current) {
-      try {
-        shot = snapshotRef.current();
-      } catch {
-        shot = null; // WebGL context loss etc. — blueprint fallback kicks in.
-      }
-    }
-    setHandoffShot(shot);
+    setHandoffShot(null);
     setHandoffLink(null);
     setHandoffUploading(true);
     setOrderOpen(true);
   };
 
-  // Once the handoff sheet opens: if no 3D shot was captured (2D view mode
-  // or a dead canvas), rasterize the hidden dimensioned blueprint instead —
-  // the drawing must ALWAYS travel with the WhatsApp message. Then upload
-  // whichever image we have; the open-chat link stays disabled meanwhile.
+  // Once the handoff sheet opens: rasterize the hidden dimensioned blueprint
+  // and upload it. The open-chat link stays disabled until the share link is
+  // in the message.
   useEffect(() => {
     if (!orderOpen) return;
     let cancelled = false;
     void (async () => {
-      let shot = handoffShot;
-      if (!shot) {
-        // Two frames so the hidden Blueprint2DViewer has mounted + laid out.
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-        const svg = blueprintShotRef.current?.querySelector('svg');
-        if (svg) {
-          shot = await svgToPngDataUrl(svg).catch(() => null);
-        }
-        if (cancelled) return;
-        if (shot) setHandoffShot(shot);
-      }
+      // Two frames so the hidden Blueprint2DViewer has mounted + laid out.
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      const svg = blueprintShotRef.current?.querySelector('svg');
+      const shot = svg ? await svgToPngDataUrl(svg).catch(() => null) : null;
+      if (cancelled) return;
       if (!shot) {
         setHandoffUploading(false); // text-only as the last resort
         return;
       }
+      setHandoffShot(shot);
       try {
         let uploaded;
         try {
@@ -457,7 +444,11 @@ export default function LiveStudio() {
           await new Promise((r) => setTimeout(r, 1500));
           uploaded = await uploadSnapshot(shot);
         }
-        if (!cancelled) setHandoffLink(new URL(uploaded.url, window.location.origin).toString());
+        if (!cancelled) {
+          setHandoffLink(
+            new URL(uploaded.shareUrl ?? uploaded.url, window.location.origin).toString(),
+          );
+        }
       } catch {
         // Text-only handoff is still useful; no error UI needed.
       } finally {
@@ -467,9 +458,6 @@ export default function LiveStudio() {
     return () => {
       cancelled = true;
     };
-    // handoffShot is set synchronously right before orderOpen flips — this
-    // effect intentionally keys on the sheet opening only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderOpen]);
 
   /**
@@ -550,7 +538,6 @@ export default function LiveStudio() {
                 isStudio={true}
                 background={bgPreset}
                 roomPreset={roomPreset}
-                snapshotRef={snapshotRef}
               />
             </Suspense>
           )}
@@ -1207,7 +1194,7 @@ export default function LiveStudio() {
                 <img
                   src={handoffShot}
                   alt={t('studio.whatsapp.shotAlt')}
-                  className="mb-4 aspect-video w-full rounded-xl border border-studio-paper-3 bg-studio-ink object-cover"
+                  className="mb-4 aspect-[4/3] w-full rounded-xl border border-studio-paper-3 bg-white object-contain"
                 />
               ) : null}
 

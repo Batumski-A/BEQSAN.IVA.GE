@@ -78,26 +78,62 @@ type ConfiguratorSceneProps = {
   roomPreset?: PresetKind | null;
   /**
    * When provided, the scene registers a capture function that renders one
-   * frame and returns it as a PNG data-URL. Used by the WhatsApp handoff to
-   * attach the drawing to the conversation. Rendering synchronously right
-   * before toDataURL avoids needing preserveDrawingBuffer.
+   * frame and returns it as a PNG data-URL, or null when the readback came
+   * out blank (some mobile GPUs return an empty buffer — the caller then
+   * falls back to the 2D blueprint). The frame is composited onto an opaque
+   * backdrop so WhatsApp doesn't show transparency as a blank sheet.
    */
-  snapshotRef?: MutableRefObject<(() => string) | null>;
+  snapshotRef?: MutableRefObject<(() => string | null) | null>;
 };
 
 /** Lives inside <Canvas>; exposes a render-then-capture closure via ref. */
 function SnapshotBridge({
   snapshotRef,
 }: {
-  snapshotRef: MutableRefObject<(() => string) | null>;
+  snapshotRef: MutableRefObject<(() => string | null) | null>;
 }) {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
   useEffect(() => {
     snapshotRef.current = () => {
+      // Render + read back synchronously in the same task — the drawing
+      // buffer is only guaranteed to survive until the next composite.
       gl.render(scene, camera);
-      return gl.domElement.toDataURL('image/png');
+      const src = gl.domElement;
+      const out = document.createElement('canvas');
+      out.width = src.width;
+      out.height = src.height;
+      const ctx = out.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#101827'; // opaque studio backdrop behind alpha canvas
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(src, 0, 0);
+
+      // Blank-frame guard: sample a 24×24 downscale — if every pixel still
+      // matches the backdrop, the GPU readback was empty and the caller
+      // should use the blueprint instead of sending an empty sheet.
+      const probe = document.createElement('canvas');
+      probe.width = 24;
+      probe.height = 24;
+      const pctx = probe.getContext('2d');
+      if (pctx) {
+        pctx.drawImage(out, 0, 0, 24, 24);
+        const data = pctx.getImageData(0, 0, 24, 24).data;
+        let differs = false;
+        for (let i = 0; i < data.length; i += 4) {
+          if (
+            Math.abs(data[i]! - 0x10) > 12 ||
+            Math.abs(data[i + 1]! - 0x18) > 12 ||
+            Math.abs(data[i + 2]! - 0x27) > 12
+          ) {
+            differs = true;
+            break;
+          }
+        }
+        if (!differs) return null;
+      }
+      return out.toDataURL('image/png');
     };
     return () => {
       snapshotRef.current = null;

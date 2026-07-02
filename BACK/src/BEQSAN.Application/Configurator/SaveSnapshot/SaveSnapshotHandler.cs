@@ -15,11 +15,12 @@ internal sealed class SaveSnapshotHandler(IStorageService storage)
     /// </summary>
     private const long MaxBase64PayloadChars = (MaxDecodedBytes / 3L * 4L) + 4L;
 
-    // Route prefix the Api layer serves stored files under. Application knowing
-    // an Api route is a pragmatic tradeoff — the same call the catalog already
-    // makes for gallery/hero ImageUrl strings, which are stored and returned
-    // as ready-to-use paths rather than abstract storage keys.
+    // Route prefixes the Api layer serves stored files / share pages under.
+    // Application knowing an Api route is a pragmatic tradeoff — the same call
+    // the catalog already makes for gallery/hero ImageUrl strings, which are
+    // stored and returned as ready-to-use paths rather than abstract keys.
     private const string PublicFilesPrefix = "/api/v1/files/";
+    private const string SharePrefix = "/api/v1/share/";
 
     private static readonly (string Prefix, string Extension, string ContentType)[] SupportedFormats =
     [
@@ -76,7 +77,9 @@ internal sealed class SaveSnapshotHandler(IStorageService storage)
             .SaveAsync(stream, $"drawing.{extension}", contentType, ct)
             .ConfigureAwait(false);
 
-        return Result.Success(new SnapshotDto(PublicFilesPrefix + storageKey));
+        return Result.Success(new SnapshotDto(
+            PublicFilesPrefix + storageKey,
+            SharePrefix + storageKey));
     }
 }
 

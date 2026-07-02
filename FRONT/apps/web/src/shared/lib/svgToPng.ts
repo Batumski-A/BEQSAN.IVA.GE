@@ -12,7 +12,18 @@ export async function svgToPngDataUrl(
 ): Promise<string> {
   const { scale = 2, background = '#f8fafc' } = opts;
 
-  const xml = new XMLSerializer().serializeToString(svg);
+  const rectSize = svg.getBoundingClientRect();
+  const vb = svg.viewBox?.baseVal;
+  const cssW = rectSize.width || vb?.width || 800;
+  const cssH = rectSize.height || vb?.height || 600;
+
+  // iOS Safari silently draws NOTHING when an SVG image has only a viewBox —
+  // clone the node and pin explicit width/height before serializing.
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute('width', String(cssW));
+  clone.setAttribute('height', String(cssH));
+
+  const xml = new XMLSerializer().serializeToString(clone);
   const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 
   const img = new Image();

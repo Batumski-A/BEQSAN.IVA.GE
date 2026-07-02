@@ -188,6 +188,11 @@ export function useConfiguratorReview(req: PriceRequest | null) {
 export type SnapshotResponse = {
   /** Public URL of the stored drawing, e.g. /api/v1/files/2026/07/02/xx.png */
   url: string;
+  /**
+   * OpenGraph wrapper page for the same drawing — this is what goes into
+   * the WhatsApp message so the chat renders a photo preview card.
+   */
+  shareUrl: string;
 };
 
 /**

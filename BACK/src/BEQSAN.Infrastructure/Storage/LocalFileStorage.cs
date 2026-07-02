@@ -88,7 +88,10 @@ internal sealed class LocalFileStorage(
 
     private string ResolveAbsolute(string storageKey)
     {
-        var root = GetRootAbsolute();
+        // Normalize the root too — with a relative LocalRoot ("data/uploads")
+        // the raw combine keeps the forward slash on Windows and the
+        // StartsWith guard below rejects every legitimate key.
+        var root = Path.GetFullPath(GetRootAbsolute());
         var combined = Path.GetFullPath(Path.Combine(root, storageKey.Replace('/', Path.DirectorySeparatorChar)));
 
         // Defense-in-depth: don't let a crafted key escape the storage root.

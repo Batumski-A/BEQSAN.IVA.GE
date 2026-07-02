@@ -118,6 +118,7 @@ if (app.Environment.IsDevelopment())
 app.MapHealthEndpoints();
 app.MapCatalogEndpoints();
 app.MapConfiguratorEndpoints();
+app.MapShareEndpoints();
 app.MapAdminAuthEndpoints();
 app.MapAdminCatalogEndpoints();
 app.MapOrdersEndpoints();
