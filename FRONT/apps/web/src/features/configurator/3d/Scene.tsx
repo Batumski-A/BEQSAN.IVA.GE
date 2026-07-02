@@ -488,6 +488,9 @@ function PaneDropdownBadge({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isChipHovered, setIsChipHovered] = useState(false);
+  const [opensUp, setOpensUp] = useState(false);
+  const [menuMaxH, setMenuMaxH] = useState(340);
+  const chipButtonRef = useRef<HTMLButtonElement>(null);
   const currentOption = options.find((opt) => opt.value === currentValue) || options[0];
 
   useEffect(() => {
@@ -503,7 +506,9 @@ function PaneDropdownBadge({
     <Html
       position={[0, bottomCenterY, frameDepth * 0.65]}
       center
-      zIndexRange={[100, 0]}
+      // Above the W/H dimension chips ([100,0]) and the drag handles
+      // ([120,0]) so the open menu is never covered by them.
+      zIndexRange={[180, 130]}
       style={{ pointerEvents: 'none' }}
     >
       <div
@@ -514,7 +519,23 @@ function PaneDropdownBadge({
         onMouseLeave={() => setIsChipHovered(false)}
       >
         <button
-          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+          ref={chipButtonRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            // Flip the menu upward when the chip sits in the lower half of
+            // the viewport — otherwise on phones the list runs past the
+            // bottom edge and the last rows are unreachable. Cap its height
+            // to the space actually available on the chosen side so it
+            // never kisses the viewport edge.
+            const rect = chipButtonRef.current?.getBoundingClientRect();
+            const up = rect ? rect.top > window.innerHeight * 0.45 : false;
+            setOpensUp(up);
+            if (rect) {
+              const available = up ? rect.top - 16 : window.innerHeight - rect.bottom - 16;
+              setMenuMaxH(Math.max(160, Math.min(340, available)));
+            }
+            setIsOpen(!isOpen);
+          }}
           title={currentOption?.label || currentValue}
           aria-label={`გახსენი პარამეტრები: ${currentOption?.label || currentValue}`}
           className={`flex items-center justify-center rounded-full border backdrop-blur transition-all duration-200 active:scale-95 ${
@@ -529,7 +550,13 @@ function PaneDropdownBadge({
         </button>
 
         {isOpen && (
-          <div className={`absolute left-1/2 mt-1.5 -translate-x-1/2 z-50 overflow-hidden rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200 ${isMobile ? 'min-w-[180px]' : 'min-w-[140px]'}`}>
+          <div
+            // Dynamic cap computed from the real distance to the viewport
+            // edge — not expressible as a static Tailwind class.
+            style={{ maxHeight: menuMaxH }}
+            className={`absolute left-1/2 -translate-x-1/2 z-50 overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-slate-950/90 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl animate-in fade-in duration-200 ${
+              opensUp ? 'bottom-full mb-1.5 slide-in-from-bottom-2' : 'top-full mt-1.5 slide-in-from-top-2'
+            } ${isMobile ? 'min-w-[180px]' : 'min-w-[140px]'}`}>
             {options.map((opt) => {
               const isSelected = opt.value === currentValue;
               return (
