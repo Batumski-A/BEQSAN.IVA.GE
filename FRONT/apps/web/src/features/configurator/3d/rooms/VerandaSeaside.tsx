@@ -65,13 +65,16 @@ export function VerandaSeaside({
       if (t === null) return;
       t.wrapS = RepeatWrapping;
       t.wrapT = RepeatWrapping;
-      t.repeat.set(2, 1.5);
+      // Denser tiling — at 2×1.5 the planks read as oversized slabs.
+      t.repeat.set(3.5, 2.5);
     });
   }, [deck]);
 
   return (
     <>
-      <Environment preset="dawn" background={false} />
+      {/* Neutral IBL — the previous "dawn" preset bathed the aluminum frame
+          in a pink cast; "city" keeps metallic reflections colorless. */}
+      <Environment preset="city" background={false} />
 
       {/* Sea backdrop on desktop only — the parallax cue helps the brain
           read it as "horizon far away" rather than "wall behind me". */}
@@ -93,7 +96,10 @@ export function VerandaSeaside({
           map={deck.map ?? null}
           normalMap={deck.normalMap ?? null}
           aoMap={deck.aoMap ?? null}
-          roughness={0.8}
+          // Mute the diffuse — the raw texture reads neon-orange under the
+          // bright daylight key.
+          color="#B8AC9E"
+          roughness={0.85}
           metalness={0}
         />
       </mesh>
@@ -119,7 +125,9 @@ export function VerandaSeaside({
         color="#FFFCEC"
         castShadow={!isMobile}
       />
-      <hemisphereLight args={['#A8E0FF', '#D8B080', 0.7]} />
+      {/* Ground bounce neutralized — the warm #D8B080 was the second source
+          of the pink cast on light frames. */}
+      <hemisphereLight args={['#A8E0FF', '#8F887E', 0.55]} />
     </>
   );
 }

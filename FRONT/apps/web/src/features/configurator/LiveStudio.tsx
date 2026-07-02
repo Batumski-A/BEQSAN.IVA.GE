@@ -28,6 +28,7 @@ import type { PresetKind } from './3d/rooms/presets';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import { whatsAppUrl } from '@/shared/config/contact';
+import { svgToPngDataUrl } from '@/shared/lib/svgToPng';
 import { useProductTypes, type ProductType } from '@/features/catalog/api';
 import { useMaterialsByProductType, useConfiguratorPrice, uploadSnapshot } from './api';
 import { paneRangeFor, useConfiguratorStore } from './store';
@@ -179,6 +180,7 @@ export default function LiveStudio() {
   const [orderOpen, setOrderOpen] = useState(false);
   // WhatsApp handoff — captured drawing + its uploaded public link.
   const snapshotRef = useRef<(() => string) | null>(null);
+  const blueprintShotRef = useRef<HTMLDivElement>(null);
   const [handoffShot, setHandoffShot] = useState<string | null>(null);
   const [handoffLink, setHandoffLink] = useState<string | null>(null);
   const [handoffUploading, setHandoffUploading] = useState(false);
@@ -396,31 +398,62 @@ export default function LiveStudio() {
     return lines.join('\n');
   }, [t, selectedProductSlug, materialKey, dimensions.widthCm, dimensions.heightCm, panes.length, handoffLink]);
 
-  /** CTA: capture the drawing, start the upload, open the handoff sheet. */
+  /** CTA: grab the 3D shot if the canvas is live, open the handoff sheet.
+      The rest (blueprint fallback + upload) runs in the effect below. */
   const openHandoff = () => {
     let shot: string | null = null;
     if (viewMode !== '2d' && snapshotRef.current) {
       try {
         shot = snapshotRef.current();
       } catch {
-        shot = null; // WebGL context loss etc. — send text-only.
+        shot = null; // WebGL context loss etc. — blueprint fallback kicks in.
       }
     }
     setHandoffShot(shot);
     setHandoffLink(null);
+    setHandoffUploading(true);
     setOrderOpen(true);
-    if (shot) {
-      setHandoffUploading(true);
-      uploadSnapshot(shot)
-        .then((r) => {
-          setHandoffLink(new URL(r.url, window.location.origin).toString());
-        })
-        .catch(() => {
-          // Text-only handoff is still useful; no error UI needed.
-        })
-        .finally(() => setHandoffUploading(false));
-    }
   };
+
+  // Once the handoff sheet opens: if no 3D shot was captured (2D view mode
+  // or a dead canvas), rasterize the hidden dimensioned blueprint instead —
+  // the drawing must ALWAYS travel with the WhatsApp message. Then upload
+  // whichever image we have; the open-chat link stays disabled meanwhile.
+  useEffect(() => {
+    if (!orderOpen) return;
+    let cancelled = false;
+    void (async () => {
+      let shot = handoffShot;
+      if (!shot) {
+        // Two frames so the hidden Blueprint2DViewer has mounted + laid out.
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        const svg = blueprintShotRef.current?.querySelector('svg');
+        if (svg) {
+          shot = await svgToPngDataUrl(svg).catch(() => null);
+        }
+        if (cancelled) return;
+        if (shot) setHandoffShot(shot);
+      }
+      if (!shot) {
+        setHandoffUploading(false); // text-only as the last resort
+        return;
+      }
+      try {
+        const r = await uploadSnapshot(shot);
+        if (!cancelled) setHandoffLink(new URL(r.url, window.location.origin).toString());
+      } catch {
+        // Text-only handoff is still useful; no error UI needed.
+      } finally {
+        if (!cancelled) setHandoffUploading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // handoffShot is set synchronously right before orderOpen flips — this
+    // effect intentionally keys on the sheet opening only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderOpen]);
 
   /**
    * Controls bundle passed into <Scene> for the in-scene dropdowns + W/H
@@ -1127,6 +1160,17 @@ export default function LiveStudio() {
         {/* WhatsApp handoff overlay — drawing preview + prefilled chat link */}
         {orderOpen ? (
           <div className="absolute inset-0 z-[60] flex items-end justify-center bg-studio-ink/80 backdrop-blur-sm sm:items-center sm:p-4">
+            {/* Off-screen dimensioned blueprint — the capture source when
+                the 3D canvas isn't available (2D mode / dead context). */}
+            {!handoffShot ? (
+              <div
+                ref={blueprintShotRef}
+                aria-hidden
+                className="pointer-events-none fixed left-[-9999px] top-0 h-[600px] w-[800px]"
+              >
+                <Blueprint2DViewer />
+              </div>
+            ) : null}
             <div className="w-full max-w-sm rounded-t-3xl bg-white p-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] shadow-2xl sm:rounded-3xl sm:pb-6">
               <div className="mb-4 flex items-start justify-between">
                 <h2 className="text-xl font-bold leading-tight text-studio-fg">
@@ -1158,10 +1202,20 @@ export default function LiveStudio() {
                 href={whatsAppUrl(whatsAppMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-studio-brand py-3 font-bold text-white shadow-studio-brand-glow transition-colors hover:bg-studio-brand-h"
+                aria-disabled={handoffUploading}
+                className={cn(
+                  'flex w-full items-center justify-center gap-2 rounded-xl bg-studio-brand py-3 font-bold text-white shadow-studio-brand-glow transition-colors hover:bg-studio-brand-h',
+                  // Hold the user until the drawing link is in the message —
+                  // tapping early used to send a text-only chat.
+                  handoffUploading && 'pointer-events-none opacity-60',
+                )}
               >
-                <MessageCircle className="h-5 w-5" aria-hidden />
-                {t('studio.whatsapp.open')}
+                {handoffUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+                ) : (
+                  <MessageCircle className="h-5 w-5" aria-hidden />
+                )}
+                {handoffUploading ? t('studio.whatsapp.attaching') : t('studio.whatsapp.open')}
               </a>
 
               <p className="mt-3 flex min-h-[1rem] items-center justify-center gap-1.5 text-center text-xs text-studio-fg-mute">
