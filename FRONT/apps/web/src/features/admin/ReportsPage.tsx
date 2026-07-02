@@ -15,17 +15,15 @@ import {
 
 import { AdminLayout } from './AdminLayout';
 import { getReportsOverview, type OrderStatus, type ReportsOverview } from './api';
+import { ORDER_STATUS_LABEL, STATUS_FG, SkeletonBlock } from './statusPalette';
 
-const STATUS_META: Record<
-  OrderStatus,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
-> = {
-  Pending: { label: 'მოლოდინში', icon: Clock, color: 'text-accent-amber' },
-  Confirmed: { label: 'დადასტურებული', icon: CheckCircle2, color: 'text-blue-400' },
-  InProduction: { label: 'წარმოებაში', icon: Factory, color: 'text-purple-400' },
-  Ready: { label: 'მზადაა', icon: PackageCheck, color: 'text-system-success' },
-  Delivered: { label: 'ჩაბარებული', icon: Wrench, color: 'text-fg-tertiary' },
-  Cancelled: { label: 'გაუქმდა', icon: XCircle, color: 'text-system-danger' },
+const STATUS_ICONS: Record<OrderStatus, React.ComponentType<{ className?: string }>> = {
+  Pending: Clock,
+  Confirmed: CheckCircle2,
+  InProduction: Factory,
+  Ready: PackageCheck,
+  Delivered: Wrench,
+  Cancelled: XCircle,
 };
 
 const fmtGel = (minor: number): string =>
@@ -60,9 +58,14 @@ export const ReportsPage = (): JSX.Element => {
       }
     >
       {query.isPending ? (
-        <div className="rounded-xl border border-hairline-strong bg-bg-elevated/40 p-12 text-center font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-          იტვირთება…
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonBlock key={i} className="h-32" />
+            ))}
+          </div>
+          <SkeletonBlock className="mt-8 h-72" />
+        </>
       ) : query.isError || !data ? (
         <div className="rounded-xl border border-system-danger/40 bg-system-danger/5 p-8 text-center text-system-danger">
           რეპორტი ვერ ჩამოიქაჩა.
@@ -100,17 +103,18 @@ export const ReportsPage = (): JSX.Element => {
           <section className="mt-8 rounded-xl border border-hairline-strong bg-bg-elevated/40 backdrop-blur-sm p-6">
             <h2 className="mb-4 font-headline text-h4 text-fg-primary">სტატუსების განაწილება</h2>
             <div className="space-y-3">
-              {(Object.keys(STATUS_META) as OrderStatus[]).map((status) => {
-                const meta = STATUS_META[status];
+              {(Object.keys(STATUS_ICONS) as OrderStatus[]).map((status) => {
+                const Icon = STATUS_ICONS[status];
+                const color = STATUS_FG[status];
+                const label = ORDER_STATUS_LABEL[status];
                 const count = data.byStatus[status] ?? 0;
                 const pct = data.totalOrders > 0 ? (count / data.totalOrders) * 100 : 0;
-                const Icon = meta.icon;
                 return (
                   <div key={status} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
                     {/* Row 1 on mobile: label + count + pct. Row 1 on desktop: just label. */}
                     <div className="flex items-center gap-2 sm:w-44">
-                      <Icon className={`h-4 w-4 shrink-0 ${meta.color}`} />
-                      <span className="text-body-sm text-fg-primary flex-1 truncate">{meta.label}</span>
+                      <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+                      <span className="text-body-sm text-fg-primary flex-1 truncate">{label}</span>
                       <span className="font-mono text-body-sm tabular-nums text-fg-primary sm:hidden">
                         {count}
                       </span>
@@ -120,7 +124,7 @@ export const ReportsPage = (): JSX.Element => {
                     </div>
                     <div className="relative h-2.5 flex-1 overflow-hidden rounded-full border border-hairline bg-bg-base">
                       <div
-                        className={`absolute left-0 top-0 h-full rounded-full bg-current ${meta.color}`}
+                        className={`absolute left-0 top-0 h-full rounded-full bg-current ${color}`}
                         style={{ width: `${pct}%`, opacity: 0.6 }}
                       />
                     </div>

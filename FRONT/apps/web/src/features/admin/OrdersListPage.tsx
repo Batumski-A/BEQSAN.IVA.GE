@@ -4,24 +4,7 @@ import { ShoppingCart, Phone, RefreshCw, Search } from 'lucide-react';
 
 import { AdminLayout } from './AdminLayout';
 import { listOrders, type OrderListItem, type OrderStatus } from './api';
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  Pending: 'მოლოდინში',
-  Confirmed: 'დადასტურებული',
-  InProduction: 'წარმოებაში',
-  Ready: 'მზადაა',
-  Delivered: 'ჩაბარებული',
-  Cancelled: 'გაუქმდა',
-};
-
-const STATUS_STYLES: Record<OrderStatus, string> = {
-  Pending: 'bg-accent-amber/15 text-accent-amber border-accent-amber/30',
-  Confirmed: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  InProduction: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  Ready: 'bg-system-success/15 text-system-success border-system-success/30',
-  Delivered: 'bg-fg-tertiary/15 text-fg-tertiary border-hairline-strong',
-  Cancelled: 'bg-system-danger/15 text-system-danger border-system-danger/30',
-};
+import { ORDER_STATUS_LABEL as STATUS_LABELS, STATUS_CHIP, SkeletonBlock } from './statusPalette';
 
 const FILTERS: Array<OrderStatus | 'All'> = [
   'All',
@@ -148,8 +131,10 @@ export const OrdersListPage = (): JSX.Element => {
 
       {/* List */}
       {loading && orders.length === 0 ? (
-        <div className="rounded-xl border border-hairline-strong bg-bg-elevated/40 p-8 text-center font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-          იტვირთება…
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonBlock key={i} className="h-16" />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-hairline-strong bg-bg-elevated/40 p-12 text-center">
@@ -179,7 +164,7 @@ export const OrdersListPage = (): JSX.Element => {
                     <div className="text-body-sm text-fg-primary truncate">{o.customerName}</div>
                   </div>
                   <span
-                    className={`inline-flex shrink-0 rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_STYLES[o.status]}`}
+                    className={`inline-flex shrink-0 rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_CHIP[o.status]}`}
                   >
                     {STATUS_LABELS[o.status]}
                   </span>
@@ -242,7 +227,7 @@ export const OrdersListPage = (): JSX.Element => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_STYLES[o.status]}`}
+                        className={`inline-flex rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${STATUS_CHIP[o.status]}`}
                       >
                         {STATUS_LABELS[o.status]}
                       </span>

@@ -106,7 +106,7 @@ export const AdminLogin = (): JSX.Element => {
     <div className="flex min-h-dvh items-center justify-center bg-bg-base px-4 py-12 text-fg-primary overflow-hidden relative">
       {/* Premium animated/blurred color spots */}
       <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[50vw] w-[50vw] rounded-full bg-accent-amber/5 blur-[120px] animate-pulse-soft" />
-      <div className="pointer-events-none absolute right-[-10%] bottom-[-10%] h-[50vw] w-[50vw] rounded-full bg-blue-500/5 blur-[120px] animate-pulse-soft" />
+      <div className="pointer-events-none absolute right-[-10%] bottom-[-10%] h-[50vw] w-[50vw] rounded-full bg-mat-aluminum/5 blur-[120px] animate-pulse-soft" />
 
       <form
         onSubmit={isSetup ? handleSetup : handleLogin}
