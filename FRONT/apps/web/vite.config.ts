@@ -42,6 +42,10 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        // NEVER swallow API navigations with the SPA shell — opening a
+        // snapshot drawing link (/api/v1/files/*.png) from WhatsApp used
+        // to render the React 404 page instead of the image.
+        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],
