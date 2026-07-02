@@ -178,22 +178,32 @@ function BlueprintCanvas({ widthCm, heightCm, panes, hSplits, t }: CanvasProps) 
           />
         ))}
 
-        {/* Horizontal transom mullions — one per pane where hSplits[i] is true. */}
-        {ratios.map((_, i) => {
+        {/* Horizontal transom mullions — one per pane where hSplits[i] is
+            true, drawn at the pane's REAL top-sash ratio (it used to sit at
+            a fixed 50% and disagree with the 3D model). Each split also gets
+            per-sash height labels so the workshop drawing carries the full
+            cut list. */}
+        {panes.map((pane, i) => {
           if (!hSplits[i]) return null;
           const x1 = sectionEdges[i]! + 4;
           const x2 = sectionEdges[i + 1]! - 4;
-          const y = frameTop + drawHeight / 2;
+          const ratio = Math.min(0.9, Math.max(0.05, pane.transomHeightRatio ?? 0.3));
+          const y = frameTop + drawHeight * ratio;
+          const topCm = Math.round(heightCm * ratio);
+          const bottomCm = heightCm - topCm;
           return (
-            <line
-              key={`mullion-h-${i}`}
-              x1={x1}
-              x2={x2}
-              y1={y}
-              y2={y}
-              stroke={FRAME_STROKE}
-              strokeWidth="3"
-            />
+            <g key={`mullion-h-${i}`}>
+              <line
+                x1={x1}
+                x2={x2}
+                y1={y}
+                y2={y}
+                stroke={FRAME_STROKE}
+                strokeWidth="3"
+              />
+              <SashHeightTick x={x2 - 24} y1={frameTop + 14} y2={y - 2} label={`${topCm}`} />
+              <SashHeightTick x={x2 - 24} y1={y + 2} y2={frameBottom - 14} label={`${bottomCm}`} />
+            </g>
           );
         })}
 
@@ -208,6 +218,7 @@ function BlueprintCanvas({ widthCm, heightCm, panes, hSplits, t }: CanvasProps) 
             opening={pane.openingType}
             hingeSide={pane.hingeSide}
             hSplit={hSplits[i] ?? false}
+            hSplitRatio={Math.min(0.9, Math.max(0.05, pane.transomHeightRatio ?? 0.3))}
           />
         ))}
 
@@ -416,6 +427,58 @@ function DimensionTick({
   );
 }
 
+/**
+ * Compact vertical dimension for a transom sash — drawn just inside the
+ * pane's right edge so multi-pane layouts can each carry their own pair.
+ */
+function SashHeightTick({
+  x,
+  y1,
+  y2,
+  label,
+}: {
+  x: number;
+  y1: number;
+  y2: number;
+  label: string;
+}) {
+  const tickWidth = 8;
+  const midY = (y1 + y2) / 2;
+  return (
+    <g>
+      <line x1={x} x2={x} y1={y1 + 6} y2={y2 - 6} stroke={DIM_STROKE} strokeWidth="1.2" />
+      <line
+        x1={x - tickWidth}
+        x2={x + tickWidth}
+        y1={y1}
+        y2={y1}
+        stroke={DIM_STROKE}
+        strokeWidth="1.2"
+      />
+      <line
+        x1={x - tickWidth}
+        x2={x + tickWidth}
+        y1={y2}
+        y2={y2}
+        stroke={DIM_STROKE}
+        strokeWidth="1.2"
+      />
+      <text
+        x={x - 12}
+        y={midY}
+        fill={DIM_STROKE}
+        fontFamily="'JetBrains Mono', ui-monospace, monospace"
+        fontSize="16"
+        textAnchor="middle"
+        fontWeight="700"
+        transform={`rotate(-90 ${x - 12} ${midY})`}
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
+
 function OpeningIndicator({
   xLeft,
   xRight,
@@ -424,6 +487,7 @@ function OpeningIndicator({
   opening,
   hingeSide,
   hSplit,
+  hSplitRatio = 0.3,
 }: {
   xLeft: number;
   xRight: number;
@@ -432,12 +496,14 @@ function OpeningIndicator({
   opening: PaneOpeningType;
   hingeSide: HingeSide | null | undefined;
   hSplit: boolean;
+  /** Top-sash fraction of the transom split — mirrors the 3D model. */
+  hSplitRatio?: number;
 }) {
-  // When the pane has a mid-rail transom, draw the indicator on the bottom
-  // half only — the top half reads as a fixed clerestory pane on most
-  // BEQSAN layouts. (Phase 1 simplification; per-half opening lands when
-  // the store models top/bottom panes separately.)
-  const yTopEff = hSplit ? yTop + (yBottom - yTop) / 2 : yTop;
+  // When the pane has a transom, draw the indicator on the bottom sash
+  // only — the top sash reads as a fixed clerestory pane on most BEQSAN
+  // layouts. Uses the pane's real split ratio so the glyph sits inside
+  // the actual bottom sash.
+  const yTopEff = hSplit ? yTop + (yBottom - yTop) * hSplitRatio : yTop;
   const inset = 18;
   const x1 = xLeft + inset;
   const x2 = xRight - inset;
