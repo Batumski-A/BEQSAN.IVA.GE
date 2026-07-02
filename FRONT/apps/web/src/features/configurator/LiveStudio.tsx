@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,8 @@ import {
   Check,
   DoorOpen,
   GalleryHorizontal,
+  Loader2,
+  MessageCircle,
   Square,
   PanelsTopLeft,
   Eye,
@@ -24,8 +26,10 @@ import type { ConfigurationPaneInput, HingeSide, PaneOpeningType } from '@beqsan
 import type { PresetKind } from './3d/rooms/presets';
 
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
+import { whatsAppUrl } from '@/shared/config/contact';
 import { useProductTypes, type ProductType } from '@/features/catalog/api';
-import { useMaterialsByProductType, useConfiguratorPrice } from './api';
+import { useMaterialsByProductType, useConfiguratorPrice, uploadSnapshot } from './api';
 import { paneRangeFor, useConfiguratorStore } from './store';
 import { Blueprint2DViewer } from './blueprint/Blueprint2DViewer';
 
@@ -173,6 +177,11 @@ export default function LiveStudio() {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [orderOpen, setOrderOpen] = useState(false);
+  // WhatsApp handoff — captured drawing + its uploaded public link.
+  const snapshotRef = useRef<(() => string) | null>(null);
+  const [handoffShot, setHandoffShot] = useState<string | null>(null);
+  const [handoffLink, setHandoffLink] = useState<string | null>(null);
+  const [handoffUploading, setHandoffUploading] = useState(false);
   const [materialKey, setMaterialKey] = useState<MaterialKey>('alumil');
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [bgPreset, setBgPreset] = useState<BackgroundPreset>('dark');
@@ -187,13 +196,11 @@ export default function LiveStudio() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(max-width: 767px)');
-    const update = () => {
-      const matches = mq.matches;
-      setIsMobile(matches);
-      if (matches) {
-        setMobileSheet((prev) => (prev === null ? 'product' : prev));
-      }
-    };
+    // Note: we deliberately do NOT auto-open a sheet here. The old
+    // auto-open covered the whole 3D scene with a backdrop on first
+    // mobile load — the visitor never saw the product before a modal
+    // blocked it. The bottom toolbar is discoverable enough.
+    const update = () => setIsMobile(mq.matches);
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
@@ -299,7 +306,9 @@ export default function LiveStudio() {
       panes,
     };
   }, [productType, material, debouncedWidth, debouncedHeight, panes]);
-  const priceQuery = useConfiguratorPrice(priceReq);
+  // With public prices off the endpoint is never called — the total is
+  // negotiated in WhatsApp instead.
+  const priceQuery = useConfiguratorPrice(SHOW_PUBLIC_PRICES ? priceReq : null);
 
   // Handlers
   const onPickProduct = (slug: ProductSlug) => {
@@ -367,6 +376,51 @@ export default function LiveStudio() {
   const price = priceQuery.data?.totalMinor != null ? priceQuery.data.totalMinor / 100 : null;
   const isLoadingPrice = priceQuery.isPending || priceQuery.isFetching;
   const showPanels = viewMode !== 'preview';
+
+  /**
+   * The prefilled WhatsApp message: greeting + config summary + (when the
+   * upload succeeded) a public link to the drawing. Roman reads it and the
+   * price conversation continues in the chat.
+   */
+  const whatsAppMessage = useMemo(() => {
+    const lines = [
+      t('studio.whatsapp.msgIntro'),
+      `${t('studio.panel.product')}: ${selectedProductSlug ? t(`studio.products.${selectedProductSlug}`) : '—'}`,
+      `${t('studio.panel.profile')}: ${t(`studio.profile.${materialKey}.title`)}`,
+      `${t('studio.whatsapp.msgSize')}: ${dimensions.widthCm}×${dimensions.heightCm} ${t('studio.whatsapp.msgCm')}`,
+      `${t('studio.whatsapp.msgSections')}: ${panes.length}`,
+    ];
+    if (handoffLink) {
+      lines.push(`${t('studio.whatsapp.msgDrawing')}: ${handoffLink}`);
+    }
+    return lines.join('\n');
+  }, [t, selectedProductSlug, materialKey, dimensions.widthCm, dimensions.heightCm, panes.length, handoffLink]);
+
+  /** CTA: capture the drawing, start the upload, open the handoff sheet. */
+  const openHandoff = () => {
+    let shot: string | null = null;
+    if (viewMode !== '2d' && snapshotRef.current) {
+      try {
+        shot = snapshotRef.current();
+      } catch {
+        shot = null; // WebGL context loss etc. — send text-only.
+      }
+    }
+    setHandoffShot(shot);
+    setHandoffLink(null);
+    setOrderOpen(true);
+    if (shot) {
+      setHandoffUploading(true);
+      uploadSnapshot(shot)
+        .then((r) => {
+          setHandoffLink(new URL(r.url, window.location.origin).toString());
+        })
+        .catch(() => {
+          // Text-only handoff is still useful; no error UI needed.
+        })
+        .finally(() => setHandoffUploading(false));
+    }
+  };
 
   /**
    * Controls bundle passed into <Scene> for the in-scene dropdowns + W/H
@@ -443,6 +497,7 @@ export default function LiveStudio() {
                 isStudio={true}
                 background={bgPreset}
                 roomPreset={roomPreset}
+                snapshotRef={snapshotRef}
               />
             </Suspense>
           )}
@@ -605,21 +660,28 @@ export default function LiveStudio() {
 
           {showPanels ? (
             <div className="hidden items-center rounded-2xl border border-studio-ink-3 bg-studio-ink/90 p-2 pl-6 shadow-2xl backdrop-blur-xl md:flex">
-              <div className="mr-6">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
-                  {t('studio.price.eyebrow')}
+              {SHOW_PUBLIC_PRICES ? (
+                <div className="mr-6">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+                    {t('studio.price.eyebrow')}
+                  </p>
+                  <p className="mt-1 text-2xl font-bold leading-none tabular-nums text-white">
+                    {isLoadingPrice && price === null ? '—' : price !== null ? formatGel(price) : '—'}
+                    <span className="ml-1 text-sm text-studio-fg-inv-soft">₾</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="mr-6 max-w-[13rem] text-xs leading-snug text-studio-fg-inv-soft">
+                  {t('studio.whatsapp.eyebrow')}
                 </p>
-                <p className="mt-1 text-2xl font-bold leading-none tabular-nums text-white">
-                  {isLoadingPrice && price === null ? '—' : price !== null ? formatGel(price) : '—'}
-                  <span className="ml-1 text-sm text-studio-fg-inv-soft">₾</span>
-                </p>
-              </div>
+              )}
               <button
                 type="button"
-                onClick={() => setOrderOpen(true)}
-                className="rounded-xl bg-studio-brand px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-colors hover:bg-studio-brand-h"
+                onClick={openHandoff}
+                className="inline-flex items-center gap-2 rounded-xl bg-studio-brand px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-colors hover:bg-studio-brand-h"
               >
-                {t('studio.price.cta')}
+                <MessageCircle className="h-4 w-4" aria-hidden />
+                {t('studio.whatsapp.cta')}
               </button>
             </div>
           ) : null}
@@ -787,22 +849,29 @@ export default function LiveStudio() {
         {showPanels ? (
           <div className="fixed inset-x-0 bottom-0 z-30 md:hidden">
             {/* Price + Order CTA */}
-            <div className="flex items-center justify-between border-t border-studio-ink-3 bg-studio-ink/95 px-4 py-3 backdrop-blur-xl">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
-                  {t('studio.price.eyebrow')}
+            <div className="flex items-center justify-between gap-3 border-t border-studio-ink-3 bg-studio-ink/95 px-4 py-3 backdrop-blur-xl">
+              {SHOW_PUBLIC_PRICES ? (
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-studio-fg-inv-soft">
+                    {t('studio.price.eyebrow')}
+                  </p>
+                  <p className="mt-0.5 text-xl font-bold leading-none tabular-nums text-white">
+                    {isLoadingPrice && price === null ? '—' : price !== null ? formatGel(price) : '—'}
+                    <span className="ml-1 text-xs text-studio-fg-inv-soft">₾</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="min-w-0 flex-1 text-[11px] leading-snug text-studio-fg-inv-soft">
+                  {t('studio.whatsapp.eyebrow')}
                 </p>
-                <p className="mt-0.5 text-xl font-bold leading-none tabular-nums text-white">
-                  {isLoadingPrice && price === null ? '—' : price !== null ? formatGel(price) : '—'}
-                  <span className="ml-1 text-xs text-studio-fg-inv-soft">₾</span>
-                </p>
-              </div>
+              )}
               <button
                 type="button"
-                onClick={() => setOrderOpen(true)}
-                className="rounded-xl bg-studio-brand px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-colors hover:bg-studio-brand-h"
+                onClick={openHandoff}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-studio-brand px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-colors hover:bg-studio-brand-h"
               >
-                {t('studio.price.cta')}
+                <MessageCircle className="h-4 w-4" aria-hidden />
+                {t('studio.whatsapp.cta')}
               </button>
             </div>
 
@@ -1042,24 +1111,59 @@ export default function LiveStudio() {
           </div>
         ) : null}
 
-        {/* Order overlay */}
+        {/* WhatsApp handoff overlay — drawing preview + prefilled chat link */}
         {orderOpen ? (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-studio-ink/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                <Check className="h-6 w-6" aria-hidden />
+          <div className="absolute inset-0 z-[60] flex items-end justify-center bg-studio-ink/80 backdrop-blur-sm sm:items-center sm:p-4">
+            <div className="w-full max-w-sm rounded-t-3xl bg-white p-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] shadow-2xl sm:rounded-3xl sm:pb-6">
+              <div className="mb-4 flex items-start justify-between">
+                <h2 className="text-xl font-bold leading-tight text-studio-fg">
+                  {t('studio.whatsapp.title')}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setOrderOpen(false)}
+                  className="-mr-1 -mt-1 rounded-lg p-1.5 text-studio-fg-mute transition-colors hover:bg-studio-paper-3"
+                  aria-label={t('studio.order.close')}
+                >
+                  <X className="h-5 w-5" aria-hidden />
+                </button>
               </div>
-              <h2 className="mb-2 text-2xl font-bold text-studio-fg">
-                {t('studio.order.thanksTitle')}
-              </h2>
-              <p className="mb-6 text-sm text-studio-fg-mute">{t('studio.order.thanksBody')}</p>
-              <button
-                type="button"
-                onClick={() => setOrderOpen(false)}
-                className="w-full rounded-xl bg-studio-fg py-3 font-bold text-white transition-colors hover:bg-studio-ink-2"
+
+              {handoffShot ? (
+                <img
+                  src={handoffShot}
+                  alt={t('studio.whatsapp.shotAlt')}
+                  className="mb-4 aspect-video w-full rounded-xl border border-studio-paper-3 bg-studio-ink object-cover"
+                />
+              ) : null}
+
+              <p className="mb-5 text-sm leading-relaxed text-studio-fg-mute">
+                {t('studio.whatsapp.body')}
+              </p>
+
+              <a
+                href={whatsAppUrl(whatsAppMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-studio-brand py-3 font-bold text-white shadow-studio-brand-glow transition-colors hover:bg-studio-brand-h"
               >
-                {t('studio.order.close')}
-              </button>
+                <MessageCircle className="h-5 w-5" aria-hidden />
+                {t('studio.whatsapp.open')}
+              </a>
+
+              <p className="mt-3 flex min-h-[1rem] items-center justify-center gap-1.5 text-center text-xs text-studio-fg-mute">
+                {handoffUploading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                    {t('studio.whatsapp.attaching')}
+                  </>
+                ) : handoffLink ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-600" aria-hidden />
+                    {t('studio.whatsapp.attached')}
+                  </>
+                ) : null}
+              </p>
             </div>
           </div>
         ) : null}

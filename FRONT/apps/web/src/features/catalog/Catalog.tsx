@@ -5,6 +5,7 @@ import { ArrowRight, RefreshCw } from 'lucide-react';
 
 import { useProductTypes, type ProductType } from './api';
 import { resolveLocalized } from './localized';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import { ProductIllustrationFor } from '@/shared/illustrations/ProductIllustrations';
 
 export default function Catalog() {
@@ -115,7 +116,11 @@ function ProductCard({
         <dl className="mt-4 space-y-1.5 border-t border-hairline pt-4">
           <SpecRow label={t('catalog.spec.materialLabel')} value={t('catalog.spec.materialValue')} />
           <SpecRow label={t('catalog.spec.installLabel')} value={t('catalog.spec.installValue')} />
-          <SpecRow label={t('catalog.spec.priceLabel')} value={t('catalog.spec.priceValue')} />
+          {SHOW_PUBLIC_PRICES ? (
+            <SpecRow label={t('catalog.spec.priceLabel')} value={t('catalog.spec.priceValue')} />
+          ) : (
+            <SpecRow label={t('catalog.spec.warrantyLabel')} value={t('catalog.spec.warrantyValue')} />
+          )}
         </dl>
 
         <div className="mt-auto flex items-center justify-between pt-4 font-mono text-mono-spec uppercase tracking-wider text-fg-tertiary transition-colors group-hover:text-accent-amber">

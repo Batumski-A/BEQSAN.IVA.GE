@@ -35,6 +35,7 @@ import {
   useConfiguratorStore,
 } from '@/features/configurator/store';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import { cn } from '@/shared/lib/cn';
 
 import {
@@ -409,7 +410,7 @@ export function Estimator({ t, isActive = false }: { t: TFunction; isActive?: bo
     selectedColor?.id,
   ]);
 
-  const priceQuery = useConfiguratorPrice(priceReq);
+  const priceQuery = useConfiguratorPrice(SHOW_PUBLIC_PRICES ? priceReq : null);
   const unitPrice = priceQuery.data?.totalMinor != null ? priceQuery.data.totalMinor / 100 : null;
   const totalPrice = unitPrice != null ? unitPrice * quantity : null;
   const isLoadingPrice = priceQuery.isPending || priceQuery.isFetching;
@@ -508,8 +509,8 @@ export function Estimator({ t, isActive = false }: { t: TFunction; isActive?: bo
           transition={{ duration: 0.7, ease: easeOut }}
           className="mb-2 sm:mb-4 text-center flex-shrink-0"
         >
-          <span className="mb-1 sm:mb-2 inline-block rounded-full border border-studio-brand/30 bg-studio-brand/15 px-3 py-0.5 sm:px-4 sm:py-1 font-mono text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.25em] text-studio-brand-soft backdrop-blur-md">
-            ONLINE CALCULATOR · ZERO PHONE CALLS
+          <span className="mb-1 sm:mb-2 inline-block rounded-full border border-studio-brand/30 bg-studio-brand/15 px-3 py-0.5 sm:px-4 sm:py-1 font-mono text-[9px] sm:text-[10px] font-bold tracking-[0.25em] text-studio-brand-soft backdrop-blur-md">
+            {t('home.calcEyebrow')}
           </span>
           <h2 className="mb-0.5 sm:mb-1 text-lg sm:text-2xl font-extrabold leading-tight md:text-4xl">
             {t('home.estimatorTitle')}
@@ -796,23 +797,31 @@ export function Estimator({ t, isActive = false }: { t: TFunction; isActive?: bo
                     <span>ფართობი</span>
                     <span className="font-mono font-bold tabular-nums text-white">{areaSqm} მ²</span>
                   </div>
-                  {quantity > 1 && unitPrice != null && (
-                    <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400 leading-none">
-                      <span>ერთეული</span>
-                      <span className="font-mono font-bold tabular-nums text-slate-300">
-                        {formatGel(unitPrice)} ₾
-                      </span>
-                    </div>
+                  {SHOW_PUBLIC_PRICES ? (
+                    <>
+                      {quantity > 1 && unitPrice != null && (
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400 leading-none">
+                          <span>ერთეული</span>
+                          <span className="font-mono font-bold tabular-nums text-slate-300">
+                            {formatGel(unitPrice)} ₾
+                          </span>
+                        </div>
+                      )}
+                      <div className={cn("mt-1.5 mb-0.5 text-[10px] tracking-wider text-slate-500 leading-none", lang === 'ka' ? '' : 'uppercase')}>
+                        {t('home.calc.priceLabel')}
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="bg-gradient-to-r from-white via-studio-brand-soft to-indigo-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent tabular-nums drop-shadow-[0_0_30px_rgba(37,99,235,0.4)]">
+                          <AnimatedPrice value={totalPrice} loading={isLoadingPrice} />
+                        </span>
+                        <span className="text-base font-bold text-slate-400">₾</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                      {t('home.calc.noPriceNote')}
+                    </p>
                   )}
-                  <div className={cn("mt-1.5 mb-0.5 text-[10px] tracking-wider text-slate-500 leading-none", lang === 'ka' ? '' : 'uppercase')}>
-                    {t('home.calc.priceLabel')}
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="bg-gradient-to-r from-white via-studio-brand-soft to-indigo-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent tabular-nums drop-shadow-[0_0_30px_rgba(37,99,235,0.4)]">
-                      <AnimatedPrice value={totalPrice} loading={isLoadingPrice} />
-                    </span>
-                    <span className="text-base font-bold text-slate-400">₾</span>
-                  </div>
                 </div>
 
                 <button
@@ -838,17 +847,26 @@ export function Estimator({ t, isActive = false }: { t: TFunction; isActive?: bo
       >
         {/* Row 1: Compact price display & 3D button */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-studio-ink-3/40">
-          <div className="flex flex-col">
-            <span className={cn("text-[9px] font-bold tracking-wider text-slate-400", lang === 'ka' ? '' : 'uppercase')}>
-              {t('home.calc.priceLabel')}
-            </span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-xl font-extrabold tracking-tight text-white tabular-nums">
-                <AnimatedPrice value={totalPrice} loading={isLoadingPrice} />
+          {SHOW_PUBLIC_PRICES ? (
+            <div className="flex flex-col">
+              <span className={cn("text-[9px] font-bold tracking-wider text-slate-400", lang === 'ka' ? '' : 'uppercase')}>
+                {t('home.calc.priceLabel')}
               </span>
-              <span className="text-sm font-bold text-slate-400">₾</span>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-xl font-extrabold tracking-tight text-white tabular-nums">
+                  <AnimatedPrice value={totalPrice} loading={isLoadingPrice} />
+                </span>
+                <span className="text-sm font-bold text-slate-400">₾</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center gap-2 pr-3">
+              <span className="font-mono text-[10px] font-bold tabular-nums text-slate-300">
+                {width}×{height} სმ
+              </span>
+              <span className="truncate text-[10px] text-slate-500">· {areaSqm} მ²</span>
+            </div>
+          )}
 
           <button
             onClick={handleOpenConfigurator}
@@ -1292,7 +1310,7 @@ function ColorPicker({
                 : 'border-studio-ink-3 hover:border-studio-brand/50',
             )}
             aria-label={label ?? undefined}
-            title={(label ?? '') + (surcharge > 0 ? ` (+${surcharge / 100} ₾)` : '')}
+            title={(label ?? '') + (SHOW_PUBLIC_PRICES && surcharge > 0 ? ` (+${surcharge / 100} ₾)` : '')}
           >
             <span
               className="absolute inset-0"
@@ -1309,7 +1327,7 @@ function ColorPicker({
                 <Check className="h-3 w-3" />
               </span>
             )}
-            {surcharge > 0 && (
+            {SHOW_PUBLIC_PRICES && surcharge > 0 && (
               <span className="absolute left-1 top-1 rounded-md bg-black/65 px-1 font-mono text-[9px] font-bold text-amber-300">
                 +{surcharge / 100}₾
               </span>

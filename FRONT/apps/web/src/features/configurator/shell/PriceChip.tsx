@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useConfiguratorPrice, type PriceRequest } from '../api';
 import { useConfiguratorStore } from '../store';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 
 type Props = {
   onSendOrder: () => void;
@@ -46,29 +47,37 @@ export function PriceChip({ onSendOrder }: Props) {
           installation: installation ?? undefined,
         }
       : null;
-  const priceQuery = useConfiguratorPrice(req);
+  const priceQuery = useConfiguratorPrice(SHOW_PUBLIC_PRICES ? req : null);
 
   const total = priceQuery.data?.totalDisplay ?? null;
-  const canOrder = Boolean(productType && material && total);
+  const canOrder = SHOW_PUBLIC_PRICES
+    ? Boolean(productType && material && total)
+    : Boolean(productType && material);
 
   return (
     <div className="inline-flex items-center gap-3 rounded-2xl border border-studio-ink-3/50 bg-studio-ink-2/80 p-1.5 pl-4 font-studio shadow-2xl backdrop-blur-md">
-      <div className="flex flex-col items-end leading-tight">
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-studio-fg-inv-soft">
-          {t('configurator.shell.priceEyebrow')}
+      {SHOW_PUBLIC_PRICES ? (
+        <div className="flex flex-col items-end leading-tight">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-studio-fg-inv-soft">
+            {t('configurator.shell.priceEyebrow')}
+          </span>
+          <span className="font-mono text-base font-bold tabular-nums text-studio-fg-inv">
+            {priceQuery.isFetching && !total ? (
+              <Loader2 className="h-4 w-4 animate-spin text-studio-brand-soft" aria-hidden />
+            ) : total ? (
+              <>
+                {total} <span className="text-studio-fg-inv-mute">₾</span>
+              </>
+            ) : (
+              <span className="text-studio-fg-inv-soft">—</span>
+            )}
+          </span>
+        </div>
+      ) : (
+        <span className="max-w-[11rem] text-[11px] leading-snug text-studio-fg-inv-soft">
+          {t('studio.whatsapp.eyebrow')}
         </span>
-        <span className="font-mono text-base font-bold tabular-nums text-studio-fg-inv">
-          {priceQuery.isFetching && !total ? (
-            <Loader2 className="h-4 w-4 animate-spin text-studio-brand-soft" aria-hidden />
-          ) : total ? (
-            <>
-              {total} <span className="text-studio-fg-inv-mute">₾</span>
-            </>
-          ) : (
-            <span className="text-studio-fg-inv-soft">—</span>
-          )}
-        </span>
-      </div>
+      )}
       <button
         type="button"
         onClick={onSendOrder}

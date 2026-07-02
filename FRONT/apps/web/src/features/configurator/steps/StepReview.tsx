@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  MessageCircle,
   Pencil,
   Send,
 } from 'lucide-react';
@@ -26,6 +27,8 @@ import {
 } from '../api';
 import { useConfiguratorStore, type ConfiguratorStep } from '../store';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
+import { whatsAppUrl } from '@/shared/config/contact';
 import { cn } from '@/shared/lib/cn';
 import { firstLayoutError, translateLayoutError } from '../layout/layoutErrors';
 
@@ -101,6 +104,26 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
 
   const isManualQuote = reviewQuery.data?.pricing?.grouped?.installationIsManualQuote === true;
 
+  // Prices-off mode: the send CTA hands the summary to WhatsApp instead of
+  // advancing to the (unbuilt) phone step.
+  const whatsAppMessage = useMemo(() => {
+    return [
+      t('studio.whatsapp.msgIntro'),
+      `${t('studio.panel.product')}: ${productType?.name ?? productType?.slug ?? '—'}`,
+      `${t('studio.panel.profile')}: ${material?.name ?? material?.slug ?? '—'}`,
+      `${t('studio.whatsapp.msgSize')}: ${dimensions.widthCm}×${dimensions.heightCm} ${t('studio.whatsapp.msgCm')}`,
+      `${t('studio.whatsapp.msgSections')}: ${panes.length}`,
+    ].join('\n');
+  }, [t, productType, material, dimensions.widthCm, dimensions.heightCm, panes.length]);
+
+  const handleSend = () => {
+    if (SHOW_PUBLIC_PRICES) {
+      onSendOrder();
+      return;
+    }
+    window.open(whatsAppUrl(whatsAppMessage), '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-5 lg:gap-8">
       <div className="lg:col-span-3 space-y-8">
@@ -166,13 +189,17 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
           }}
         />
 
-        <PricingBreakdown
-          review={reviewQuery.data ?? null}
-          isLoading={reviewQuery.isLoading}
-          isManualQuote={isManualQuote}
-        />
+        {SHOW_PUBLIC_PRICES ? (
+          <>
+            <PricingBreakdown
+              review={reviewQuery.data ?? null}
+              isLoading={reviewQuery.isLoading}
+              isManualQuote={isManualQuote}
+            />
 
-        <DeliveryCards review={reviewQuery.data ?? null} isLoading={reviewQuery.isLoading} />
+            <DeliveryCards review={reviewQuery.data ?? null} isLoading={reviewQuery.isLoading} />
+          </>
+        ) : null}
 
         {/* Server-side error */}
         <div
@@ -197,7 +224,7 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
           <div className="flex flex-col items-end gap-2">
             <button
               type="button"
-              onClick={onSendOrder}
+              onClick={handleSend}
               disabled={!installation || Boolean(layoutErrorText)}
               className={cn(
                 'group inline-flex h-12 items-center gap-3 rounded-sm px-6 font-mono text-mono-spec uppercase tracking-wider transition-all duration-120 ease-standard',
@@ -206,11 +233,21 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
                   : 'bg-accent-amber text-bg-base hover:bg-accent-amber-h active:scale-[0.98]',
               )}
             >
-              <Send className="h-4 w-4" aria-hidden />
-              <span>{t('configurator.steps.review.cta.send')}</span>
+              {SHOW_PUBLIC_PRICES ? (
+                <Send className="h-4 w-4" aria-hidden />
+              ) : (
+                <MessageCircle className="h-4 w-4" aria-hidden />
+              )}
+              <span>
+                {SHOW_PUBLIC_PRICES
+                  ? t('configurator.steps.review.cta.send')
+                  : t('studio.whatsapp.cta')}
+              </span>
             </button>
             <span className="font-mono text-caption uppercase tracking-wider text-fg-tertiary">
-              {t('configurator.steps.review.cta.nextStepHint')}
+              {SHOW_PUBLIC_PRICES
+                ? t('configurator.steps.review.cta.nextStepHint')
+                : t('studio.whatsapp.eyebrow')}
             </span>
           </div>
         </div>
@@ -219,9 +256,13 @@ export function StepReview({ onBack, onGoToStep, onSendOrder }: Props) {
       <aside className="lg:col-span-2">
         <div className="rounded-sm border border-hairline bg-bg-raised p-5 sticky top-24">
           <div className="font-mono text-caption uppercase tracking-[0.2em] text-fg-tertiary">
-            {t('configurator.price.eyebrow')}
+            {SHOW_PUBLIC_PRICES ? t('configurator.price.eyebrow') : 'WhatsApp'}
           </div>
-          {reviewQuery.data?.pricing?.grouped ? (
+          {!SHOW_PUBLIC_PRICES ? (
+            <p className="mt-4 max-w-sm text-body-sm text-pretty text-fg-secondary">
+              {t('studio.whatsapp.eyebrow')}
+            </p>
+          ) : reviewQuery.data?.pricing?.grouped ? (
             <>
               <div className="mt-4 font-display text-h2 tabular-nums text-fg-primary">
                 {reviewQuery.data.pricing.grouped.grandTotalDisplay} ₾

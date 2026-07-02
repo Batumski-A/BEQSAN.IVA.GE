@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Html, Line, Environment, ContactShadows } from '@react-three/drei';
 import { MathUtils } from 'three';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 
 import { RoomContext } from './rooms/RoomContext';
 import type { PresetKind } from './rooms/presets';
@@ -76,7 +76,35 @@ type ConfiguratorSceneProps = {
    * isMobile check. Ignored by the legacy wizard.
    */
   roomPreset?: PresetKind | null;
+  /**
+   * When provided, the scene registers a capture function that renders one
+   * frame and returns it as a PNG data-URL. Used by the WhatsApp handoff to
+   * attach the drawing to the conversation. Rendering synchronously right
+   * before toDataURL avoids needing preserveDrawingBuffer.
+   */
+  snapshotRef?: MutableRefObject<(() => string) | null>;
 };
+
+/** Lives inside <Canvas>; exposes a render-then-capture closure via ref. */
+function SnapshotBridge({
+  snapshotRef,
+}: {
+  snapshotRef: MutableRefObject<(() => string) | null>;
+}) {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  useEffect(() => {
+    snapshotRef.current = () => {
+      gl.render(scene, camera);
+      return gl.domElement.toDataURL('image/png');
+    };
+    return () => {
+      snapshotRef.current = null;
+    };
+  }, [gl, scene, camera, snapshotRef]);
+  return null;
+}
 
 /**
  * Phase 1 placeholder scene. A box scaled to the configurator dimensions,
@@ -91,6 +119,7 @@ export function ConfiguratorScene({
   isStudio,
   background,
   roomPreset = null,
+  snapshotRef,
 }: ConfiguratorSceneProps = {}) {
   const { t } = useTranslation();
   const productType = useConfiguratorStore((s) => s.productType);
@@ -281,6 +310,8 @@ export function ConfiguratorScene({
             radial gradient on the parent div shows through. Legacy
             wizard fills the canvas with a solid dark background. */}
         {isFullScreen ? null : <color attach="background" args={['#0A0E14']} />}
+
+        {snapshotRef ? <SnapshotBridge snapshotRef={snapshotRef} /> : null}
 
         {/* Auto-fit camera to the window bounding box so the frame fills ~65%
             of viewport height regardless of dimensions. Updates whenever the

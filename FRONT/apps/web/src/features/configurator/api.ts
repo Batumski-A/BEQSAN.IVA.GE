@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { api, unwrap, type ApiResponse } from '@/shared/api/client';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import type {
   AccessorySelectionInput,
   ColorSelectionInput,
@@ -170,7 +171,8 @@ export function useConfiguratorReview(req: PriceRequest | null) {
   return useQuery({
     queryKey: configuratorKeys.review(req),
     queryFn: () => fetchReview(req!),
-    enabled: Boolean(req?.productTypeId && req?.materialId),
+    // With public prices off nothing should hit the pricing endpoints.
+    enabled: SHOW_PUBLIC_PRICES && Boolean(req?.productTypeId && req?.materialId),
     staleTime: 30_000,
     gcTime: 60_000,
     retry: (failureCount, error) => {
@@ -183,6 +185,22 @@ export function useConfiguratorReview(req: PriceRequest | null) {
   });
 }
 
+export type SnapshotResponse = {
+  /** Public URL of the stored drawing, e.g. /api/v1/files/2026/07/02/xx.png */
+  url: string;
+};
+
+/**
+ * Uploads the 3D drawing (PNG data-URL) so the WhatsApp message can link to
+ * it — wa.me links can't attach images directly. Returns the public URL.
+ */
+export async function uploadSnapshot(imageDataUrl: string): Promise<SnapshotResponse> {
+  const response = await api.post<ApiResponse<SnapshotResponse>>('/configurator/snapshot', {
+    imageDataUrl,
+  });
+  return unwrap(response);
+}
+
 async function fetchPrice(req: PriceRequest): Promise<PriceBreakdown> {
   const response = await api.post<ApiResponse<PriceBreakdown>>('/configurator/price', req);
   return unwrap(response);
@@ -192,7 +210,7 @@ export function useConfiguratorPrice(req: PriceRequest | null) {
   return useQuery({
     queryKey: configuratorKeys.price(req),
     queryFn: () => fetchPrice(req!),
-    enabled: Boolean(req?.productTypeId && req?.materialId),
+    enabled: SHOW_PUBLIC_PRICES && Boolean(req?.productTypeId && req?.materialId),
     // Price isn't worth caching long client-side — it's debounced server-side
     // by the materials cache anyway. Refetch within the same step session.
     staleTime: 30_000,

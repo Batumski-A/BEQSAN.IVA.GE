@@ -435,7 +435,7 @@ function Hero({
                 }}
                 className="group flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/5 px-5 py-3.5 text-sm sm:text-base font-bold text-white backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/40"
               >
-                <span>ფასის გამოთვლა</span>
+                <span>{t('home.heroCtaSecondary')}</span>
                 <ChevronRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" aria-hidden />
               </a>
             </motion.div>

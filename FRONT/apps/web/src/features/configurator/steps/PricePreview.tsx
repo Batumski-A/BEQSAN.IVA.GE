@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { PriceBreakdown } from '../api';
 import { useConfiguratorStore } from '../store';
+import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 
 type Props = {
   query: UseQueryResult<PriceBreakdown, unknown>;
@@ -12,6 +13,21 @@ type Props = {
 export function PricePreview({ query, hasSelections }: Props) {
   const { t } = useTranslation();
   const dimensions = useConfiguratorStore((s) => s.dimensions);
+
+  if (!SHOW_PUBLIC_PRICES) {
+    // Prices are off — the wizard aside becomes a WhatsApp note instead
+    // of a receipt. Dimensions stay so the card still reflects the config.
+    return (
+      <div className="rounded-sm border border-hairline bg-bg-raised p-6 md:p-7">
+        <div className="font-mono text-caption uppercase tracking-[0.2em] text-fg-tertiary">
+          {dimensions.widthCm}×{dimensions.heightCm} {t('common.units.cm')}
+        </div>
+        <p className="mt-6 max-w-sm text-body-sm text-pretty text-fg-secondary">
+          {t('studio.whatsapp.eyebrow')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-sm border border-hairline bg-bg-raised p-6 md:p-7">

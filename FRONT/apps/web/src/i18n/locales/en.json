@@ -53,6 +53,7 @@
     "heroTitleLine2": "straight in 3D",
     "heroLead": "Compose mixed systems — windows, sliders, doors and verandas — in one workspace. See the exact price and place the order.",
     "heroCta": "Open the 3D studio",
+    "heroCtaSecondary": "Quick builder",
     "materialsTitle": "Only the highest-grade materials",
     "materialsSubtitle": "10-year warranty on aluminium systems",
     "materials": {
@@ -96,8 +97,8 @@
     },
     "closer": {
       "eyebrow": "Next step",
-      "title": "See your window's price in a minute",
-      "lead": "The configurator shows you the design in 3D, then locks the price. After that — one phone number and a craftsman is on the way.",
+      "title": "Build your window in 3D in a minute",
+      "lead": "The configurator shows you the design in 3D. Your drawing goes straight to our WhatsApp — price and details are agreed right there.",
       "cta": "Open the 3D studio"
     },
     "catalogTitle": "Product Catalog",
@@ -129,8 +130,9 @@
         "badge": "Integrated"
       }
     },
-    "estimatorTitle": "Interactive Price Estimator",
-    "estimatorSubtitle": "Configure your dimensions and get an instant price estimation without calling a sales representative",
+    "estimatorTitle": "Build your window in a minute",
+    "estimatorSubtitle": "Pick the parameters, see it in 3D and send us the drawing on WhatsApp — no phone calls",
+    "calcEyebrow": "Online configurator · zero phone calls",
     "estimator": {
       "productLabel": "Product Type",
       "materialLabel": "Profile Material",
@@ -157,6 +159,7 @@
       "widthLabel": "Width",
       "heightLabel": "Height",
       "priceLabel": "Estimated Price",
+      "noPriceNote": "The exact price is agreed on WhatsApp — open the 3D studio and send us your drawing.",
       "ctaPrimary": "Open in 3D Studio",
       "ctaHint": "Your choices are preserved — review them in 3D"
     }
@@ -927,7 +930,7 @@
   },
   "studio": {
     "metaTitle": "3D Studio",
-    "metaDescription": "Build your window in a live 3D scene — see the price update in real time.",
+    "metaDescription": "Build your window in a live 3D scene and send the drawing via WhatsApp.",
     "nav": {
       "ctaLaunch": "3D Studio",
       "back": "Back"
@@ -1024,6 +1027,21 @@
       "thanksTitle": "Order received",
       "thanksBody": "Our project manager will reach out to take exact measurements and confirm details.",
       "close": "Close"
+    },
+    "whatsapp": {
+      "cta": "Send via WhatsApp",
+      "eyebrow": "We agree the exact price on WhatsApp",
+      "title": "Your drawing is ready",
+      "body": "The drawing and dimensions go to our WhatsApp — we continue there with price and installation.",
+      "open": "Open WhatsApp",
+      "attaching": "Attaching the drawing…",
+      "attached": "Drawing attached",
+      "shotAlt": "Drawing of your configuration",
+      "msgIntro": "Hello BEQSAN! Here is my drawing:",
+      "msgSize": "Size",
+      "msgCm": "cm",
+      "msgSections": "Sections",
+      "msgDrawing": "Drawing"
     }
   },
   "catalog": {
@@ -1031,7 +1049,7 @@
     "metaDescription": "Windows and doors handmade in a Batumi workshop — aluminium, PVC, sliding, panoramic, balcony glazing.",
     "eyebrow": "Catalog",
     "heading": "Windows and doors handmade in a Batumi workshop.",
-    "intro": "Five product families. Material, install, starting price visible per card. Pick one and the configurator takes over.",
+    "intro": "Five product families. Material and install terms visible per card. Pick one and the configurator takes over.",
     "empty": "Nothing to show yet.",
     "errorTitle": "Couldn't load the catalog",
     "errorBody": "Network or server didn't reply. We'll try again — if the problem persists, get in touch.",
@@ -1041,7 +1059,9 @@
       "installLabel": "Install",
       "installValue": "Free in Batumi",
       "priceLabel": "From",
-      "priceValue": "280 ₾/m²"
+      "priceValue": "280 ₾/m²",
+      "warrantyLabel": "Warranty",
+      "warrantyValue": "Up to 10 years"
     }
   }
 }

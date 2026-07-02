@@ -6,16 +6,16 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
+import { PHONE_E164, PHONE_TEL_HREF as PHONE_HREF, whatsAppUrl } from '@/shared/config/contact';
+
 const enter = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
 };
 
-const PHONE_E164 = '+995595000000';
-const WHATSAPP_URL = `https://wa.me/${PHONE_E164.replace('+', '')}`;
+const WHATSAPP_URL = whatsAppUrl();
 const MAPS_URL = 'https://www.google.com/maps/search/?api=1&query=41.6168,41.6367';
-const PHONE_HREF = `tel:${PHONE_E164}`;
 
 export default function Contact() {
   const { t } = useTranslation();
