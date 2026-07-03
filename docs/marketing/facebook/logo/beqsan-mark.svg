@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- BEQSAN logomark — a window in technical-drawing language:
+       outer frame, vertical mullion, DIN opening indicator (the same
+       glyph the 3D studio's blueprint uses), blue handle point. -->
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16213C"/>
+      <stop offset="0.55" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#0B1120"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#ink)"/>
+  <!-- outer frame -->
+  <rect x="96" y="116" width="320" height="280" rx="14" fill="none" stroke="#F8FAFC" stroke-width="22"/>
+  <!-- inner frame hairline -->
+  <rect x="130" y="150" width="252" height="212" rx="6" fill="none" stroke="#F8FAFC" stroke-width="5" opacity="0.55"/>
+  <!-- vertical mullion at 55% -->
+  <line x1="272" y1="150" x2="272" y2="362" stroke="#F8FAFC" stroke-width="12"/>
+  <!-- DIN casement opening indicator in the right pane (hinge right) -->
+  <polyline points="286,164 368,256 286,348" fill="none" stroke="#F8FAFC" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+  <!-- handle point — the single blue accent -->
+  <circle cx="286" cy="256" r="17" fill="#2563EB"/>
+</svg>
