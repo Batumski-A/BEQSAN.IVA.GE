@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
+import { Seo } from '@/shared/seo/Seo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -46,25 +46,25 @@ export default function Process() {
   const { t } = useTranslation();
   return (
     <>
-      <Helmet>
-        <title>{t('process.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('process.metaDescription')} />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'HowTo',
-            name: 'BEQSAN window manufacturing process',
-            description:
-              "Seven-stage manufacturing process from on-site measurement to installation in Roman Sharashidze's Salibauri workshop.",
-            step: STAGES.map((s, i) => ({
-              '@type': 'HowToStep',
-              position: i + 1,
-              name: t(`process.stages.${s.num}.title`),
-              text: t(`process.stages.${s.num}.body1`),
-            })),
-          })}
-        </script>
-      </Helmet>
+      <Seo
+        route="/process"
+        breadcrumb={[
+          { name: 'მთავარი', path: '/' },
+          { name: 'როგორ ვქმნით', path: '/process' },
+        ]}
+        jsonLd={{
+          '@type': 'HowTo',
+          name: 'BEQSAN — ფანჯრის წარმოების პროცესი',
+          description:
+            'გაზომვიდან მონტაჟამდე — შვიდი ეტაპი ბათუმის სალიბაურის სახელოსნოში.',
+          step: STAGES.map((s, i) => ({
+            '@type': 'HowToStep',
+            position: i + 1,
+            name: t(`process.stages.${s.num}.title`),
+            text: t(`process.stages.${s.num}.body1`),
+          })),
+        }}
+      />
 
       <Hero t={t} />
 

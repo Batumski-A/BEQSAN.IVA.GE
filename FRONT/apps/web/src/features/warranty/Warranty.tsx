@@ -1,9 +1,30 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+
+import { Seo } from '@/shared/seo/Seo';
+import { faqSchema } from '@/shared/seo/schema';
+
+const WARRANTY_FAQ = [
+  {
+    q: 'რამდენი წლის გარანტიას იძლევა BEQSAN?',
+    a: 'ალუმინის სისტემებზე 10 წლამდე, ფურნიტურაზე (Hoppe, G-U) 50 000+ გაღება-დაკეტვის ციკლი. ზუსტი პირობები შეკვეთის სპეციფიკაციაშია.',
+  },
+  {
+    q: 'ვინ აკეთებს მონტაჟს?',
+    a: 'მხოლოდ ჩვენი გუნდი — ვინც ფანჯარა ააწყო სახელოსნოში, იგივე ხელოსანი ამონტაჟებს თქვენთან. მესამე მხარის ბრიგადებს არ ვიყენებთ.',
+  },
+  {
+    q: 'რას ფარავს გარანტია?',
+    a: 'პროფილს, ფურნიტურასა და მონტაჟის ხარისხს. მექანიკური დაზიანება და არასწორი ექსპლუატაცია გარანტიაში არ შედის.',
+  },
+  {
+    q: 'როგორ მოვიქცე პრობლემის შემთხვევაში?',
+    a: 'დაგვირეკეთ ან მოგვწერეთ WhatsApp-ში ერთ ნომერზე — +995 593 64 46 73 — და ის ხელოსანი მოვა, ვინც თქვენი ფანჯარა იცის.',
+  },
+];
 
 // Initial opacity 0.55 (not 0) so the section degrades gracefully if the
 // IntersectionObserver never fires — see Process.tsx for the same rationale.
@@ -23,22 +44,14 @@ export default function Warranty() {
   const { t } = useTranslation();
   return (
     <>
-      <Helmet>
-        <title>{t('warranty.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('warranty.metaDescription')} />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Article',
-            headline: t('warranty.metaTitle'),
-            description: t('warranty.metaDescription'),
-            author: { '@type': 'Organization', name: 'BEQSAN LTD' },
-            publisher: { '@type': 'Organization', name: 'BEQSAN LTD' },
-            datePublished: '2026-05-17',
-            inLanguage: 'ka-GE',
-          })}
-        </script>
-      </Helmet>
+      <Seo
+        route="/warranty"
+        breadcrumb={[
+          { name: 'მთავარი', path: '/' },
+          { name: 'გარანტია', path: '/warranty' },
+        ]}
+        jsonLd={faqSchema(WARRANTY_FAQ)}
+      />
 
       <Hero t={t} />
       <Coverage t={t} />

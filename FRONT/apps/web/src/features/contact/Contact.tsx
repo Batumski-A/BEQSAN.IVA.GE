@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, ExternalLink, MessageCircle, Phone } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
-import { PHONE_E164, PHONE_TEL_HREF as PHONE_HREF, whatsAppUrl } from '@/shared/config/contact';
+import { PHONE_TEL_HREF as PHONE_HREF, whatsAppUrl } from '@/shared/config/contact';
+import { Seo } from '@/shared/seo/Seo';
 
 const enter = {
   initial: { opacity: 0, y: 16 },
@@ -21,49 +21,13 @@ export default function Contact() {
   const { t } = useTranslation();
   return (
     <>
-      <Helmet>
-        <title>{t('contact.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('contact.metaDescription')} />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'LocalBusiness',
-            name: 'BEQSAN LTD',
-            image: 'https://beqsan.iva.ge/og-default.png',
-            url: 'https://beqsan.iva.ge',
-            telephone: PHONE_E164,
-            email: 'hello@beqsan.ge',
-            address: {
-              '@type': 'PostalAddress',
-              streetAddress: 'Salibauris Gza 42',
-              addressLocality: 'Batumi',
-              postalCode: '6000',
-              addressRegion: 'Adjara',
-              addressCountry: 'GE',
-            },
-            geo: {
-              '@type': 'GeoCoordinates',
-              latitude: 41.6168,
-              longitude: 41.6367,
-            },
-            openingHoursSpecification: [
-              {
-                '@type': 'OpeningHoursSpecification',
-                dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-                opens: '09:00',
-                closes: '19:00',
-              },
-              {
-                '@type': 'OpeningHoursSpecification',
-                dayOfWeek: 'Saturday',
-                opens: '10:00',
-                closes: '15:00',
-              },
-            ],
-            priceRange: '₾₾',
-          })}
-        </script>
-      </Helmet>
+      <Seo
+        route="/contact"
+        breadcrumb={[
+          { name: 'მთავარი', path: '/' },
+          { name: 'კონტაქტი', path: '/contact' },
+        ]}
+      />
 
       <Hero t={t} />
       <Body t={t} />

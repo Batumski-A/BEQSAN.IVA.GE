@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -9,6 +8,7 @@ import {
   AssemblyIllustration,
   WorkshopHeroIllustration,
 } from '@/shared/illustrations/WorkshopIllustrations';
+import { Seo } from '@/shared/seo/Seo';
 
 const enter = {
   initial: { opacity: 0, y: 24 },
@@ -25,28 +25,13 @@ export default function About() {
   const { t } = useTranslation();
   return (
     <>
-      <Helmet>
-        <title>{t('about.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('about.metaDescription')} />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'BEQSAN LTD',
-            foundingDate: '1998',
-            founder: { '@type': 'Person', name: 'Roman Sharashidze' },
-            url: 'https://beqsan.iva.ge',
-            address: {
-              '@type': 'PostalAddress',
-              addressLocality: 'Batumi',
-              addressRegion: 'Adjara',
-              streetAddress: 'Salibauri',
-              addressCountry: 'GE',
-            },
-            sameAs: [],
-          })}
-        </script>
-      </Helmet>
+      <Seo
+        route="/about"
+        breadcrumb={[
+          { name: 'მთავარი', path: '/' },
+          { name: 'ჩვენ შესახებ', path: '/about' },
+        ]}
+      />
 
       <Hero t={t} />
       <Intro t={t} />

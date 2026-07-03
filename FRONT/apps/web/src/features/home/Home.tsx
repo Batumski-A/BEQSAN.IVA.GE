@@ -21,6 +21,7 @@ import type { TFunction } from 'i18next';
 import { useProductTypes, fetchProductTypeDetail } from '@/features/catalog/api';
 import { useConfiguratorStore, paneRangeFor } from '@/features/configurator/store';
 import { Estimator } from './Estimator';
+import { Seo } from '@/shared/seo/Seo';
 
 type ProductSlug = 'window' | 'door' | 'sliding' | 'panoramic' | 'balcony' | 'veranda';
 type MaterialKey = 'alumil' | 'rehau';
@@ -265,6 +266,7 @@ export default function Home() {
 
   return (
     <div ref={containerRef} className="bg-studio-paper h-full w-full overflow-y-auto snap-y snap-mandatory scroll-smooth relative">
+      <Seo route="/" />
       {/* Floating Bubbles Navigation */}
       <div className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-3.5 items-center bg-slate-900/10 dark:bg-white/5 backdrop-blur-md border border-slate-200/20 dark:border-white/5 rounded-full py-4 px-2 shadow-xl">
         {SECTIONS.map((sec) => {

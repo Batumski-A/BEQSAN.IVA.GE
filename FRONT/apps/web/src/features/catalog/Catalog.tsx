@@ -1,5 +1,4 @@
-import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, RefreshCw } from 'lucide-react';
 
@@ -7,17 +6,53 @@ import { useProductTypes, type ProductType } from './api';
 import { resolveLocalized } from './localized';
 import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import { ProductIllustrationFor } from '@/shared/illustrations/ProductIllustrations';
+import { Seo } from '@/shared/seo/Seo';
+import { seoForPath } from '@/shared/seo/routeMeta';
+import { serviceSchema, SITE_URL } from '@/shared/seo/schema';
+
+const TYPE_LABEL: Record<string, string> = {
+  window: 'ფანჯრები',
+  door: 'კარები',
+  sliding: 'სლაიდინგი',
+  panoramic: 'პანორამა',
+  balcony: 'აივნის შემინვა',
+  veranda: 'ვერანდა',
+};
 
 export default function Catalog() {
   const { t, i18n } = useTranslation();
   const { data, isLoading, isError, refetch, isFetching } = useProductTypes();
 
+  const { type } = useParams<{ type?: string }>();
+  const catalogPath = type ? `/catalog/${type}` : '/catalog';
+  const typeMeta = seoForPath(catalogPath);
+  const crumbs =
+    type && typeMeta
+      ? [
+          { name: 'მთავარი', path: '/' },
+          { name: 'კატალოგი', path: '/catalog' },
+          { name: TYPE_LABEL[type] ?? type, path: catalogPath },
+        ]
+      : [
+          { name: 'მთავარი', path: '/' },
+          { name: 'კატალოგი', path: '/catalog' },
+        ];
+  const serviceLd =
+    type && typeMeta
+      ? serviceSchema({
+          name: typeMeta.title.split(' | ')[0]!,
+          description: typeMeta.description,
+          url: `${SITE_URL}${catalogPath}`,
+        })
+      : undefined;
+
   return (
     <>
-      <Helmet>
-        <title>{t('catalog.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('catalog.metaDescription')} />
-      </Helmet>
+      <Seo
+        route={typeMeta ? catalogPath : '/catalog'}
+        breadcrumb={crumbs}
+        jsonLd={serviceLd}
+      />
 
       <section className="mx-auto max-w-content px-4 pb-12 pt-22 md:px-8 md:pb-16 md:pt-30">
         <div className="font-mono text-mono-spec uppercase tracking-[0.2em] text-accent-amber">

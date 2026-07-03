@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -11,6 +10,27 @@ import {
   TriplePaneIGU,
   FiveChamberPvc,
 } from '@/shared/illustrations/MaterialDiagrams';
+import { Seo } from '@/shared/seo/Seo';
+import { faqSchema } from '@/shared/seo/schema';
+
+const MATERIALS_FAQ = [
+  {
+    q: 'რა განსხვავებაა ალუმინსა და მეტალოპლასტმასს (PVC) შორის?',
+    a: 'ალუმინი უფრო გამძლე და თხელჩარჩოიანია — იდეალურია დიდი კონსტრუქციებისა და პანორამული შემინვისთვის. მეტალოპლასტმასი (PVC) უფრო თბილი და ეკონომიურია საცხოვრებელი ბინებისთვის. BEQSAN ორივეს თერმო-ვერსიას აწყობს ბათუმის ფაბრიკაში.',
+  },
+  {
+    q: 'რომელი პროფილითა და ფურნიტურით მუშაობთ?',
+    a: 'ალუმინი — Alumil S-77 და S-91 (საბერძნეთი), PVC — Rehau (გერმანია), ფურნიტურა — Hoppe და G-U. მინა — ენერგო-ეფექტური Low-E და ტრიპლექსი.',
+  },
+  {
+    q: 'რა არის თერმო-ხიდი?',
+    a: 'ალუმინის პროფილში ჩადგმული 24–34 მმ პოლიამიდის ჩასართავი, რომელიც წყვეტს სითბოს გადასვლას ალუმინიდან ალუმინში — ამცირებს კონდენსატსა და თბოდანაკარგს.',
+  },
+  {
+    q: 'რა მინაპაკეტს იყენებთ ბათუმის კლიმატისთვის?',
+    a: 'ენერგო-ეფექტურ Low-E და საჭიროებისამებრ ტრიპლექს მინაპაკეტებს, რომლებიც ბათუმის ნესტსა და მარილიან ჰაერზეა გათვლილი — ზამთარში თბილი, ზაფხულში გრილი.',
+  },
+];
 
 // Initial opacity 0.55 (not 0) so the section degrades gracefully if the
 // IntersectionObserver never fires — see Process.tsx for the same rationale.
@@ -34,22 +54,14 @@ export default function Materials() {
   const { t } = useTranslation();
   return (
     <>
-      <Helmet>
-        <title>{t('materials.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('materials.metaDescription')} />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Article',
-            headline: t('materials.metaTitle'),
-            description: t('materials.metaDescription'),
-            author: { '@type': 'Organization', name: 'BEQSAN LTD' },
-            publisher: { '@type': 'Organization', name: 'BEQSAN LTD' },
-            datePublished: '2026-05-17',
-            inLanguage: 'ka-GE',
-          })}
-        </script>
-      </Helmet>
+      <Seo
+        route="/materials"
+        breadcrumb={[
+          { name: 'მთავარი', path: '/' },
+          { name: 'მასალები', path: '/materials' },
+        ]}
+        jsonLd={faqSchema(MATERIALS_FAQ)}
+      />
 
       <Hero t={t} />
 

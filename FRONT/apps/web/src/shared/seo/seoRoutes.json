@@ -1,0 +1,137 @@
+{
+  "site": {
+    "url": "https://beqsan.iva.ge",
+    "brand": "BEQSAN",
+    "brandKa": "ბექსანი",
+    "locale": "ka_GE",
+    "ogImage": "/og/og-default.png",
+    "twitter": ""
+  },
+  "routes": [
+    {
+      "path": "/",
+      "title": "ალუმინის და პლასტმასის კარ-ფანჯარა ბათუმში | BEQSAN",
+      "description": "ხელით აწყობილი ალუმინისა და მეტალოპლასტმასის კარ-ფანჯარა ბათუმის ფაბრიკაში 1998 წლიდან. ააწყვე ონლაინ 3D-ში, ნახაზი გამოგზავნე WhatsApp-ში.",
+      "type": "website",
+      "priority": 1.0,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/configurator",
+      "title": "ფანჯრის ონლაინ კონფიგურატორი 3D-ში | BEQSAN",
+      "description": "ააწყვე შენი კარ-ფანჯარა ცოცხალ 3D სტუდიაში — ზომები, პროფილი, გახსნა. ნახაზი პირდაპირ WhatsApp-ში. ბათუმი და მთელი აჭარა.",
+      "type": "website",
+      "priority": 0.9,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog",
+      "title": "კატალოგი — ალუმინი, PVC, სლაიდინგი | BEQSAN ბათუმი",
+      "description": "BEQSAN-ის კარ-ფანჯრის კატალოგი: ალუმინის და მეტალოპლასტმასის ფანჯრები, კარები, სლაიდინგი, პანორამა, აივნის შემინვა. ბათუმის ფაბრიკა.",
+      "type": "website",
+      "priority": 0.9,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/catalog/window",
+      "title": "ალუმინის და PVC ფანჯრები ბათუმში | BEQSAN",
+      "description": "თერმო-ალუმინის (Alumil) და მეტალოპლასტმასის (Rehau) ფანჯრები ბათუმის ფაბრიკიდან. ხელით აწყობა, 10 წლამდე გარანტია, უფასო გაზომვა აჭარაში.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog/door",
+      "title": "შესასვლელი და შიდა კარები ბათუმში | BEQSAN",
+      "description": "ალუმინის და PVC შესასვლელი და შიდა კარები — თერმო, უსაფრთხო, ხელით აწყობილი ბათუმის ფაბრიკაში. გაზომვა და მონტაჟი მთელ აჭარაში.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog/sliding",
+      "title": "სლაიდინგ მოძრავი სისტემები ბათუმში | BEQSAN",
+      "description": "Alumil-ის სლაიდინგ პორტალები — ფართო გახსნა, თხელი ჩარჩო, დაბალი ზღურბლი. იდეალურია ტერასისა და დიდი სივრცისთვის. ბათუმი, აჭარა.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog/panoramic",
+      "title": "პანორამული შემინვა ბათუმში | BEQSAN",
+      "description": "პანორამული ალუმინის შემინვა — მინიმალური ჩარჩო, მაქსიმალური ხედი შავ ზღვაზე. ხელით აწყობილი ბათუმის ფაბრიკაში, 10 წლამდე გარანტია.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog/balcony",
+      "title": "აივნის შემინვა ბათუმში | BEQSAN",
+      "description": "აივნის შემინვა ალუმინითა და მეტალოპლასტმასით — ბათუმის კლიმატზე გათვლილი, ბადით და თბოიზოლაციით. უფასო გაზომვა მთელ აჭარაში.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/catalog/veranda",
+      "title": "ვერანდის შემინვა ბათუმში | BEQSAN",
+      "description": "ვერანდის შემინვა თერმო-ალუმინის სისტემებით — წელიწადის ნებისმიერ დროს კომფორტული სივრცე. ხელით აწყობა ბათუმის ფაბრიკაში.",
+      "type": "website",
+      "priority": 0.8,
+      "changefreq": "monthly"
+    },
+    {
+      "path": "/gallery",
+      "title": "ჩვენი ნამუშევრები — გალერეა | BEQSAN ბათუმი",
+      "description": "დასრულებული პროექტები ბათუმსა და აჭარაში: სასტუმროები, ბინები, კოტეჯები. ალუმინისა და PVC კარ-ფანჯარა ხელით აწყობილი BEQSAN-ის ფაბრიკაში.",
+      "type": "website",
+      "priority": 0.7,
+      "changefreq": "weekly"
+    },
+    {
+      "path": "/about",
+      "title": "ჩვენ შესახებ — ბათუმის ფაბრიკა 1998-დან | BEQSAN",
+      "description": "BEQSAN — რომან შარაშიძის ოჯახური სახელოსნო ბათუმის სალიბაურში. 1998 წლიდან ხელით ვაწყობთ ალუმინისა და PVC კარ-ფანჯარას. ერთი გუნდი, ერთი პასუხისმგებელი.",
+      "type": "website",
+      "priority": 0.6,
+      "changefreq": "yearly"
+    },
+    {
+      "path": "/process",
+      "title": "როგორ ვქმნით — 7 ეტაპი | BEQSAN ბათუმი",
+      "description": "გაზომვიდან მონტაჟამდე — ფანჯრის შვიდი ეტაპი BEQSAN-ის სალიბაურის სახელოსნოში. ხელით აწყობა, CAD-შემოწმება, QA, ჩვენივე გუნდის მონტაჟი.",
+      "type": "website",
+      "priority": 0.6,
+      "changefreq": "yearly"
+    },
+    {
+      "path": "/materials",
+      "title": "მასალები: Alumil, Rehau პროფილი | BEQSAN",
+      "description": "რას ვიყენებთ და რატომ: Alumil S-77/S-91 ალუმინი, Rehau PVC, Hoppe/G-U ფურნიტურა, Low-E მინა. სპეციფიკაცია, თერმო-ხიდი, გამჭვირვალობა.",
+      "type": "website",
+      "priority": 0.7,
+      "changefreq": "yearly"
+    },
+    {
+      "path": "/warranty",
+      "title": "გარანტია — 10 წლამდე | BEQSAN ბათუმი",
+      "description": "BEQSAN-ის გარანტია: ალუმინის სისტემებზე 10 წელი, ფურნიტურაზე 50 000+ ციკლი, მონტაჟი ჩვენივე გუნდით. რას ფარავს და როგორ ვმოქმედებთ.",
+      "type": "website",
+      "priority": 0.7,
+      "changefreq": "yearly"
+    },
+    {
+      "path": "/contact",
+      "title": "კონტაქტი — სალიბაური, ბათუმი | BEQSAN",
+      "description": "სახელოსნო: სალიბაურის გზა 42, ბათუმი. ორშ–პარ 09:00–19:00, შაბ 10:00–15:00. WhatsApp +995 593 64 46 73. გვინახულე ან გამოგვიგზავნე ნახაზი.",
+      "type": "website",
+      "priority": 0.7,
+      "changefreq": "yearly"
+    }
+  ],
+  "noindexRoutes": [
+    "/configurator/wizard",
+    "/gallery/:slug",
+    "/order/:phone/:code"
+  ]
+}

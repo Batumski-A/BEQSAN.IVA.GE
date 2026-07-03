@@ -1,10 +1,19 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
+import { Seo } from '@/shared/seo/Seo';
+
 export default function NotFound() {
   const { t } = useTranslation();
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-content flex-col items-start justify-center px-4 py-22 md:px-8">
+      <Seo
+        noindex
+        includeOrg={false}
+        canonicalPath="/404"
+        title="გვერდი ვერ მოიძებნა | BEQSAN"
+        description="მოთხოვნილი გვერდი ვერ მოიძებნა."
+      />
       <div className="font-mono text-mono-spec uppercase tracking-wider text-accent-amber">
         404
       </div>

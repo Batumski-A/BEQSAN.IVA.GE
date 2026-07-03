@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { Seo } from '@/shared/seo/Seo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -540,10 +540,7 @@ export default function LiveStudio() {
 
   return (
     <>
-      <Helmet>
-        <title>{t('studio.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('studio.metaDescription')} />
-      </Helmet>
+      <Seo route="/configurator" />
 
       <div className="relative h-full w-full overflow-hidden bg-studio-ink font-studio">
         {/* Live preview canvas — 3D or 2D blueprint */}

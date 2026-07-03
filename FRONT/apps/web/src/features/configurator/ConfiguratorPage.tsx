@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { useTranslation } from 'react-i18next';
+import { Seo } from '@/shared/seo/Seo';
 import { useSearchParams } from 'react-router-dom';
 
 import { useConfiguratorStore, type ConfiguratorStep } from './store';
@@ -15,7 +14,6 @@ import { StepReview } from './steps/StepReview';
 import { ConfiguratorShell } from './shell/ConfiguratorShell';
 
 export default function ConfiguratorPage() {
-  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
 
   const stepParam = parseStep(params.get('step'));
@@ -63,10 +61,13 @@ export default function ConfiguratorPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{t('configurator.metaTitle')} · BEQSAN</title>
-        <meta name="description" content={t('configurator.metaDescription')} />
-      </Helmet>
+      {/* Legacy 8-step wizard — canonical to the live studio, keep out of the index. */}
+      <Seo
+        noindex
+        canonicalPath="/configurator"
+        title="ფანჯრის კონფიგურატორი | BEQSAN"
+        description="ააწყვე შენი კარ-ფანჯარა BEQSAN-ის კონფიგურატორში."
+      />
 
       <ConfiguratorShell
         activeStep={activeStep}

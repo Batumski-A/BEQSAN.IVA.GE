@@ -1,4 +1,66 @@
+# BEQSAN — robots.txt
+# Aluminum & PVC windows/doors, Batumi, Adjara, Georgia — https://beqsan.iva.ge
+
+# --- Traditional search engines ---
 User-agent: *
 Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+# --- AI / GEO crawlers: explicitly welcomed for citation visibility ---
+User-agent: GPTBot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
+
+User-agent: YandexBot
+Allow: /
+Disallow: /adminpanel
+Disallow: /order/
 
 Sitemap: https://beqsan.iva.ge/sitemap.xml
