@@ -9,6 +9,12 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts as a head stylesheet (discovered immediately) instead of a
+         render-blocking CSS @import. display=swap keeps text visible. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Serif+Georgian:wght@400;600;700;800;900&display=swap"
+    />
     <!-- Fallback title only. Per-route SEO (title, description, canonical,
          OpenGraph, Twitter, robots, JSON-LD) is owned by <Seo> (react-helmet-async)
          and baked into each route's static HTML by the build-time prerender

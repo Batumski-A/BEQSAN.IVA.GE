@@ -24,6 +24,8 @@ type SeoProps = {
   breadcrumb?: Crumb[];
   /** Emit the sitewide Organization/WebSite graph (default true). */
   includeOrg?: boolean;
+  /** Preload the LCP image (e.g. the hero) with high priority. */
+  preloadImage?: string;
 };
 
 /**
@@ -42,6 +44,7 @@ export function Seo({
   jsonLd,
   breadcrumb,
   includeOrg = true,
+  preloadImage,
 }: SeoProps) {
   const meta = route ? seoForPath(route) : undefined;
   const resolvedTitle = title ?? meta?.title ?? SITE.brand;
@@ -64,6 +67,9 @@ export function Seo({
         name="robots"
         content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}
       />
+      {preloadImage ? (
+        <link rel="preload" as="image" href={preloadImage} fetchPriority="high" />
+      ) : null}
 
       {/* OpenGraph */}
       <meta property="og:type" content={ogType} />

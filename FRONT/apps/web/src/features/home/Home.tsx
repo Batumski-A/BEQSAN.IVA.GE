@@ -78,7 +78,7 @@ const slideInRight = {
 
 const HERO_SLIDES = [
   {
-    image: '/img/modern-pvc-window.png',
+    image: '/img/modern-pvc-window.webp',
     kicker: 'REHAU PVC SYSTEMS',
     titleLine1: 'გერმანული ხარისხი &',
     titleLine2: 'უმაღლესი იზოლაცია',
@@ -92,7 +92,7 @@ const HERO_SLIDES = [
     ]
   },
   {
-    image: '/img/aluminum-sliding-door.png',
+    image: '/img/aluminum-sliding-door.webp',
     kicker: 'ALUMIL SLIDING PORTALS',
     titleLine1: 'პანორამული ხედები &',
     titleLine2: 'თანამედროვე დიზაინი',
@@ -106,7 +106,7 @@ const HERO_SLIDES = [
     ]
   },
   {
-    image: '/img/panoramic-facade-vitrage.png',
+    image: '/img/panoramic-facade-vitrage.webp',
     kicker: 'FACADE VITRAGES',
     titleLine1: 'არქიტექტურული ვიტრაჟები &',
     titleLine2: 'შუშის ფასადები',
@@ -120,7 +120,7 @@ const HERO_SLIDES = [
     ]
   },
   {
-    image: '/img/balcony-block-door.png',
+    image: '/img/balcony-block-door.webp',
     kicker: 'BALCONY BLOCKS',
     titleLine1: 'კომფორტი & ფუნქციურობა',
     titleLine2: 'თქვენი აივნისთვის',
@@ -266,7 +266,7 @@ export default function Home() {
 
   return (
     <div ref={containerRef} className="bg-studio-paper h-full w-full overflow-y-auto snap-y snap-mandatory scroll-smooth relative">
-      <Seo route="/" />
+      <Seo route="/" preloadImage="/img/modern-pvc-window.webp" />
       {/* Floating Bubbles Navigation */}
       <div className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col gap-3.5 items-center bg-slate-900/10 dark:bg-white/5 backdrop-blur-md border border-slate-200/20 dark:border-white/5 rounded-full py-4 px-2 shadow-xl">
         {SECTIONS.map((sec) => {
@@ -547,7 +547,7 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
       title: t('home.catalog.pvc.title'),
       desc: t('home.catalog.pvc.description'),
       badge: t('home.catalog.pvc.badge'),
-      image: '/img/modern-pvc-window.png',
+      image: '/img/modern-pvc-window.webp',
       icon: Square,
       tags: ['Rehau Synego', '5 კამერა', 'ხმაურის ჩახშობა']
     },
@@ -557,7 +557,7 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
       title: t('home.catalog.aluminum.title'),
       desc: t('home.catalog.aluminum.description'),
       badge: t('home.catalog.aluminum.badge'),
-      image: '/img/modern-aluminum-window.png',
+      image: '/img/modern-aluminum-window.webp',
       icon: LayoutGrid,
       tags: ['Alumil S-77', 'თერმოხიდი', 'ანოდირებული ფერი']
     },
@@ -567,7 +567,7 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
       title: t('home.catalog.sliding.title'),
       desc: t('home.catalog.sliding.description'),
       badge: t('home.catalog.sliding.badge'),
-      image: '/img/aluminum-sliding-door.png',
+      image: '/img/aluminum-sliding-door.webp',
       icon: GalleryHorizontal,
       tags: ['მოძრავი სლაიდი', 'სივრცის ოპტიმიზაცია', 'დაბალი ზღურბლი']
     },
@@ -577,7 +577,7 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
       title: t('home.catalog.vitrages.title'),
       desc: t('home.catalog.vitrages.description'),
       badge: t('home.catalog.vitrages.badge'),
-      image: '/img/panoramic-facade-vitrage.png',
+      image: '/img/panoramic-facade-vitrage.webp',
       icon: PanelsTopLeft,
       tags: ['ფასადური ვიტრაჟი', 'მაქსიმალური განათება', 'ენერგო მინა']
     },
@@ -587,7 +587,7 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
       title: t('home.catalog.nets.title'),
       desc: t('home.catalog.nets.description'),
       badge: t('home.catalog.nets.badge'),
-      image: '/img/premium-mosquito-net.png',
+      image: '/img/premium-mosquito-net.webp',
       icon: Grid,
       tags: ['პლისე ბადეები', 'ინტეგრირებული', 'კოროზიისგან დაცვა']
     }
@@ -650,6 +650,10 @@ function ProductCatalog({ t, onLaunch }: { t: TFunction; onLaunch: (slug: Produc
                       <img
                         src={item.image}
                         alt={item.title}
+                        loading="lazy"
+                        decoding="async"
+                        width={350}
+                        height={176}
                         className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -761,7 +765,7 @@ function Materials({ t }: { t: TFunction }) {
                   body={t('home.materials.pvc.body')}
                   badge={t('home.materials.pvc.badge')}
                   icon={Square}
-                  image="/img/pvc-profile-detail.png"
+                  image="/img/pvc-profile-detail.webp"
                 />
               </AnimatedCard>
             </div>
@@ -773,7 +777,7 @@ function Materials({ t }: { t: TFunction }) {
                   body={t('home.materials.aluminum.body')}
                   badge={t('home.materials.aluminum.badge')}
                   icon={Cpu}
-                  image="/img/aluminum-profile-detail.png"
+                  image="/img/aluminum-profile-detail.webp"
                 />
               </AnimatedCard>
             </div>
@@ -784,7 +788,7 @@ function Materials({ t }: { t: TFunction }) {
                   body={t('home.materials.sliding.body')}
                   badge={t('home.materials.sliding.badge')}
                   icon={GalleryHorizontal}
-                  image="/img/sliding-roller-detail.png"
+                  image="/img/sliding-roller-detail.webp"
                 />
               </AnimatedCard>
             </div>
@@ -796,7 +800,7 @@ function Materials({ t }: { t: TFunction }) {
                   body={t('home.materials.hardware.body')}
                   badge={t('home.materials.hardware.badge')}
                   icon={ShieldCheck}
-                  image="/img/premium-handle-detail.png"
+                  image="/img/premium-handle-detail.webp"
                 />
               </AnimatedCard>
             </div>

@@ -26,10 +26,10 @@ const MAX_CAPTION = 2200;
 
 // Pre-defined local high-quality brand images for easy post creation
 const IMAGE_PRESETS = [
-  { label: 'PVC ფანჯარა', url: '/img/modern-pvc-window.png' },
-  { label: 'ალუმინის სლაიდერი', url: '/img/aluminum-sliding-door.png' },
-  { label: 'ვიტრაჟული ფასადი', url: '/img/panoramic-facade-vitrage.png' },
-  { label: 'მწერიდან დამცავი ბადე', url: '/img/premium-mosquito-net.png' },
+  { label: 'PVC ფანჯარა', url: '/img/modern-pvc-window.webp' },
+  { label: 'ალუმინის სლაიდერი', url: '/img/aluminum-sliding-door.webp' },
+  { label: 'ვიტრაჟული ფასადი', url: '/img/panoramic-facade-vitrage.webp' },
+  { label: 'მწერიდან დამცავი ბადე', url: '/img/premium-mosquito-net.webp' },
 ];
 
 export const ComposePage = (): JSX.Element => {

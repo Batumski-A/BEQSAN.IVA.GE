@@ -56,13 +56,15 @@ export default function Catalog() {
 
       <section className="mx-auto max-w-content px-4 pb-12 pt-22 md:px-8 md:pb-16 md:pt-30">
         <div className="font-mono text-mono-spec uppercase tracking-[0.2em] text-accent-amber">
-          № 02 · {t('catalog.eyebrow')}
+          № 02 · {type && typeMeta ? (TYPE_LABEL[type] ?? type) : t('catalog.eyebrow')}
         </div>
+        {/* Per-type H1 + intro keeps /catalog/:type pages distinct from
+            /catalog (and each other) so they aren't near-duplicates. */}
         <h1 className="mt-4 max-w-3xl font-headline text-h1 text-balance text-fg-primary md:text-display-2">
-          {t('catalog.heading')}
+          {type && typeMeta ? typeMeta.title.split(' | ')[0] : t('catalog.heading')}
         </h1>
         <p className="mt-6 max-w-2xl text-body-lg text-pretty text-fg-secondary">
-          {t('catalog.intro')}
+          {type && typeMeta ? typeMeta.description : t('catalog.intro')}
         </p>
       </section>
 

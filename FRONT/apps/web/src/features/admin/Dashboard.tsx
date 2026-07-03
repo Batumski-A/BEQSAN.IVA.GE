@@ -63,25 +63,25 @@ export const AdminDashboard = (): JSX.Element => {
           <ProductPreviewCard
             title="PVC ფანჯრები"
             desc="გერმანული და თურქული 5/6 კამერიანი პროფილი, ენერგოეფექტური მინაპაკეტი."
-            img="/img/modern-pvc-window.png"
+            img="/img/modern-pvc-window.webp"
             link="/adminpanel/pricing"
           />
           <ProductPreviewCard
             title="ალუმინის კარები"
             desc="სლაიდური და გასაღები სისტემები, თერმოხიდით და პრემიუმ აქსესუარებით."
-            img="/img/aluminum-sliding-door.png"
+            img="/img/aluminum-sliding-door.webp"
             link="/adminpanel/pricing"
           />
           <ProductPreviewCard
             title="ვიტრაჟული ფასადები"
             desc="საფასადე შუშის კონსტრუქციები, უჩარჩოო და ალუმინის პროფილის სისტემები."
-            img="/img/panoramic-facade-vitrage.png"
+            img="/img/panoramic-facade-vitrage.webp"
             link="/adminpanel/pricing"
           />
           <ProductPreviewCard
             title="აქსესუარები & ბადეები"
             desc="პლისე, სტაციონარული და როლეტური ტიპის ბადეები, მაღალი ხარისხის ბადით."
-            img="/img/premium-mosquito-net.png"
+            img="/img/premium-mosquito-net.webp"
             link="/adminpanel/pricing"
           />
         </div>

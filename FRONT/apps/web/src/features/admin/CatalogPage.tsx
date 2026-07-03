@@ -25,14 +25,14 @@ type Material = {
 };
 
 const productImages: Record<string, string> = {
-  'pvc-windows': '/img/modern-pvc-window.png',
-  'aluminum-sliding': '/img/aluminum-sliding-door.png',
-  'aluminum-windows': '/img/modern-aluminum-window.png',
-  'sliding-doors': '/img/aluminum-sliding-door.png',
-  'vitrage-facades': '/img/panoramic-facade-vitrage.png',
-  'balcony-block': '/img/balcony-block-door.png',
-  'insect-screens': '/img/premium-mosquito-net.png',
-  veranda: '/img/balcony-block-door.png',
+  'pvc-windows': '/img/modern-pvc-window.webp',
+  'aluminum-sliding': '/img/aluminum-sliding-door.webp',
+  'aluminum-windows': '/img/modern-aluminum-window.webp',
+  'sliding-doors': '/img/aluminum-sliding-door.webp',
+  'vitrage-facades': '/img/panoramic-facade-vitrage.webp',
+  'balcony-block': '/img/balcony-block-door.webp',
+  'insect-screens': '/img/premium-mosquito-net.webp',
+  veranda: '/img/balcony-block-door.webp',
 };
 
 const localized = (n: LocalizedName | undefined, fallback: string): string =>
@@ -111,7 +111,7 @@ function ProductTypeBlock({ pt }: { pt: ProductType }): JSX.Element {
   });
 
   const ptName = localized(pt.name, pt.slug);
-  const image = productImages[pt.slug] ?? '/img/modern-pvc-window.png';
+  const image = productImages[pt.slug] ?? '/img/modern-pvc-window.webp';
   const materials = matQuery.data ?? [];
   const activeCount = materials.filter((m) => m.isActive !== false).length;
 
