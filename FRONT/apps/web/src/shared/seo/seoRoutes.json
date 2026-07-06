@@ -3,130 +3,236 @@
     "url": "https://beqsan.iva.ge",
     "brand": "BEQSAN",
     "brandKa": "ბექსანი",
-    "locale": "ka_GE",
-    "ogImage": "/og/og-default.png",
-    "twitter": ""
+    "defaultLocale": "ka",
+    "locales": ["ka", "en", "ru"],
+    "ogLocale": { "ka": "ka_GE", "en": "en_US", "ru": "ru_RU" },
+    "ogImage": "/og/og-default.png"
   },
   "routes": [
     {
       "path": "/",
-      "title": "ალუმინის და პლასტმასის კარ-ფანჯარა ბათუმში | BEQSAN",
-      "description": "ხელით აწყობილი ალუმინისა და მეტალოპლასტმასის კარ-ფანჯარა ბათუმის ფაბრიკაში 1998 წლიდან. ააწყვე ონლაინ 3D-ში, ნახაზი გამოგზავნე WhatsApp-ში.",
-      "type": "website",
       "priority": 1.0,
-      "changefreq": "weekly"
+      "changefreq": "weekly",
+      "title": {
+        "ka": "ალუმინის და პლასტმასის კარ-ფანჯარა ბათუმში | BEQSAN",
+        "en": "Aluminum & PVC Windows and Doors in Batumi | BEQSAN",
+        "ru": "Алюминиевые и ПВХ окна и двери в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "ხელით აწყობილი ალუმინისა და მეტალოპლასტმასის კარ-ფანჯარა ბათუმის ფაბრიკაში 1998 წლიდან. ააწყვე ონლაინ 3D-ში, ნახაზი გამოგზავნე WhatsApp-ში.",
+        "en": "Hand-built aluminum and PVC windows and doors from a Batumi workshop since 1998. Configure yours online in 3D and send the drawing via WhatsApp.",
+        "ru": "Алюминиевые и ПВХ окна и двери ручной сборки на фабрике в Батуми с 1998 года. Соберите онлайн в 3D и отправьте чертёж в WhatsApp."
+      }
     },
     {
       "path": "/configurator",
-      "title": "ფანჯრის ონლაინ კონფიგურატორი 3D-ში | BEQSAN",
-      "description": "ააწყვე შენი კარ-ფანჯარა ცოცხალ 3D სტუდიაში — ზომები, პროფილი, გახსნა. ნახაზი პირდაპირ WhatsApp-ში. ბათუმი და მთელი აჭარა.",
-      "type": "website",
       "priority": 0.9,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "ფანჯრის ონლაინ კონფიგურატორი 3D-ში | BEQSAN",
+        "en": "Online 3D Window Configurator | BEQSAN Batumi",
+        "ru": "Онлайн 3D-конфигуратор окон | BEQSAN Батуми"
+      },
+      "description": {
+        "ka": "ააწყვე შენი კარ-ფანჯარა ცოცხალ 3D სტუდიაში — ზომები, პროფილი, გახსნა. ნახაზი პირდაპირ WhatsApp-ში. ბათუმი და მთელი აჭარა.",
+        "en": "Build your window or door in a live 3D studio — size, profile, opening. The drawing goes straight to WhatsApp. Batumi and all Adjara.",
+        "ru": "Соберите окно или дверь в живой 3D-студии — размеры, профиль, открывание. Чертёж сразу в WhatsApp. Батуми и вся Аджария."
+      }
     },
     {
       "path": "/catalog",
-      "title": "კატალოგი — ალუმინი, PVC, სლაიდინგი | BEQSAN ბათუმი",
-      "description": "BEQSAN-ის კარ-ფანჯრის კატალოგი: ალუმინის და მეტალოპლასტმასის ფანჯრები, კარები, სლაიდინგი, პანორამა, აივნის შემინვა. ბათუმის ფაბრიკა.",
-      "type": "website",
       "priority": 0.9,
-      "changefreq": "weekly"
+      "changefreq": "weekly",
+      "title": {
+        "ka": "კატალოგი — ალუმინი, PVC, სლაიდინგი | BEQSAN ბათუმი",
+        "en": "Catalog — Aluminum, PVC, Sliding | BEQSAN Batumi",
+        "ru": "Каталог — алюминий, ПВХ, слайдинг | BEQSAN Батуми"
+      },
+      "description": {
+        "ka": "BEQSAN-ის კარ-ფანჯრის კატალოგი: ალუმინის და მეტალოპლასტმასის ფანჯრები, კარები, სლაიდინგი, პანორამა, აივნის შემინვა. ბათუმის ფაბრიკა.",
+        "en": "BEQSAN window & door catalog: aluminum and PVC windows, doors, sliding, panoramic and balcony glazing. Made in a Batumi workshop.",
+        "ru": "Каталог окон и дверей BEQSAN: алюминиевые и ПВХ окна, двери, слайдинг, панорамное и балконное остекление. Фабрика в Батуми."
+      }
     },
     {
       "path": "/catalog/window",
-      "title": "ალუმინის და PVC ფანჯრები ბათუმში | BEQSAN",
-      "description": "თერმო-ალუმინის (Alumil) და მეტალოპლასტმასის (Rehau) ფანჯრები ბათუმის ფაბრიკიდან. ხელით აწყობა, 10 წლამდე გარანტია, უფასო გაზომვა აჭარაში.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "ალუმინის და PVC ფანჯრები ბათუმში | BEQSAN",
+        "en": "Aluminum & PVC Windows in Batumi | BEQSAN",
+        "ru": "Алюминиевые и ПВХ окна в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "თერმო-ალუმინის (Alumil) და მეტალოპლასტმასის (Rehau) ფანჯრები ბათუმის ფაბრიკიდან. ხელით აწყობა, 10 წლამდე გარანტია, უფასო გაზომვა აჭარაში.",
+        "en": "Thermal aluminum (Alumil) and PVC (Rehau) windows from a Batumi workshop. Hand-built, up to 10-year warranty, free measurement across Adjara.",
+        "ru": "Тёплые алюминиевые (Alumil) и ПВХ (Rehau) окна с фабрики в Батуми. Ручная сборка, гарантия до 10 лет, бесплатный замер по Аджарии."
+      }
     },
     {
       "path": "/catalog/door",
-      "title": "შესასვლელი და შიდა კარები ბათუმში | BEQSAN",
-      "description": "ალუმინის და PVC შესასვლელი და შიდა კარები — თერმო, უსაფრთხო, ხელით აწყობილი ბათუმის ფაბრიკაში. გაზომვა და მონტაჟი მთელ აჭარაში.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "შესასვლელი და შიდა კარები ბათუმში | BEQSAN",
+        "en": "Entrance & Interior Doors in Batumi | BEQSAN",
+        "ru": "Входные и межкомнатные двери в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "ალუმინის და PVC შესასვლელი და შიდა კარები — თერმო, უსაფრთხო, ხელით აწყობილი ბათუმის ფაბრიკაში. გაზომვა და მონტაჟი მთელ აჭარაში.",
+        "en": "Aluminum and PVC entrance and interior doors — thermal, secure, hand-built in a Batumi workshop. Measurement and installation across Adjara.",
+        "ru": "Алюминиевые и ПВХ входные и межкомнатные двери — тёплые, надёжные, ручной сборки на фабрике в Батуми. Замер и монтаж по Аджарии."
+      }
     },
     {
       "path": "/catalog/sliding",
-      "title": "სლაიდინგ მოძრავი სისტემები ბათუმში | BEQSAN",
-      "description": "Alumil-ის სლაიდინგ პორტალები — ფართო გახსნა, თხელი ჩარჩო, დაბალი ზღურბლი. იდეალურია ტერასისა და დიდი სივრცისთვის. ბათუმი, აჭარა.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "სლაიდინგ მოძრავი სისტემები ბათუმში | BEQSAN",
+        "en": "Sliding Systems & Portals in Batumi | BEQSAN",
+        "ru": "Раздвижные системы и порталы в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "Alumil-ის სლაიდინგ პორტალები — ფართო გახსნა, თხელი ჩარჩო, დაბალი ზღურბლი. იდეალურია ტერასისა და დიდი სივრცისთვის. ბათუმი, აჭარა.",
+        "en": "Alumil sliding portals — wide opening, slim frame, low threshold. Ideal for terraces and large spaces. Batumi, Adjara.",
+        "ru": "Раздвижные порталы Alumil — широкое открывание, тонкая рама, низкий порог. Идеально для террас и больших пространств. Батуми, Аджария."
+      }
     },
     {
       "path": "/catalog/panoramic",
-      "title": "პანორამული შემინვა ბათუმში | BEQSAN",
-      "description": "პანორამული ალუმინის შემინვა — მინიმალური ჩარჩო, მაქსიმალური ხედი შავ ზღვაზე. ხელით აწყობილი ბათუმის ფაბრიკაში, 10 წლამდე გარანტია.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "პანორამული შემინვა ბათუმში | BEQSAN",
+        "en": "Panoramic Glazing in Batumi | BEQSAN",
+        "ru": "Панорамное остекление в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "პანორამული ალუმინის შემინვა — მინიმალური ჩარჩო, მაქსიმალური ხედი შავ ზღვაზე. ხელით აწყობილი ბათუმის ფაბრიკაში, 10 წლამდე გარანტია.",
+        "en": "Panoramic aluminum glazing — minimal frame, maximum Black Sea view. Hand-built in a Batumi workshop, up to 10-year warranty.",
+        "ru": "Панорамное алюминиевое остекление — минимальная рама, максимальный вид на Чёрное море. Ручная сборка в Батуми, гарантия до 10 лет."
+      }
     },
     {
       "path": "/catalog/balcony",
-      "title": "აივნის შემინვა ბათუმში | BEQSAN",
-      "description": "აივნის შემინვა ალუმინითა და მეტალოპლასტმასით — ბათუმის კლიმატზე გათვლილი, ბადით და თბოიზოლაციით. უფასო გაზომვა მთელ აჭარაში.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "აივნის შემინვა ბათუმში | BEQSAN",
+        "en": "Balcony Glazing in Batumi | BEQSAN",
+        "ru": "Остекление балконов в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "აივნის შემინვა ალუმინითა და მეტალოპლასტმასით — ბათუმის კლიმატზე გათვლილი, ბადით და თბოიზოლაციით. უფასო გაზომვა მთელ აჭარაში.",
+        "en": "Balcony glazing in aluminum and PVC — built for the Batumi climate with insect nets and thermal insulation. Free measurement across Adjara.",
+        "ru": "Остекление балконов алюминием и ПВХ — рассчитано на климат Батуми, с москитными сетками и теплоизоляцией. Бесплатный замер по Аджарии."
+      }
     },
     {
       "path": "/catalog/veranda",
-      "title": "ვერანდის შემინვა ბათუმში | BEQSAN",
-      "description": "ვერანდის შემინვა თერმო-ალუმინის სისტემებით — წელიწადის ნებისმიერ დროს კომფორტული სივრცე. ხელით აწყობა ბათუმის ფაბრიკაში.",
-      "type": "website",
       "priority": 0.8,
-      "changefreq": "monthly"
+      "changefreq": "monthly",
+      "title": {
+        "ka": "ვერანდის შემინვა ბათუმში | BEQSAN",
+        "en": "Veranda Glazing in Batumi | BEQSAN",
+        "ru": "Остекление веранд в Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "ვერანდის შემინვა თერმო-ალუმინის სისტემებით — წელიწადის ნებისმიერ დროს კომფორტული სივრცე. ხელით აწყობა ბათუმის ფაბრიკაში.",
+        "en": "Veranda glazing with thermal aluminum systems — a comfortable space year-round. Hand-built in a Batumi workshop.",
+        "ru": "Остекление веранд тёплыми алюминиевыми системами — комфортное пространство круглый год. Ручная сборка на фабрике в Батуми."
+      }
     },
     {
       "path": "/gallery",
-      "title": "ჩვენი ნამუშევრები — გალერეა | BEQSAN ბათუმი",
-      "description": "დასრულებული პროექტები ბათუმსა და აჭარაში: სასტუმროები, ბინები, კოტეჯები. ალუმინისა და PVC კარ-ფანჯარა ხელით აწყობილი BEQSAN-ის ფაბრიკაში.",
-      "type": "website",
       "priority": 0.7,
-      "changefreq": "weekly"
+      "changefreq": "weekly",
+      "title": {
+        "ka": "ჩვენი ნამუშევრები — გალერეა | BEQSAN ბათუმი",
+        "en": "Our Work — Gallery | BEQSAN Batumi",
+        "ru": "Наши работы — галерея | BEQSAN Батуми"
+      },
+      "description": {
+        "ka": "დასრულებული პროექტები ბათუმსა და აჭარაში: სასტუმროები, ბინები, კოტეჯები. ალუმინისა და PVC კარ-ფანჯარა ხელით აწყობილი BEQSAN-ის ფაბრიკაში.",
+        "en": "Completed projects in Batumi and Adjara: hotels, apartments, cottages. Aluminum and PVC windows and doors hand-built at the BEQSAN workshop.",
+        "ru": "Завершённые проекты в Батуми и Аджарии: отели, квартиры, коттеджи. Алюминиевые и ПВХ окна и двери ручной сборки на фабрике BEQSAN."
+      }
     },
     {
       "path": "/about",
-      "title": "ჩვენ შესახებ — ბათუმის ფაბრიკა 1998-დან | BEQSAN",
-      "description": "BEQSAN — რომან შარაშიძის ოჯახური სახელოსნო ბათუმის სალიბაურში. 1998 წლიდან ხელით ვაწყობთ ალუმინისა და PVC კარ-ფანჯარას. ერთი გუნდი, ერთი პასუხისმგებელი.",
-      "type": "website",
       "priority": 0.6,
-      "changefreq": "yearly"
+      "changefreq": "yearly",
+      "title": {
+        "ka": "ჩვენ შესახებ — ბათუმის ფაბრიკა 1998-დან | BEQSAN",
+        "en": "About Us — a Batumi Workshop Since 1998 | BEQSAN",
+        "ru": "О нас — фабрика в Батуми с 1998 года | BEQSAN"
+      },
+      "description": {
+        "ka": "BEQSAN — რომან შარაშიძის ოჯახური სახელოსნო ბათუმის სალიბაურში. 1998 წლიდან ხელით ვაწყობთ ალუმინისა და PVC კარ-ფანჯარას. ერთი გუნდი, ერთი პასუხისმგებელი.",
+        "en": "BEQSAN is Roman Sharashidze's family workshop in Salibauri, Batumi. Hand-building aluminum and PVC windows and doors since 1998. One team, one point of responsibility.",
+        "ru": "BEQSAN — семейная мастерская Романа Шарашидзе в Салибаури, Батуми. С 1998 года вручную собираем алюминиевые и ПВХ окна и двери. Одна команда — одна ответственность."
+      }
     },
     {
       "path": "/process",
-      "title": "როგორ ვქმნით — 7 ეტაპი | BEQSAN ბათუმი",
-      "description": "გაზომვიდან მონტაჟამდე — ფანჯრის შვიდი ეტაპი BEQSAN-ის სალიბაურის სახელოსნოში. ხელით აწყობა, CAD-შემოწმება, QA, ჩვენივე გუნდის მონტაჟი.",
-      "type": "website",
       "priority": 0.6,
-      "changefreq": "yearly"
+      "changefreq": "yearly",
+      "title": {
+        "ka": "როგორ ვქმნით — 7 ეტაპი | BEQSAN ბათუმი",
+        "en": "How We Build — 7 Stages | BEQSAN Batumi",
+        "ru": "Как мы делаем — 7 этапов | BEQSAN Батуми"
+      },
+      "description": {
+        "ka": "გაზომვიდან მონტაჟამდე — ფანჯრის შვიდი ეტაპი BEQSAN-ის სალიბაურის სახელოსნოში. ხელით აწყობა, CAD-შემოწმება, QA, ჩვენივე გუნდის მონტაჟი.",
+        "en": "From measurement to installation — the seven stages of a window at BEQSAN's Salibauri workshop. Hand assembly, CAD checks, QA, and our own installation team.",
+        "ru": "От замера до монтажа — семь этапов окна в мастерской BEQSAN в Салибаури. Ручная сборка, проверка CAD, контроль качества и монтаж собственной командой."
+      }
     },
     {
       "path": "/materials",
-      "title": "მასალები: Alumil, Rehau პროფილი | BEQSAN",
-      "description": "რას ვიყენებთ და რატომ: Alumil S-77/S-91 ალუმინი, Rehau PVC, Hoppe/G-U ფურნიტურა, Low-E მინა. სპეციფიკაცია, თერმო-ხიდი, გამჭვირვალობა.",
-      "type": "website",
       "priority": 0.7,
-      "changefreq": "yearly"
+      "changefreq": "yearly",
+      "title": {
+        "ka": "მასალები: Alumil, Rehau პროფილი | BEQSAN",
+        "en": "Materials: Alumil & Rehau Profiles | BEQSAN",
+        "ru": "Материалы: профили Alumil и Rehau | BEQSAN"
+      },
+      "description": {
+        "ka": "რას ვიყენებთ და რატომ: Alumil S-77/S-91 ალუმინი, Rehau PVC, Hoppe/G-U ფურნიტურა, Low-E მინა. სპეციფიკაცია, თერმო-ხიდი, გამჭვირვალობა.",
+        "en": "What we use and why: Alumil S-77/S-91 aluminum, Rehau PVC, Hoppe/G-U hardware, Low-E glass. Specs, thermal break, full transparency.",
+        "ru": "Что мы используем и почему: алюминий Alumil S-77/S-91, ПВХ Rehau, фурнитура Hoppe/G-U, стекло Low-E. Спецификации, терморазрыв, прозрачность."
+      }
     },
     {
       "path": "/warranty",
-      "title": "გარანტია — 10 წლამდე | BEQSAN ბათუმი",
-      "description": "BEQSAN-ის გარანტია: ალუმინის სისტემებზე 10 წელი, ფურნიტურაზე 50 000+ ციკლი, მონტაჟი ჩვენივე გუნდით. რას ფარავს და როგორ ვმოქმედებთ.",
-      "type": "website",
       "priority": 0.7,
-      "changefreq": "yearly"
+      "changefreq": "yearly",
+      "title": {
+        "ka": "გარანტია — 10 წლამდე | BEQSAN ბათუმი",
+        "en": "Warranty — Up to 10 Years | BEQSAN Batumi",
+        "ru": "Гарантия — до 10 лет | BEQSAN Батуми"
+      },
+      "description": {
+        "ka": "BEQSAN-ის გარანტია: ალუმინის სისტემებზე 10 წელი, ფურნიტურაზე 50 000+ ციკლი, მონტაჟი ჩვენივე გუნდით. რას ფარავს და როგორ ვმოქმედებთ.",
+        "en": "BEQSAN warranty: 10 years on aluminum systems, 50,000+ cycles on hardware, installation by our own team. What it covers and how we respond.",
+        "ru": "Гарантия BEQSAN: 10 лет на алюминиевые системы, 50 000+ циклов на фурнитуру, монтаж собственной командой. Что покрывает и как мы действуем."
+      }
     },
     {
       "path": "/contact",
-      "title": "კონტაქტი — სალიბაური, ბათუმი | BEQSAN",
-      "description": "სახელოსნო: სალიბაურის გზა 42, ბათუმი. ორშ–პარ 09:00–19:00, შაბ 10:00–15:00. WhatsApp +995 593 64 46 73. გვინახულე ან გამოგვიგზავნე ნახაზი.",
-      "type": "website",
       "priority": 0.7,
-      "changefreq": "yearly"
+      "changefreq": "yearly",
+      "title": {
+        "ka": "კონტაქტი — სალიბაური, ბათუმი | BEQSAN",
+        "en": "Contact — Salibauri, Batumi | BEQSAN",
+        "ru": "Контакты — Салибаури, Батуми | BEQSAN"
+      },
+      "description": {
+        "ka": "სახელოსნო: სალიბაურის გზა 42, ბათუმი. ორშ–პარ 09:00–19:00, შაბ 10:00–15:00. WhatsApp +995 593 64 46 73. გვინახულე ან გამოგვიგზავნე ნახაზი.",
+        "en": "Workshop: Salibauris Gza 42, Batumi. Mon–Fri 09:00–19:00, Sat 10:00–15:00. WhatsApp +995 593 64 46 73. Visit us or send your drawing.",
+        "ru": "Мастерская: ул. Салибаури 42, Батуми. Пн–Пт 09:00–19:00, Сб 10:00–15:00. WhatsApp +995 593 64 46 73. Приезжайте или пришлите чертёж."
+      }
     }
   ],
   "noindexRoutes": [

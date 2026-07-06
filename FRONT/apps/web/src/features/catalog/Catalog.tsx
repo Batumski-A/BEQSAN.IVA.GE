@@ -7,7 +7,7 @@ import { resolveLocalized } from './localized';
 import { SHOW_PUBLIC_PRICES } from '@/shared/config/features';
 import { ProductIllustrationFor } from '@/shared/illustrations/ProductIllustrations';
 import { Seo } from '@/shared/seo/Seo';
-import { seoForPath } from '@/shared/seo/routeMeta';
+import { seoForPath, pick } from '@/shared/seo/routeMeta';
 import { serviceSchema, SITE_URL } from '@/shared/seo/schema';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -37,11 +37,13 @@ export default function Catalog() {
           { name: 'მთავარი', path: '/' },
           { name: 'კატალოგი', path: '/catalog' },
         ];
+  const typeTitle = typeMeta ? pick(typeMeta.title, i18n.language).split(' | ')[0]! : '';
+  const typeDesc = typeMeta ? pick(typeMeta.description, i18n.language) : '';
   const serviceLd =
     type && typeMeta
       ? serviceSchema({
-          name: typeMeta.title.split(' | ')[0]!,
-          description: typeMeta.description,
+          name: typeTitle,
+          description: typeDesc,
           url: `${SITE_URL}${catalogPath}`,
         })
       : undefined;
@@ -61,10 +63,10 @@ export default function Catalog() {
         {/* Per-type H1 + intro keeps /catalog/:type pages distinct from
             /catalog (and each other) so they aren't near-duplicates. */}
         <h1 className="mt-4 max-w-3xl font-headline text-h1 text-balance text-fg-primary md:text-display-2">
-          {type && typeMeta ? typeMeta.title.split(' | ')[0] : t('catalog.heading')}
+          {type && typeMeta ? typeTitle : t('catalog.heading')}
         </h1>
         <p className="mt-6 max-w-2xl text-body-lg text-pretty text-fg-secondary">
-          {type && typeMeta ? typeMeta.description : t('catalog.intro')}
+          {type && typeMeta ? typeDesc : t('catalog.intro')}
         </p>
       </section>
 

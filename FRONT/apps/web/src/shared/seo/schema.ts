@@ -124,15 +124,21 @@ export function serviceSchema(opts: {
   };
 }
 
-/** BreadcrumbList from an ordered [{ name, path }] trail (path relative). */
-export function breadcrumbSchema(items: { name: string; path: string }[]): object {
+/** BreadcrumbList from an ordered [{ name, path }] trail. URLs are prefixed
+ *  with the page's locale ('' for ka, '/en', '/ru') so a localized page's
+ *  breadcrumb links to same-language pages. */
+export function breadcrumbSchema(
+  items: { name: string; path: string }[],
+  lang = 'ka',
+): object {
+  const prefix = lang === 'ka' ? '' : `/${lang}`;
   return {
     '@type': 'BreadcrumbList',
     itemListElement: items.map((it, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       name: it.name,
-      item: `${SITE_URL}${it.path}`,
+      item: it.path === '/' ? `${SITE_URL}${prefix}` : `${SITE_URL}${prefix}${it.path}`,
     })),
   };
 }

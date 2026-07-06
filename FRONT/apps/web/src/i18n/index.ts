@@ -9,12 +9,12 @@ import ru from './locales/ru.json';
 export const SUPPORTED_LOCALES = ['ka', 'en', 'ru'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
-// First-visit users land in Georgian regardless of browser language —
-// BEQSAN's primary market is Georgian and the kickoff calls Georgian
-// the canonical surface. Once the user picks a language (top-header
-// switcher writes to localStorage), that choice sticks across visits.
-// Removed `navigator` from the detector order so a Latvian-locale
-// Chrome doesn't ship them en/ru just because they don't have ka set.
+// The URL is the source of truth for language: /en/* and /ru/* are English
+// and Russian; everything else is Georgian (the primary market). The 'path'
+// detector reads the first path segment (invalid segments like "about" are
+// rejected against supportedLngs, so root paths fall through to htmlTag =
+// ka). The router's LocaleShell then keeps i18next in sync on client-side
+// navigation. No localStorage caching — it would fight the URL.
 void i18next
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -29,8 +29,9 @@ void i18next
       ru: { translation: ru },
     },
     detection: {
-      order: ['localStorage', 'htmlTag'],
-      caches: ['localStorage'],
+      order: ['path', 'htmlTag'],
+      lookupFromPathIndex: 0,
+      caches: [],
     },
     returnNull: false,
   });

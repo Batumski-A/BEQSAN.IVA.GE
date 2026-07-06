@@ -1,9 +1,11 @@
-import { lazy } from 'react';
+import { lazy, useLayoutEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { Layout } from '@/features/_layout/Layout';
 import { StudioLayout } from '@/features/_layout/StudioLayout';
 import { AdminGate } from '@/features/admin/AdminGate';
+import type { Locale } from '@/shared/seo/routeMeta';
 
 const Home = lazy(() => import('@/features/home/Home'));
 const LiveStudio = lazy(() => import('@/features/configurator/LiveStudio'));
@@ -71,7 +73,9 @@ const AdminGallery = lazy(() =>
  * `/configurator/wizard` for transitional QA — it'll be removed once the live
  * editor has feature parity (color picker, accessories, send-order endpoint).
  */
-export function AppRouter() {
+/** The public route tree, language-agnostic (paths are relative so it can be
+ *  mounted at the root for ka and under /en, /ru for the other locales). */
+function PublicRoutes() {
   return (
     <Routes>
       <Route element={<StudioLayout />}>
@@ -92,10 +96,25 @@ export function AppRouter() {
         <Route path="order/:phone/:code" element={<OrderTracking />} />
         <Route path="*" element={<NotFound />} />
       </Route>
+    </Routes>
+  );
+}
 
-      {/* Admin — bare (AdminLayout is rendered inside each page). The
-          login route is reachable without auth; everything else under
-          /adminpanel/* is wrapped in AdminGate. */}
+/** Forces i18next to the URL's locale, then renders the public tree. URL is the
+ *  source of truth for language (path prefix /en, /ru; ka at root). */
+function LocaleShell({ lang }: { lang: Locale }) {
+  const { i18n } = useTranslation();
+  useLayoutEffect(() => {
+    if (i18n.language !== lang) void i18n.changeLanguage(lang);
+  }, [lang, i18n]);
+  return <PublicRoutes />;
+}
+
+export function AppRouter() {
+  return (
+    <Routes>
+      {/* Admin — root only, never under a locale prefix. AdminLayout renders
+          inside each page; login is public, the rest is behind AdminGate. */}
       <Route path="adminpanel/login" element={<AdminLogin />} />
       <Route
         path="adminpanel/*"
@@ -105,6 +124,12 @@ export function AppRouter() {
           </AdminGate>
         }
       />
+
+      {/* Localized public trees. Static "en"/"ru" segments outrank the ka
+          splat, so /en/* and /ru/* win over /*. */}
+      <Route path="en/*" element={<LocaleShell lang="en" />} />
+      <Route path="ru/*" element={<LocaleShell lang="ru" />} />
+      <Route path="/*" element={<LocaleShell lang="ka" />} />
     </Routes>
   );
 }

@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/shared/lib/cn';
+import { useLocale, stripLocale } from '@/shared/i18n/useLocale';
 
 /**
  * Minimal layout for Modern Studio surfaces (`/` and `/configurator`).
@@ -14,10 +15,11 @@ import { cn } from '@/shared/lib/cn';
 export function StudioLayout() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { lp } = useLocale();
   const [scrolled, setScrolled] = useState(false);
   const [headerHovered, setHeaderHovered] = useState(false);
 
-  const showNav = !location.pathname.startsWith('/configurator');
+  const showNav = !stripLocale(location.pathname).startsWith('/configurator');
 
   // Capture global scroll events (including container scrolls inside sub-pages)
   useEffect(() => {
@@ -50,7 +52,7 @@ export function StudioLayout() {
             )}
           >
             <Link
-              to="/"
+              to={lp("/")}
               className={cn(
                 "font-studio font-bold tracking-tighter text-studio-fg transition-all duration-300",
                 isCollapsed ? "text-lg" : "text-2xl"
@@ -60,7 +62,7 @@ export function StudioLayout() {
               BEQSAN<span className="text-studio-brand">.</span>
             </Link>
             <Link
-              to="/configurator"
+              to={lp("/configurator")}
               className={cn(
                 "rounded-full bg-studio-fg font-studio font-medium text-white shadow-sm transition-all hover:bg-studio-ink-2 hover:shadow-md duration-300 inline-flex items-center justify-center whitespace-nowrap",
                 isCollapsed

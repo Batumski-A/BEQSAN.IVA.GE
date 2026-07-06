@@ -5,6 +5,7 @@ import { ChevronDown, Menu, X } from 'lucide-react';
 
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n';
 import { cn } from '@/shared/lib/cn';
+import { useLocale, stripLocale } from '@/shared/i18n/useLocale';
 
 const LOCALE_LABEL: Record<Locale, string> = {
   ka: 'ქარ',
@@ -21,6 +22,7 @@ const LOCALE_FULL: Record<Locale, string> = {
 export function Layout() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { lp } = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -64,10 +66,11 @@ export function Layout() {
     };
   }, [studioOpen]);
 
+  const barePath = stripLocale(location.pathname);
   const studioActive =
-    location.pathname.startsWith('/about') ||
-    location.pathname.startsWith('/process') ||
-    location.pathname.startsWith('/materials');
+    barePath.startsWith('/about') ||
+    barePath.startsWith('/process') ||
+    barePath.startsWith('/materials');
 
   const isCollapsed = scrolled && !headerHovered;
 
@@ -88,7 +91,7 @@ export function Layout() {
         <div className={cn("mx-auto flex max-w-content items-center justify-between px-4 md:px-8 transition-all duration-300", isCollapsed ? "h-11" : "h-16")}>
           <div className="flex items-center gap-4 sm:gap-6 md:gap-8">
             <Link
-              to="/"
+              to={lp("/")}
               className={cn("font-display tracking-tight text-fg-primary transition-all duration-300", isCollapsed ? "text-lg font-bold" : "text-h4")}
               aria-label="BEQSAN"
             >
@@ -150,7 +153,7 @@ export function Layout() {
 
           <div className="flex items-center gap-3">
             <Link
-              to="/configurator"
+              to={lp("/configurator")}
               className={cn(
                 "hidden h-11 items-center justify-center rounded-sm bg-accent-amber px-5 font-mono text-mono-spec uppercase tracking-wider text-bg-base transition-all duration-300 active:scale-[0.98] md:inline-flex",
                 isCollapsed ? "opacity-0 pointer-events-none w-0 overflow-hidden" : "opacity-100 hover:bg-accent-amber-h"
@@ -201,7 +204,7 @@ export function Layout() {
               <MobileLink to="/warranty" label={t('nav.warranty')} />
               <MobileLink to="/contact" label={t('nav.contact')} />
               <Link
-                to="/configurator"
+                to={lp("/configurator")}
                 className="mt-4 inline-flex h-12 items-center justify-center rounded-sm bg-accent-amber font-mono text-mono-spec uppercase tracking-wider text-bg-base"
               >
                 {t('common.actions.configure')}
@@ -290,9 +293,10 @@ export function Layout() {
 }
 
 function NavLinkItem({ to, children }: { to: string; children: React.ReactNode }) {
+  const { lp } = useLocale();
   return (
     <NavLink
-      to={to}
+      to={lp(to)}
       className={({ isActive }) =>
         cn(
           'text-body-sm transition-colors duration-120',
@@ -306,9 +310,10 @@ function NavLinkItem({ to, children }: { to: string; children: React.ReactNode }
 }
 
 function DropdownLink({ to, label }: { to: string; label: string }) {
+  const { lp } = useLocale();
   return (
     <NavLink
-      to={to}
+      to={lp(to)}
       role="menuitem"
       className={({ isActive }) =>
         cn(
@@ -325,9 +330,10 @@ function DropdownLink({ to, label }: { to: string; label: string }) {
 }
 
 function MobileLink({ to, label }: { to: string; label: string }) {
+  const { lp } = useLocale();
   return (
     <NavLink
-      to={to}
+      to={lp(to)}
       className={({ isActive }) =>
         cn(
           'block border-b border-hairline py-3 text-body transition-colors duration-120 last:border-b-0',
@@ -341,9 +347,10 @@ function MobileLink({ to, label }: { to: string; label: string }) {
 }
 
 function FooterLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const { lp } = useLocale();
   return (
     <li>
-      <Link to={to} className="hover:text-fg-primary">
+      <Link to={lp(to)} className="hover:text-fg-primary">
         {children}
       </Link>
     </li>
@@ -358,8 +365,8 @@ function FooterLink({ to, children }: { to: string; children: React.ReactNode })
  * top of the mobile drawer.
  */
 function LanguageSwitcher({ variant }: { variant: 'header' | 'drawer' }) {
-  const { t, i18n } = useTranslation();
-  const active = (i18n.resolvedLanguage ?? i18n.language) as Locale;
+  const { t } = useTranslation();
+  const { lang: active, switchTo } = useLocale();
   return (
     <div
       role="group"
@@ -375,7 +382,7 @@ function LanguageSwitcher({ variant }: { variant: 'header' | 'drawer' }) {
           <button
             key={loc}
             type="button"
-            onClick={() => void i18n.changeLanguage(loc)}
+            onClick={() => switchTo(loc)}
             aria-pressed={isActive}
             aria-label={LOCALE_FULL[loc]}
             className={cn(
